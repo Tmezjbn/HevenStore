@@ -109,7 +109,9 @@ export default function HeroMediaBackdrop({
                   style={mediaStyle}
                   loading="eager"
                   decoding="async"
-                  fetchPriority={i === 0 ? 'high' : 'low'}
+                  ref={(el) => {
+                    if (el) el.setAttribute('fetchpriority', i === 0 ? 'high' : 'low');
+                  }}
                 />
               )}
               {highlightId === item.id && (
