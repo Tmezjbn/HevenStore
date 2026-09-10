@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /auth/
+Disallow: /cart
+Disallow: /wishlist
+Disallow: /checkout
+
+Sitemap: https://heven.fun/sitemap.xml

@@ -1,0 +1,124 @@
+// Supabase Edge Function: create a Polar checkout session for a pending order.
+//
+// Secrets (supabase secrets set KEY=value):
+//   POLAR_ACCESS_TOKEN   - Organization access token (sandbox org)
+//   POLAR_PRODUCT_ID     - Any product UUID from sandbox dashboard
+//   SITE_URL             - http://localhost:5173 (dev) or your live URL
+//   POLAR_SERVER         - "sandbox" or "production"
+//
+// Deploy: supabase functions deploy polar-checkout
+
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
+function corsHeaders(req: Request): Record<string, string> {
+  const site = (Deno.env.get('SITE_URL') ?? 'http://localhost:5173').replace(/\/$/, '');
+  const origin = (req.headers.get('Origin') ?? '').replace(/\/$/, '');
+  const allowed = new Set([site, 'http://localhost:5173', 'http://127.0.0.1:5173']);
+  return {
+    'Access-Control-Allow-Origin': allowed.has(origin) ? (req.headers.get('Origin') ?? site) : site,
+    'Vary': 'Origin',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+}
+
+function json(req: Request, body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+  });
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders(req) });
+  if (req.method !== 'POST') return json(req, { error: 'Method not allowed' }, 405);
+
+  const accessToken = Deno.env.get('POLAR_ACCESS_TOKEN');
+  const productId = Deno.env.get('POLAR_PRODUCT_ID');
+  const siteUrl = Deno.env.get('SITE_URL') ?? 'http://localhost:5173';
+  const polarBase = (Deno.env.get('POLAR_SERVER') ?? 'sandbox') === 'production'
+    ? 'https://api.polar.sh'
+    : 'https://sandbox-api.polar.sh';
+
+  if (!accessToken || !productId) {
+    return json(req, { error: 'polar_not_configured' }, 501);
+  }
+
+  try {
+    const { order_id } = await req.json();
+    if (!order_id) return json(req, { error: 'order_id required' }, 400);
+
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const anonClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: userErr } = await anonClient.auth.getUser();
+    if (userErr || !userData.user) return json(req, { error: 'unauthorized' }, 401);
+
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+    const { data: order, error: orderErr } = await admin
+      .from('orders')
+      .select('id, user_id, total, status')
+      .eq('id', order_id)
+      .single();
+
+    if (orderErr || !order) return json(req, { error: 'order_not_found' }, 404);
+    if (order.user_id !== userData.user.id) return json(req, { error: 'forbidden' }, 403);
+    if (order.status !== 'pending') return json(req, { error: 'order_not_pending' }, 409);
+
+    const amountCents = Math.round(Number(order.total) * 100);
+    if (!Number.isFinite(amountCents) || amountCents < 50) {
+      return json(req, { error: 'invalid_amount' }, 400);
+    }
+
+    // Polar requires ad-hoc prices for dynamic cart totals — top-level "amount"
+    // only works with custom/pay-what-you-want catalog prices and is often ignored.
+    const res = await fetch(`${polarBase}/v1/checkouts/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        products: [productId],
+        prices: {
+          [productId]: [
+            {
+              amount_type: 'fixed',
+              price_amount: amountCents,
+              price_currency: 'usd',
+            },
+          ],
+        },
+        customer_email: userData.user.email,
+        external_customer_id: userData.user.id,
+        success_url: `${siteUrl}/checkout/success?order_id=${order.id}`,
+        metadata: { order_id: order.id },
+      }),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text();
+      console.error('Polar checkout create failed:', res.status, detail);
+      return json(req, { error: 'polar_error', polar_status: res.status, detail: detail.slice(0, 500) }, 502);
+    }
+
+    const checkout = await res.json();
+
+    // Link Polar checkout to our order for webhook correlation.
+    await admin
+      .from('orders')
+      .update({ polar_checkout_id: checkout.id })
+      .eq('id', order.id);
+
+    return json(req, { url: checkout.url });
+  } catch (e) {
+    console.error('polar-checkout error:', e);
+    return json(req, { error: 'internal' }, 500);
+  }
+});

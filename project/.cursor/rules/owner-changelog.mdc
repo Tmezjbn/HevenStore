@@ -1,0 +1,20 @@
+---
+description: Always append owner internal changelog when shipping store/product changes
+alwaysApply: true
+---
+
+# Owner internal log
+
+After shipping a **user-visible** storefront or dashboard behavior change (not typo-only / pure refactor / docs-only), add an **Internal log (owner only)** entry.
+
+Skip when: private refactors, dependency bumps with no owner-facing effect, documentation-only work, or the user says skip the log.
+
+## How
+
+1. Prefer a new idempotent migration under `supabase/migrations/` inserting into `owner_changelog_entries` (`WHERE NOT EXISTS` on `title_en`), **or** insert via Dashboard → Changelogs if DB is already live and migration will lag.
+2. Mirror the lesson in `OWNER_LESSON_SEEDS` in `src/lib/changelogs.ts` when you add a seed title (fallback if `lesson_json` empty).
+3. Copy shape (plain language, bilingual): `title_ar` / `title_en`, `summary_ar` / `summary_en`, `lesson_json` (what / why / how / benefits — AR + EN).
+4. `sort_order`: higher than current top (or `Date.now()`). `entry_date`: ship day.
+5. `update_scale`: default **`small`**. Use **`big`** only for curated milestones. Internal UI defaults to Big updates tab.
+
+Do **not** put engineering jargon in the owner-facing summary/lesson; write for the store owner.

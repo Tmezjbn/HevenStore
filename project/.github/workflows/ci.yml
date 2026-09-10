@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - name: no live purge secret in repo
+        run: node scripts/check-purge-secret.mjs
+      - run: npm run build
+      - name: npm audit (prod, high+)
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true

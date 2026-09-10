@@ -1,0 +1,20 @@
+# Security headers for Netlify / Cloudflare Pages.
+# Vercel: see vercel.json. Coolify/nginx: mirror on the reverse proxy.
+# ponytail: style-src allows unsafe-inline for DaisyUI theme vars.
+# img-src https: — product/hero URLs may be any https host (owner-set); tighten when CDN-only.
+# CoolLabs: css @ api.fonts.coollabs.io, woff2 @ cdn.fonts.coollabs.io.
+# Note: the line "/*" below is a Netlify/CF path glob (all routes), not a comment.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.databuddy.cc https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com https://player.vimeo.com; style-src 'self' 'unsafe-inline' https://api.fonts.coollabs.io; font-src 'self' data: https://api.fonts.coollabs.io https://cdn.fonts.coollabs.io; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.databuddy.cc https://cdn.databuddy.cc https://api.fonts.coollabs.io https://cdn.fonts.coollabs.io https://noembed.com; frame-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+
+/index.html
+  Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-01T12:00:00.000Z",
+  "title": "Design System: HEVEN.FUN",
+  "extensions": {
+    "colorMeta": {
+      "vault-void": {
+        "role": "neutral",
+        "displayName": "Vault Void",
+        "canonical": "oklch(14% 0.012 240)",
+        "tonalRamp": ["#050709", "#070a0e", "#0a0e12", "#0d141a", "#10151b", "#172029", "#1e2733", "#2a3746"]
+      },
+      "signal-teal": {
+        "role": "primary",
+        "displayName": "Signal Teal",
+        "canonical": "oklch(78% 0.13 180)",
+        "tonalRamp": ["#042f2a", "#0f766e", "#14b8a6", "#2dd4bf", "#5eead4", "#99f6e4", "#ccfbf1", "#f0fdfa"]
+      },
+      "signal-cyan": {
+        "role": "accent",
+        "displayName": "Signal Cyan",
+        "canonical": "oklch(78% 0.13 210)",
+        "tonalRamp": ["#083344", "#0e7490", "#0891b2", "#22d3ee", "#67e8f9", "#a5f3fc", "#cffafe", "#ecfeff"]
+      },
+      "vault-surface": {
+        "role": "neutral",
+        "displayName": "Vault Surface",
+        "canonical": "oklch(16% 0.012 240)",
+        "tonalRamp": ["#050709", "#080b0f", "#0d1116", "#10151b", "#141a21", "#172029", "#1e2733", "#2a3746"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headlines only — one per viewport." },
+      "body": { "displayName": "Body", "purpose": "Descriptions, checkout copy, dashboard prose." }
+    },
+    "shadows": [
+      { "name": "card-lift", "value": "0 4px 24px rgba(0,0,0,0.6)", "purpose": "Sticky nav scrolled state." },
+      { "name": "glow", "value": "0 0 20px rgba(45,212,191,0.3)", "purpose": "Primary button hover, interactive emphasis." },
+      { "name": "glow-lg", "value": "0 0 40px rgba(45,212,191,0.4)", "purpose": "Single promotional badge per screen." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default UI transitions." },
+      { "name": "fade-in-up", "value": "0.6s ease", "purpose": "Section entrance — respect reduced motion." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main commerce CTA — add to cart, explore catalog, checkout.",
+      "html": "<button class=\"ds-btn-primary\"><svg class=\"ds-btn-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M6 12h12M13 7l5 5-5 5\"/></svg>Explore Games</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 8px; background: #2dd4bf; color: #04241f; border: none; border-radius: 8px; padding: 12px 24px; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease; } .ds-btn-primary:hover { background: #5eead4; box-shadow: 0 0 20px rgba(45,212,191,0.4); transform: translateY(-1px); } .ds-btn-primary:focus-visible { outline: 2px solid #2dd4bf; outline-offset: 2px; } .ds-btn-icon { width: 16px; height: 16px; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action — subscriptions, learn more.",
+      "html": "<button class=\"ds-btn-outline\">View Subscriptions</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; gap: 8px; background: transparent; color: #f1f5f9; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 12px 24px; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease; } .ds-btn-outline:hover { border-color: #2dd4bf; background: rgba(45,212,191,0.1); } .ds-btn-outline:focus-visible { outline: 2px solid #2dd4bf; outline-offset: 2px; }"
+    },
+    {
+      "name": "HEVEN Card",
+      "kind": "card",
+      "refersTo": "card-surface",
+      "description": "Product and category tile — flat at rest, teal border on hover.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-badge\">-25%</div><div class=\"ds-card-image\"></div><h3 class=\"ds-card-title\">Xbox Game Pass Ultimate</h3><p class=\"ds-card-price\">$14.99 <span>$19.99</span></p></div>",
+      "css": ".ds-card { background: #10151b; border: 1px solid #1e2733; border-radius: 12px; padding: 16px; position: relative; transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease; } .ds-card:hover { border-color: rgba(45,212,191,0.4); box-shadow: 0 4px 24px rgba(45,212,191,0.15); transform: translateY(-2px); } .ds-card-badge { position: absolute; top: 12px; right: 12px; background: rgba(45,212,191,0.2); color: #5eead4; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; } .ds-card-image { height: 120px; border-radius: 8px; background: linear-gradient(135deg, #172029, #0f766e); margin-bottom: 12px; } .ds-card-title { color: #f1f5f9; font-size: 14px; font-weight: 600; margin: 0 0 8px; } .ds-card-price { color: #f1f5f9; font-size: 16px; font-weight: 700; margin: 0; } .ds-card-price span { color: #94a3b8; font-size: 13px; font-weight: 400; text-decoration: line-through; margin-left: 8px; }"
+    },
+    {
+      "name": "Store Navigation",
+      "kind": "nav",
+      "description": "Fixed top bar — transparent over hero, void blur when scrolled.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-logo\" href=\"#\">HEVEN<span class=\"ds-nav-dot\">.</span>FUN</a><div class=\"ds-nav-links\"><a class=\"ds-nav-link ds-nav-link--active\" href=\"#\">Games</a><a class=\"ds-nav-link\" href=\"#\">Subscriptions</a></div></nav>",
+      "css": ".ds-nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: rgba(10,14,18,0.95); backdrop-filter: blur(16px); border-bottom: 1px solid #1e2733; } .ds-nav-logo { font-size: 20px; font-weight: 900; color: #f1f5f9; text-decoration: none; letter-spacing: -0.02em; } .ds-nav-dot { color: #2dd4bf; } .ds-nav-links { display: flex; gap: 24px; } .ds-nav-link { color: #94a3b8; font-size: 14px; font-weight: 500; text-decoration: none; transition: color 0.2s; } .ds-nav-link:hover, .ds-nav-link--active { color: #2dd4bf; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "description": "Catalog search field in modal or filter bar.",
+      "html": "<input class=\"ds-input\" type=\"search\" placeholder=\"Search games...\" />",
+      "css": ".ds-input { width: 100%; background: #10151b; color: #f1f5f9; border: 1px solid #1e2733; border-radius: 8px; padding: 10px 14px; font-family: Inter, system-ui, sans-serif; font-size: 14px; transition: border-color 0.2s, box-shadow 0.2s; } .ds-input::placeholder { color: #94a3b8; } .ds-input:focus { outline: none; border-color: #2dd4bf; box-shadow: 0 0 0 1px #2dd4bf; }"
+    },
+    {
+      "name": "Trust Feature Chip",
+      "kind": "chip",
+      "description": "Hero trust row — instant delivery, secure payment.",
+      "html": "<div class=\"ds-chip\"><span class=\"ds-chip-icon\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M13 2L3 14h9l-1 8 10-12h-9l1-8z\"/></svg></span><div><p class=\"ds-chip-label\">Instant Delivery</p><p class=\"ds-chip-desc\">Get in seconds</p></div></div>",
+      "css": ".ds-chip { display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: rgba(16,21,27,0.8); border: 1px solid #1e2733; border-radius: 8px; } .ds-chip-icon { display: flex; padding: 6px; background: rgba(45,212,191,0.2); border-radius: 6px; color: #5eead4; } .ds-chip-icon svg { width: 14px; height: 14px; } .ds-chip-label { color: #f1f5f9; font-size: 12px; font-weight: 600; margin: 0; } .ds-chip-desc { color: #94a3b8; font-size: 10px; margin: 2px 0 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Trusted Vault",
+    "overview": "HEVEN.FUN reads as a premium dark commerce vault: valuables stored behind a confident, fast interface. Surfaces stay quiet and layered; teal appears as a rare signal on actions that move money or trust.",
+    "keyCharacteristics": [
+      "Near-black cool-charcoal background with stepped slate surfaces",
+      "Bebas Neue display over Rubik body (Vault skin) at heavy weights for commerce headlines",
+      "Primary-signal glow reserved for hover, CTA, and promotional emphasis",
+      "12px corner radius as the default container language",
+      "DaisyUI 5 themes (6 skins, dark+light each); CSS transitions for hover/focus"
+    ],
+    "rules": [
+      { "name": "The Rare Signal Rule", "body": "Teal fill or glow on ≤15% of any viewport. If everything glows, nothing is urgent.", "section": "colors" },
+      { "name": "The No-Shout Rule", "body": "Display clamp max stays at 4.5rem (~72px). Larger reads as discount spam, not premium.", "section": "typography" },
+      { "name": "The Glow-On-Response Rule", "body": "Glow appears on hover, focus, or active promotion — never as the default resting state for every card.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the void background dominant and step surfaces for hierarchy.",
+      "Do show trust signals near CTAs on commerce pages.",
+      "Do test AR and EN copy at the same visual weight.",
+      "Do use glow and motion on the element the user is about to click.",
+      "Do respect prefers-reduced-motion."
+    ],
+    "donts": [
+      "Don't use generic SaaS patterns: cream backgrounds, hero metric templates, uppercase tracked eyebrows on every section, identical icon-card grids.",
+      "Don't use gradient text for headlines — solid base-content or teal only.",
+      "Don't pair 1px border with wide soft drop shadow on the same element.",
+      "Don't exceed 12–16px radius on cards.",
+      "Don't use Ink Dim for body copy on Vault Void."
+    ]
+  }
+}
