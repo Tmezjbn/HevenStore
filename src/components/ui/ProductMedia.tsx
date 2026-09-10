@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, type CSSProperties } from 'react';
 import {
   imageTransformsEnabled,
   isVideoUrl,
@@ -75,6 +75,14 @@ export default function ProductMedia({
   sizes,
   autoPlay = true,
 }: Props) {
+  // React 18 doesn't map the camelCase fetchPriority prop onto the DOM —
+  // set the lowercase fetchpriority attribute directly.
+  const setImgRef = useCallback(
+    (el: HTMLImageElement | null) => {
+      if (el && fetchPriority) el.setAttribute('fetchpriority', fetchPriority);
+    },
+    [fetchPriority],
+  );
   if (isVideoUrl(src)) {
     if (autoPlay) return <InViewVideo src={src} className={className} alt={alt} />;
     return (
@@ -99,13 +107,13 @@ export default function ProductMedia({
   const height = width ? Math.round((width * 4) / 5) : undefined;
   return (
     <img
+      ref={setImgRef}
       src={href}
       srcSet={srcSet || undefined}
       alt={alt}
       className={className}
       loading={loading}
       decoding="async"
-      fetchPriority={fetchPriority}
       sizes={sizes}
       width={width}
       height={height}
