@@ -74,7 +74,7 @@ sequenceDiagram
   P->>W: order.paid (signature verified)
   W->>F: finalize (service role only)
   F->>F: claim keys / decrement stock atomically
-  S->>S: polls orders.status; shows fulfillment via get_order_fulfillment
+  S->>S: polls orders.status, shows fulfillment via get_order_fulfillment
 ```
 
 Human-readable `orders.order_number` (`ORD-YYYYMMDD-########`) is assigned by a DB trigger; Polar/webhooks/deep links still use UUID `orders.id`. Details: `HANDOFF.md`.
