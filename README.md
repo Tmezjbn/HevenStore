@@ -1,3 +1,20 @@
+<p align="center">
+  <img src="public/og-image.png" alt="HEVEN.FUN — Fun more. Pay less." width="100%" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/Tmezjbn/HevenStore/actions/workflows/ci.yml"><img src="https://github.com/Tmezjbn/HevenStore/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white" alt="Vite 5" />
+  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white" alt="React 18" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" alt="TypeScript 5" />
+  <img src="https://img.shields.io/badge/Tailwind-4-38BDF8?logo=tailwindcss&logoColor=white" alt="Tailwind 4" />
+  <img src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3ECF8E?logo=supabase&logoColor=white" alt="Supabase" />
+</p>
+
+<p align="center">
+  <a href="https://heven.fun"><strong>heven.fun</strong></a>
+</p>
+
 # HEVEN.FUN
 
 **Purpose:** Human entry doc — what this repo is, how to run it, where money and ops truth live.
