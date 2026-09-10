@@ -36,15 +36,15 @@ PowerShell: chain with `;` — `&&` does not work here.
 ```mermaid
 flowchart TB
   subgraph SPA["React SPA (Vite)"]
-    Store["Storefront (MainLayout)\nHome / Store / Product / Cart / Checkout"]
-    Dash["Dashboard (DashboardLayout, lazy, role-guarded)\n24 pages under src/pages/dashboard/"]
+    Store["Storefront (MainLayout)<br/>Home / Store / Product / Cart / Checkout"]
+    Dash["Dashboard (DashboardLayout, lazy, role-guarded)<br/>24 pages under src/pages/dashboard/"]
     Auth["Auth pages (lazy)"]
   end
   subgraph Supabase
-    PG[("Postgres + RLS\norders, products, profiles, …")]
-    RPC["RPCs (SECURITY DEFINER)\ncreate_pending_order\nfinalize_paid_order\nget_order_fulfillment"]
-    EF["Edge Functions\npolar-checkout · polar-webhook\nclient-error · databuddy-analytics\npurge-deleted-accounts · hard-delete-user"]
-    ST["Storage buckets\navatars · product-images · site-media"]
+    PG[("Postgres + RLS<br/>orders, products, profiles, …")]
+    RPC["RPCs (SECURITY DEFINER)<br/>create_pending_order<br/>finalize_paid_order<br/>get_order_fulfillment"]
+    EF["Edge Functions<br/>polar-checkout · polar-webhook<br/>client-error · databuddy-analytics<br/>purge-deleted-accounts · hard-delete-user"]
+    ST["Storage buckets<br/>avatars · product-images · site-media"]
   end
   Polar["Polar hosted checkout"]
   SPA -->|anon key + JWT| PG
