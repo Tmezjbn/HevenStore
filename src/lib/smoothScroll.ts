@@ -127,8 +127,10 @@ export function installStorefrontWheelSmooth(): () => void {
 
   const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
   let listening = false;
+  let lastTickAt = 0;
 
   const tick = () => {
+    lastTickAt = performance.now();
     const max = maxScrollY();
     wheelTarget = clampScrollTop(wheelTarget, max);
     const diff = wheelTarget - wheelY;
@@ -152,6 +154,19 @@ export function installStorefrontWheelSmooth(): () => void {
     // Blink wheel lerp would still scrollTo behind locked modals/drawers.
     if (documentScrollLocked()) return;
     if (wheelTargetsNestedScroller(e.target, e.deltaY)) return;
+
+    // rAF is throttled to ~1fps in occluded/backgrounded windows (Brave is the
+    // most aggressive about this) — a preventDefault'd wheel with a starved
+    // lerp reads as completely dead scrolling. Drop the interception and let
+    // the browser scroll natively until rAF is healthy again.
+    if (wheelRaf && performance.now() - lastTickAt > 250) {
+      cancelAnimationFrame(wheelRaf);
+      wheelRaf = 0;
+      driving = false;
+      wheelY = wheelTarget = window.scrollY;
+      return;
+    }
+    if (document.hidden) return;
 
     e.preventDefault();
     if (animRaf) {
