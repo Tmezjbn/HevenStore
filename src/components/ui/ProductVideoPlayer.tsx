@@ -138,7 +138,6 @@ function GenericEmbedFrame({
       className={className}
       title={title}
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-      allowFullScreen
       referrerPolicy="strict-origin-when-cross-origin"
     />
   );
