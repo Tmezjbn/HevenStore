@@ -32,7 +32,9 @@ function maxScrollY(): number {
 }
 
 function scrollInstant(y: number) {
-  window.scrollTo({ top: y, left: 0, behavior: 'auto' });
+  // 'instant' overrides the CSS `scroll-behavior: smooth` on <html> — 'auto'
+  // resolves to it and every lerp frame would restart a smooth animation.
+  window.scrollTo({ top: y, left: 0, behavior: 'instant' });
 }
 
 let animRaf = 0;
