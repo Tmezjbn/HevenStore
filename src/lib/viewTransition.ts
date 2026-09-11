@@ -158,12 +158,25 @@ export function withViewTransition(
   }
 
   root.classList.add(className);
-  const transition = startVt(() => {
+  // Blink can drop the VT update callback entirely (headless, occluded tab) —
+  // without a fallback the toggle is dead and theme-switching never clears.
+  let ran = false;
+  const runUpdate = () => {
+    if (ran) return;
+    ran = true;
     flushSync(update);
-  });
+  };
+  const fallback = window.setTimeout(() => {
+    runUpdate();
+    root.classList.remove(className);
+    clearReveal?.();
+  }, 700);
+  const transition = startVt(runUpdate);
   return transition.finished
     .catch(() => undefined)
     .finally(() => {
+      window.clearTimeout(fallback);
+      runUpdate();
       root.classList.remove(className);
       clearReveal?.();
     })
