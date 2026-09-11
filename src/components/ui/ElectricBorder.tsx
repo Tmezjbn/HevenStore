@@ -231,8 +231,19 @@ const ElectricBorder = forwardRef<HTMLDivElement, ElectricBorderProps>(function 
       const rect = host.getBoundingClientRect();
       const minSide = Math.min(rect.width, rect.height);
       // Tiny preview thumbs (~80×60): tighter pad so arcs stay readable, not clipped to a box.
-      const borderOffset = minSide > 0 && minSide < 120 ? 28 : 48;
-      const displacement = minSide > 0 && minSide < 120 ? 40 : 56;
+      let borderOffset = minSide > 0 && minSide < 120 ? 28 : 48;
+      // Canvas centers on the host — bleed past the viewport edge is offscreen
+      // anyway, but it still expands page scrollWidth. Cap to the nearer edge.
+      const vw = document.documentElement.clientWidth;
+      const margin = Math.min(rect.left, vw - rect.right);
+      borderOffset = Math.max(4, Math.min(borderOffset, Math.floor(margin) - 1));
+      const displacement = Math.min(minSide > 0 && minSide < 120 ? 40 : 56, borderOffset + 8);
+      // Same for the ambient bg glow: scale(1.08) bleeds ~4%/side; transformed
+      // bounds count toward scrollWidth, so clamp to the available margin.
+      // blur(32px) dominates the visible glow — clamping the box loses nothing.
+      const scale =
+        1 + Math.max(0, Math.min(0.08, (2 * Math.max(0, margin)) / Math.max(1, rect.width)));
+      host.style.setProperty('--electric-bg-scale', scale.toFixed(3));
       const width = rect.width + borderOffset * 2;
       const height = rect.height + borderOffset * 2;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -414,7 +425,7 @@ const ElectricBorder = forwardRef<HTMLDivElement, ElectricBorderProps>(function 
   };
   const bgGlowStyle: CSSProperties = {
     ...inheritRadius,
-    transform: 'scale(1.08)',
+    transform: 'scale(var(--electric-bg-scale, 1.08))',
     filter: 'blur(32px)',
     opacity: 0.3,
     zIndex: -1,

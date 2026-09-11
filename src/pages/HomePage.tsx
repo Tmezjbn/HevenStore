@@ -312,7 +312,7 @@ export default function HomePage() {
               key="ads"
               id="ads"
               as="section"
-              className="py-6 w-full px-0 sm:px-1 md:px-2"
+              className="py-6 w-full px-0 sm:px-1 md:px-2 overflow-x-clip"
             >
               <Suspense fallback={null}>
                 <ProductAdsBanner
