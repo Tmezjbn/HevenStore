@@ -277,7 +277,7 @@ export default function ProductDetailPage() {
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-8 lg:gap-12">
-          <div className="space-y-3">
+          <div className="space-y-3 pdp-media-col">
             <figure className="product-showcase-stage relative rounded-2xl overflow-hidden border border-base-300 bg-base-200 aspect-[4/3]">
               <div
                 key={
@@ -423,7 +423,7 @@ export default function ProductDetailPage() {
               sellerPublic ? (
                 <Link
                   to={sellerPath(product.seller)}
-                  className="flex w-full min-w-0 items-center gap-3.5 rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 hover:border-primary/40 transition-colors -ms-0"
+                  className="pdp-seller flex w-full min-w-0 items-center gap-3.5 rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 hover:border-primary/40 transition-colors -ms-0"
                 >
                   {product.seller.avatar_url ? (
                     <div className="avatar shrink-0">
@@ -443,7 +443,7 @@ export default function ProductDetailPage() {
                   </div>
                 </Link>
               ) : (
-                <div className="flex w-full min-w-0 items-center gap-3.5 rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 -ms-0">
+                <div className="pdp-seller flex w-full min-w-0 items-center gap-3.5 rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 -ms-0">
                   <div className="w-12 h-12 shrink-0 rounded-full bg-base-300 grid place-items-center text-sm font-semibold leading-none">
                     {(product.seller.full_name || '?').slice(0, 1)}
                   </div>
@@ -456,6 +456,7 @@ export default function ProductDetailPage() {
             )}
 
             <Suspense fallback={null}>
+              <div className="pdp-reviews">
               <ProductReviews
                 productId={product.id}
                 productSlug={product.slug}
@@ -463,10 +464,11 @@ export default function ProductDetailPage() {
                 rating={product.rating}
                 reviewCount={product.review_count}
               />
+              </div>
             </Suspense>
           </div>
 
-          <div className="min-w-0 space-y-6 text-start">
+          <div className="min-w-0 space-y-6 text-start pdp-info-col">
             <div className="mx-auto w-full max-w-prose space-y-6 lg:mx-0 lg:max-w-none">
               <div className="space-y-3">
                 <div className="space-y-2">

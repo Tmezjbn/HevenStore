@@ -3421,6 +3421,25 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
     transform: none !important;
   }
 }
+/*
+ * Mobile PDP order: media → info → seller → reviews. Media column dissolves
+ * into the grid (contents) so info can sort between media and reviews.
+ */
+@media (max-width: 1023.98px) {
+  .pdp-media-col {
+    display: contents;
+  }
+  .pdp-media-col > * {
+    order: 1;
+  }
+  .pdp-info-col {
+    order: 2;
+  }
+  .pdp-seller,
+  .pdp-reviews {
+    order: 3;
+  }
+}
 /* Clipped to welcome card — always under .card-body text */
 .pdp-fx--contained {
   z-index: 0;
