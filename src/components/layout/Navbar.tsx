@@ -220,6 +220,8 @@ export default function Navbar() {
     const prev = barLinksRectRef.current;
     barLinksRectRef.current = next;
     if (!prev || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // Hidden links measure 0×0 → scale would be NaN/Infinity (invalid keyframe).
+    if (!next.width || !next.height || !prev.width || !prev.height) return;
     const x = prev.left + prev.width / 2 - (next.left + next.width / 2);
     const y = prev.top + prev.height / 2 - (next.top + next.height / 2);
     const scaleX = prev.width / next.width;
