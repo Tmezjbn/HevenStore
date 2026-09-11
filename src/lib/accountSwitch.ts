@@ -90,10 +90,6 @@ export function clearPark(): void {
   emitPark();
 }
 
-export function hasParked(): boolean {
-  return loadPark() != null;
-}
-
 /** Owner always; admin/moderator/support/seller only when owner enabled that role. */
 export function canAddSecondAccount(
   role: Role | null | undefined,

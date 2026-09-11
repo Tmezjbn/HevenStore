@@ -5,16 +5,6 @@ export function isVideoUrl(url: string): boolean {
   return isProgressiveVideoUrl(url);
 }
 
-export {
-  isProgressiveVideoUrl,
-  isStillImageUrl,
-  isGenericEmbedUrl,
-  classifyMediaUrl,
-  youtubeId,
-  vimeoId,
-  type MediaResourceKind,
-} from './videoEmbed';
-
 /**
  * Supabase Storage image transform when the URL is a public object.
  * Falls through unchanged for non-storage URLs (external CDNs, data URIs).

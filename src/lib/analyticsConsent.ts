@@ -18,10 +18,6 @@ export function setPrivacyBannerRequired(required: boolean) {
   bannerRequired = required;
 }
 
-export function isPrivacyBannerRequired() {
-  return bannerRequired;
-}
-
 export function getAnalyticsConsent(): AnalyticsConsent | null {
   try {
     const v = localStorage.getItem(KEY);

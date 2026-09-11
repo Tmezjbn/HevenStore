@@ -79,9 +79,16 @@ export default function CheckoutSuccessPage() {
           if (useCartStore.getState().items.length === 0) clearCart();
         }
         if (shouldTrackAnalytics()) {
-          track('purchase_completed', {
-            order_id: orderId,
-          });
+          // Dedupe: revisiting this URL must not refire purchase_completed.
+          const trackKey = `heven-tracked-purchase:${orderId}`;
+          try {
+            if (!sessionStorage.getItem(trackKey)) {
+              sessionStorage.setItem(trackKey, '1');
+              track('purchase_completed', { order_id: orderId });
+            }
+          } catch {
+            track('purchase_completed', { order_id: orderId });
+          }
         }
         return;
       }

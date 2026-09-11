@@ -446,8 +446,6 @@ const ElectricBorder = forwardRef<HTMLDivElement, ElectricBorderProps>(function 
   );
 });
 
-export default ElectricBorder;
-
 type AuraFrameProps = {
   children: ReactNode;
   className?: string;

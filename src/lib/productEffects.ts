@@ -28,7 +28,6 @@ export const AURA_STYLES: {
 /** Presets that ignore `currentColor` — custom tint needs CSS override. */
 const AURA_FIXED_PALETTE = new Set<AuraStyle>(['rainbow', 'holo', 'gold', 'silver']);
 
-export const DEFAULT_AURA_COLOR = '#f59e0b';
 /** Default stroke for electric aura (React Bits–style teal). */
 export const DEFAULT_ELECTRIC_AURA_COLOR = '#2dd4bf';
 

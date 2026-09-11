@@ -136,7 +136,7 @@ export default function OwnerChangelogsPage() {
   };
 
   const ar = lang === 'ar';
-  const ownerRows = ownerQuery.data ?? [];
+  const ownerRows = useMemo(() => ownerQuery.data ?? [], [ownerQuery.data]);
   const bigCount = useMemo(
     () => ownerRows.filter((r) => r.update_scale === 'big').length,
     [ownerRows],

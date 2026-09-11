@@ -16,78 +16,57 @@ import type { Role } from '../../types';
 
 type DeepLink = { href: string; labelAr: string; labelEn: string };
 
-/** Deep links keyed by English section heading (stable). */
-const SECTION_LINKS: Record<string, DeepLink[]> = {
-  'Products and stock': [{ href: '/dashboard/products', labelAr: 'فتح المنتجات', labelEn: 'Open Products' }],
-  'Categories (3-level tree)': [
-    { href: '/dashboard/categories', labelAr: 'فتح التصنيفات', labelEn: 'Open Categories' },
-  ],
-  'Orders and payment': [{ href: '/dashboard/orders', labelAr: 'فتح الطلبات', labelEn: 'Open Orders' }],
-  'Users and roles': [{ href: '/dashboard/users', labelAr: 'فتح المستخدمين', labelEn: 'Open Users' }],
-  'Coupons and badges': [
-    { href: '/dashboard/coupons', labelAr: 'فتح الكوبونات', labelEn: 'Open Coupons' },
-    { href: '/dashboard/badges', labelAr: 'فتح الشارات', labelEn: 'Open Badges' },
-  ],
-  'Account deletion requests': [
-    { href: '/dashboard/deletion-requests', labelAr: 'فتح طلبات الحذف', labelEn: 'Open Deletion requests' },
-  ],
-  'Settings, builder, and themes': [
-    { href: '/dashboard/settings', labelAr: 'فتح الإعدادات', labelEn: 'Open Settings' },
-    { href: '/dashboard/website-builder', labelAr: 'فتح منشئ الموقع', labelEn: 'Open Website Builder' },
-    { href: '/dashboard/themes', labelAr: 'فتح الثيمات', labelEn: 'Open Themes' },
-  ],
-  Changelogs: [{ href: '/dashboard/changelogs', labelAr: 'فتح السجلات', labelEn: 'Open Changelogs' }],
-  'My Profile and Guides': [
-    { href: '/dashboard/profile', labelAr: 'فتح ملفي الشخصي', labelEn: 'Open My Profile' },
-  ],
-  'Your role in short': [
-    { href: '/dashboard/products', labelAr: 'فتح المنتجات', labelEn: 'Open Products' },
-  ],
-  'Products and categories': [
-    { href: '/dashboard/products', labelAr: 'فتح المنتجات', labelEn: 'Open Products' },
-    { href: '/dashboard/categories', labelAr: 'فتح التصنيفات', labelEn: 'Open Categories' },
-  ],
-  Orders: [{ href: '/dashboard/orders', labelAr: 'فتح الطلبات', labelEn: 'Open Orders' }],
-  'Users, coupons, badges': [
-    { href: '/dashboard/users', labelAr: 'فتح المستخدمين', labelEn: 'Open Users' },
-    { href: '/dashboard/coupons', labelAr: 'فتح الكوبونات', labelEn: 'Open Coupons' },
-    { href: '/dashboard/badges', labelAr: 'فتح الشارات', labelEn: 'Open Badges' },
-  ],
-  'Site and appearance': [
-    { href: '/dashboard/website-builder', labelAr: 'فتح منشئ الموقع', labelEn: 'Open Website Builder' },
-    { href: '/dashboard/themes', labelAr: 'فتح الثيمات', labelEn: 'Open Themes' },
-  ],
-  'Profile and guides': [{ href: '/dashboard/profile', labelAr: 'فتح ملفي الشخصي', labelEn: 'Open My Profile' }],
-  'What you see': [{ href: '/dashboard/products', labelAr: 'فتح المنتجات', labelEn: 'Open Products' }],
-  'Practical tips': [{ href: '/dashboard/products', labelAr: 'فتح المنتجات', labelEn: 'Open Products' }],
-  'Your products': [{ href: '/dashboard/products', labelAr: 'فتح المنتجات', labelEn: 'Open Products' }],
-  'What a Seller can do': [
-    { href: '/dashboard/products', labelAr: 'فتح عروضي', labelEn: 'Open My listings' },
-    { href: '/dashboard/orders', labelAr: 'فتح مبيعاتي', labelEn: 'Open My sales' },
-  ],
-  'How a Seller does those things': [
-    { href: '/dashboard/products', labelAr: 'فتح عروضي', labelEn: 'Open My listings' },
-    { href: '/dashboard/orders', labelAr: 'فتح مبيعاتي', labelEn: 'Open My sales' },
-  ],
-  'Role limits': [],
-  'Orders and profile': [
-    { href: '/dashboard/orders', labelAr: 'فتح الطلبات', labelEn: 'Open Orders' },
-    { href: '/dashboard/profile', labelAr: 'فتح ملفي الشخصي', labelEn: 'Open My Profile' },
-  ],
-  'Getting started': [
-    { href: '/store', labelAr: 'تصفح المتجر', labelEn: 'Browse store' },
-    { href: '/dashboard/profile', labelAr: 'فتح ملفي الشخصي', labelEn: 'Open My Profile' },
-  ],
-  'Deleting your account': [
-    { href: '/dashboard/profile', labelAr: 'فتح ملفي الشخصي', labelEn: 'Open My Profile' },
-  ],
+/**
+ * Deep links per role + section index. All role guides share the same
+ * 4-section shape (what / can / how / benefit) — index survives heading renames.
+ * Hrefs must match role-gated routes in DashboardLayout allLinks.
+ */
+const L = {
+  products: { href: '/dashboard/products', labelAr: 'فتح المنتجات', labelEn: 'Open Products' },
+  listings: { href: '/dashboard/products', labelAr: 'فتح عروضي', labelEn: 'Open My listings' },
+  categories: { href: '/dashboard/categories', labelAr: 'فتح التصنيفات', labelEn: 'Open Categories' },
+  orders: { href: '/dashboard/orders', labelAr: 'فتح الطلبات', labelEn: 'Open Orders' },
+  myOrders: { href: '/dashboard/orders', labelAr: 'فتح طلباتي', labelEn: 'Open My Orders' },
+  mySales: { href: '/dashboard/orders', labelAr: 'فتح مبيعاتي', labelEn: 'Open My sales' },
+  users: { href: '/dashboard/users', labelAr: 'فتح المستخدمين', labelEn: 'Open Users' },
+  coupons: { href: '/dashboard/coupons', labelAr: 'فتح الكوبونات', labelEn: 'Open Coupons' },
+  badges: { href: '/dashboard/badges', labelAr: 'فتح الشارات', labelEn: 'Open Badges' },
+  myBadges: { href: '/dashboard/my-badges', labelAr: 'فتح شاراتي', labelEn: 'Open My Badges' },
+  analytics: { href: '/dashboard/analytics', labelAr: 'فتح التحليلات', labelEn: 'Open Analytics' },
+  support: { href: '/dashboard/support', labelAr: 'فتح الدعم', labelEn: 'Open Support' },
+  deletions: {
+    href: '/dashboard/deletion-requests',
+    labelAr: 'فتح طلبات الحذف',
+    labelEn: 'Open Deletion requests',
+  },
+  settings: { href: '/dashboard/settings', labelAr: 'فتح الإعدادات', labelEn: 'Open Settings' },
+  builder: { href: '/dashboard/builder', labelAr: 'فتح منشئ الموقع', labelEn: 'Open Website Builder' },
+  themes: { href: '/dashboard/themes', labelAr: 'فتح الثيمات', labelEn: 'Open Themes' },
+  changelogs: { href: '/dashboard/changelogs', labelAr: 'فتح السجلات', labelEn: 'Open Changelogs' },
+  profile: { href: '/dashboard/profile', labelAr: 'فتح ملفي الشخصي', labelEn: 'Open My Profile' },
+  store: { href: '/store', labelAr: 'تصفح المتجر', labelEn: 'Browse store' },
+} as const satisfies Record<string, DeepLink>;
+
+const SECTION_LINKS: Record<Role, Record<number, DeepLink[]>> = {
+  // Index 2 = "How X does those things" — the doing section gets the links.
+  owner: {
+    2: [
+      L.products, L.categories, L.orders, L.users, L.coupons, L.badges, L.analytics,
+      L.support, L.deletions, L.settings, L.builder, L.themes, L.changelogs, L.profile,
+    ],
+  },
+  admin: {
+    2: [L.products, L.orders, L.users, L.coupons, L.badges, L.analytics, L.support, L.profile],
+  },
+  moderator: { 2: [L.support, L.myOrders, L.myBadges, L.profile] },
+  support: { 2: [L.support, L.myOrders, L.myBadges, L.profile] },
+  seller: { 2: [L.listings, L.mySales, L.support, L.myBadges, L.profile] },
+  buyer: { 2: [L.myOrders, L.myBadges, L.support, L.profile, L.store] },
+  member: { 2: [L.myOrders, L.myBadges, L.support, L.profile, L.store] },
 };
 
-function linksFor(role: Role, headingEn: string): DeepLink[] {
-  if (headingEn === 'Coupons and badges' && (role === 'buyer' || role === 'member')) {
-    return [{ href: '/dashboard/profile', labelAr: 'فتح ملفي الشخصي', labelEn: 'Open My Profile' }];
-  }
-  return SECTION_LINKS[headingEn] ?? [];
+function linksFor(role: Role, sectionIndex: number): DeepLink[] {
+  return SECTION_LINKS[role]?.[sectionIndex] ?? [];
 }
 
 function sectionId(role: Role, index: number) {
@@ -360,7 +339,7 @@ export default function GuidesPage() {
 
         {guide.sections.map((s, i) => {
           const id = sectionId(role, i);
-          const links = linksFor(role, s.headingEn);
+          const links = linksFor(role, i);
           const danger = isDangerSection(s.headingEn);
           const read = readIds.has(id);
           return (

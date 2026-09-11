@@ -1,17 +1,5 @@
 import type { AtmosphereCustomLogo } from './siteSettings';
 
-export type AtmosphereLogoId =
-  | 'rust'
-  | 'gta5'
-  | 'cod'
-  | 'fortnite'
-  | 'minecraft'
-  | 'valorant'
-  | 'roblox'
-  | 'lol'
-  | 'apex'
-  | 'cs2';
-
 export type AtmosphereLogoEntry = {
   id: string;
   labelEn: string;

@@ -254,7 +254,3 @@ export interface CartItem {
   product: Product;
   quantity: number;
 }
-
-export interface SiteSettings {
-  [key: string]: string;
-}

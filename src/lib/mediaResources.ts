@@ -47,4 +47,3 @@ export async function listMediaResources(): Promise<MediaResource[]> {
   return (data ?? []) as MediaResource[];
 }
 
-export { classifyMediaUrl, type MediaResourceKind };

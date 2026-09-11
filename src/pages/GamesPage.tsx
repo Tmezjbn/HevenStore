@@ -71,7 +71,7 @@ export default function GamesPage({ types, titleAr, titleEn }: CatalogProps = {}
         (prev) => {
           const p = new URLSearchParams(prev);
           const trimmed = searchDraft.trim();
-          if (trimmed) p.set('q', searchDraft);
+          if (trimmed) p.set('q', trimmed);
           else p.delete('q');
           return p;
         },

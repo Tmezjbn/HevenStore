@@ -134,7 +134,6 @@ export interface PageSection {
 }
 
 export const HOME_SECTION_IDS = ['categories', 'ads', 'featured', 'products', 'hover_cards', 'cta'] as const;
-export type HomeSectionId = (typeof HOME_SECTION_IDS)[number];
 
 /** Dynamic homepage grid: products with exact category_id (not descendants). */
 export const CATEGORY_PRODUCTS_PREFIX = 'category_products:';
@@ -160,7 +159,6 @@ export function isCategoryProductsSection(sectionId: string): boolean {
 }
 
 export const STORE_SECTION_IDS = ['search', 'sort'] as const;
-export type StoreSectionId = (typeof STORE_SECTION_IDS)[number];
 
 export const DEFAULT_HOME_SECTIONS: PageSection[] = HOME_SECTION_IDS.map((id) => ({
   id,
@@ -241,11 +239,6 @@ export const HOME_ADS_SIZE_GUIDES: Record<HomeAdsSize, HomeAdsSizeGuide> = {
   lg: { aspect: '16:9', width: 1920, height: 1080 },
   xl: { aspect: '16:9', width: 2560, height: 1440 },
 };
-
-export function homeAdsSizeGuidePx(size: HomeAdsSize): string {
-  const g = HOME_ADS_SIZE_GUIDES[size];
-  return `${g.width}×${g.height}`;
-}
 
 export const HOME_ADS_BLADE_TEXT_EN_DEFAULT = 'Special offer for a limited time!';
 export const HOME_ADS_BLADE_TEXT_AR_DEFAULT = 'عرض خاص لفترة محدودة!';
@@ -496,16 +489,6 @@ export function parseBuilderPresets(raw: string): BuilderPreset[] {
   }
 }
 
-export function snapshotFromSettings(
-  settings: Pick<SiteSettingsMap, BuilderPresetKey>
-): Partial<Record<BuilderPresetKey, string>> {
-  const snap: Partial<Record<BuilderPresetKey, string>> = {};
-  for (const key of BUILDER_PRESET_KEYS) {
-    snap[key] = settings[key];
-  }
-  return snap;
-}
-
 /* ---- Product page Plyr (Website Builder) ---- */
 
 export const PLYR_CONTROL_OPTIONS = [
@@ -670,8 +653,6 @@ export interface ProductDetailFxConfig {
   /** Uploaded / pasted real logo assets. */
   customLogos: AtmosphereCustomLogo[];
 }
-
-export type SiteAtmosphereConfig = ProductDetailFxConfig;
 
 export const DEFAULT_ATMOSPHERE_PAGES: AtmospherePages = {
   home: true,
@@ -975,10 +956,6 @@ export function clampHeroZoom(n: unknown): number {
   const v = typeof n === 'number' ? n : Number(n);
   if (Number.isNaN(v)) return HERO_ZOOM_DEFAULT;
   return Math.min(HERO_ZOOM_MAX, Math.max(HERO_ZOOM_MIN, Math.round(v)));
-}
-
-export function heroObjectPosition(item: Pick<HeroMediaItem, 'pos_x' | 'pos_y'>): string {
-  return `${clampHeroPos(item.pos_x)}% ${clampHeroPos(item.pos_y)}%`;
 }
 
 /**

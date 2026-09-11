@@ -156,7 +156,7 @@ export default function ProductDetailPage() {
     setVideoVariant(videoEmbeds.defaultVariant);
     setShowVideo(true);
     setStageUrl(null);
-  }, [product?.id, videoEmbeds.defaultSlot, videoEmbeds.defaultVariant]);
+  }, [product, product?.id, videoEmbeds.defaultSlot, videoEmbeds.defaultVariant]);
 
   if (isLoading) {
     return (
