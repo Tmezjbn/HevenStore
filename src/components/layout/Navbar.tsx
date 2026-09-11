@@ -386,7 +386,7 @@ export default function Navbar() {
                 <div className="flex items-center gap-2 shrink-0 z-10">
                   <label
                     htmlFor={MENU_ID}
-                    className="btn btn-ghost btn-lg btn-square min-h-14 min-w-14 text-base-content"
+                    className="nav-menu-btn btn btn-ghost btn-lg btn-square min-h-14 min-w-14 text-base-content"
                     aria-label={t('القائمة', 'Menu')}
                   >
                     <Menu size={24} strokeWidth={2.75} aria-hidden />

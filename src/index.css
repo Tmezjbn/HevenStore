@@ -4248,6 +4248,11 @@ html[data-ui-scale-scope='storefront'] #main-content {
   opacity: 1;
   transform: scale(1);
 }
+/* The drawer checkbox is opacity:0 (DaisyUI) — mirror its focus onto the label. */
+.drawer-toggle:focus-visible ~ .drawer-content .nav-menu-btn {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
 .nav-chrome-slot--collapsed {
   opacity: 0;
   transform: scale(0.96);
