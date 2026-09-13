@@ -96,9 +96,17 @@ export default function Navbar() {
   const drawerPanelRef = useRef<HTMLElement | null>(null);
   const barLinksRef = useRef<HTMLUListElement | null>(null);
   const barLinksRectRef = useRef<DOMRect | null>(null);
+  // Panel node swaps between menu <ul> and prefs <div> — state, not just a
+  // ref, so the focus trap re-runs on the new element.
+  const [drawerPanelEl, setDrawerPanelEl] = useState<HTMLElement | null>(null);
   const setDrawerPanelRef = useCallback((el: HTMLElement | null) => {
     drawerPanelRef.current = el;
+    setDrawerPanelEl(el);
   }, []);
+  const drawerTrapRef = useMemo(
+    () => ({ current: drawerPanelEl }),
+    [drawerPanelEl],
+  );
   useDrawerDrag(MENU_ID, drawerPanelRef);
 
   const dismissDrawer = useCallback(() => {
@@ -107,7 +115,13 @@ export default function Navbar() {
     setMenuOpen(false);
   }, []);
 
-  useFocusTrap(menuOpen, drawerPanelRef, dismissDrawer);
+  const onDrawerEscape = useCallback(() => {
+    // Prefs view: Escape steps back to the menu list, not out of the drawer.
+    if (prefsOpen) setPrefsOpen(false);
+    else dismissDrawer();
+  }, [prefsOpen, dismissDrawer]);
+
+  useFocusTrap(menuOpen, drawerTrapRef, onDrawerEscape);
 
   useEffect(() => {
     const el = document.getElementById(MENU_ID) as HTMLInputElement | null;
