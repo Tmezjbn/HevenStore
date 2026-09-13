@@ -4257,6 +4257,8 @@ html[data-ui-scale-scope='storefront'] #main-content {
   opacity: 0;
   transform: scale(0.96);
   pointer-events: none;
+  /* Invisible = unfocusable + out of the a11y tree (aria-hidden mirror). */
+  visibility: hidden;
 }
 /* Tablet squeeze: search moves to catalog/drawer before nav controls can overlap links. */
 @media (max-width: 52rem) {
@@ -4278,7 +4280,8 @@ html[data-ui-scale-scope='storefront'] #main-content {
     transition-property: opacity;
   }
   .nav-chrome-slot {
-    transition-property: opacity, transform;
+    /* visibility flips after the fade ends so links leave the tab order late. */
+    transition-property: opacity, transform, visibility;
   }
 }
 
