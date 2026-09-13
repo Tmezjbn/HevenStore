@@ -166,8 +166,10 @@ export interface ProductImage {
 
 export interface Order {
   id: string;
-  /** Human-readable code (ORD-YYYYMMDD-########). UUID `id` stays the PK. */
+  /** Internal sequential code (ORD-YYYYMMDD-########) — staff surfaces only. */
   order_number?: string;
+  /** Customer-facing code (ORD-YYYYMMDD-XXXXXXXX, random). Buyers quote this. */
+  public_ref?: string;
   user_id: string | null;
   polar_order_id: string | null;
   polar_checkout_id: string | null;

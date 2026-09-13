@@ -60,12 +60,12 @@ export default function CheckoutSuccessPage() {
     let cancelled = false;
 
     const poll = async () => {
-      let data: { status: string; order_number: string | null } | null = null;
+      let data: { status: string; public_ref: string | null } | null = null;
       let failed = false;
       try {
         const res = await supabase
           .from('orders')
-          .select('status, order_number')
+          .select('status, public_ref')
           .eq('id', orderId)
           .maybeSingle();
         data = res.data;
@@ -82,7 +82,7 @@ export default function CheckoutSuccessPage() {
         else timer = setTimeout(poll, 2000);
         return;
       }
-      if (data?.order_number) setOrderNumber(data.order_number);
+      if (data?.public_ref) setOrderNumber(data.public_ref);
       if (data?.status === 'paid') {
         setState('paid');
         // Drop only lines from this order — never wipe a later cart on revisit.

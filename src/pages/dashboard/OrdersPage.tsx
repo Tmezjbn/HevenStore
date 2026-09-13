@@ -67,6 +67,7 @@ function OrderStatus({ status, t }: { status: string; t: (ar: string, en: string
 function OrderIdCopy({
   id,
   orderNumber,
+  publicRef,
   full,
   copied,
   onCopy,
@@ -74,6 +75,7 @@ function OrderIdCopy({
 }: {
   id: string;
   orderNumber: string | null | undefined;
+  publicRef?: string | null;
   full: boolean;
   copied: string | null;
   onCopy: (key: string, content: string) => void;
@@ -81,10 +83,17 @@ function OrderIdCopy({
 }) {
   const code = orderNumber || id;
   const key = `order-id-${id}`;
+  const refKey = `order-ref-${id}`;
   const done = copied === key;
+  const refDone = copied === refKey;
+  const copyLabel = (isDone: boolean) =>
+    isDone ? t('تم النسخ', 'Copied') : t('نسخ رقم الطلب', 'Copy order number');
   return (
     <span className="mt-0.5 inline-flex flex-col gap-0.5 min-w-0 max-w-full">
       <span className="inline-flex items-center gap-1 min-w-0 max-w-full">
+        <span className="w-6 shrink-0 text-[9px] font-semibold uppercase tracking-wide text-base-content/35">
+          {t('داخلي', 'Int')}
+        </span>
         <span className="font-mono text-xs text-base-content/55 truncate" dir="ltr" title={code}>
           {code}
         </span>
@@ -92,12 +101,31 @@ function OrderIdCopy({
           type="button"
           className={`btn btn-ghost btn-xs btn-square shrink-0 text-base-content/45 hover:text-base-content ${focusRing}`}
           onClick={() => onCopy(key, code)}
-          aria-label={done ? t('تم النسخ', 'Copied') : t('نسخ رقم الطلب', 'Copy order number')}
+          aria-label={copyLabel(done)}
           title={done ? t('تم النسخ', 'Copied') : t('نسخ', 'Copy')}
         >
           {done ? <Check size={12} className="text-success" aria-hidden /> : <Copy size={12} aria-hidden />}
         </button>
       </span>
+      {publicRef ? (
+        <span className="inline-flex items-center gap-1 min-w-0 max-w-full">
+          <span className="w-6 shrink-0 text-[9px] font-semibold uppercase tracking-wide text-base-content/35">
+            {t('عام', 'Pub')}
+          </span>
+          <span className="font-mono text-xs text-base-content/55 truncate" dir="ltr" title={publicRef}>
+            {publicRef}
+          </span>
+          <button
+            type="button"
+            className={`btn btn-ghost btn-xs btn-square shrink-0 text-base-content/45 hover:text-base-content ${focusRing}`}
+            onClick={() => onCopy(refKey, publicRef)}
+            aria-label={copyLabel(refDone)}
+            title={refDone ? t('تم النسخ', 'Copied') : t('نسخ', 'Copy')}
+          >
+            {refDone ? <Check size={12} className="text-success" aria-hidden /> : <Copy size={12} aria-hidden />}
+          </button>
+        </span>
+      ) : null}
       {full ? (
         <span className="font-mono text-[10px] text-base-content/35 break-all" dir="ltr" title={id}>
           {id}
@@ -505,13 +533,13 @@ function StaffBuyerOrdersPage() {
           const ids = (peeps ?? []).map((p) => p.id);
           if (ids.length > 0) {
             q = q.or(
-              `order_number.ilike.%${term}%,notes.ilike.%${term}%,user_id.in.(${ids.join(',')})`,
+              `order_number.ilike.%${term}%,public_ref.ilike.%${term}%,notes.ilike.%${term}%,user_id.in.(${ids.join(',')})`,
             );
           } else {
-            q = q.or(`order_number.ilike.%${term}%,notes.ilike.%${term}%`);
+            q = q.or(`order_number.ilike.%${term}%,public_ref.ilike.%${term}%,notes.ilike.%${term}%`);
           }
         } else {
-          q = q.ilike('order_number', `%${term}%`);
+          q = q.ilike('public_ref', `%${term}%`);
         }
       }
 
@@ -631,7 +659,8 @@ function StaffBuyerOrdersPage() {
     const v = typed.trim().toLowerCase();
     if (!v) return false;
     if (v === order.id.toLowerCase()) return true;
-    return !!order.order_number && v === order.order_number.toLowerCase();
+    if (!!order.order_number && v === order.order_number.toLowerCase()) return true;
+    return !!order.public_ref && v === order.public_ref.toLowerCase();
   };
 
   const runConfirm = async () => {
@@ -813,6 +842,7 @@ function StaffBuyerOrdersPage() {
                   <OrderIdCopy
                     id={order.id}
                     orderNumber={order.order_number}
+                    publicRef={order.public_ref}
                     full={showFullIds}
                     copied={copied}
                     onCopy={copyContent}
@@ -883,6 +913,7 @@ function StaffBuyerOrdersPage() {
               <OrderIdCopy
                 id={order.id}
                 orderNumber={order.order_number}
+                publicRef={order.public_ref}
                 full={showFullIds}
                 copied={copied}
                 onCopy={copyContent}
@@ -1348,6 +1379,7 @@ function StaffBuyerOrdersPage() {
                         <OrderIdCopy
                           id={order.id}
                           orderNumber={order.order_number}
+                          publicRef={order.public_ref}
                           full={showFullIds}
                           copied={copied}
                           onCopy={copyContent}
@@ -1450,9 +1482,14 @@ function StaffBuyerOrdersPage() {
                       'Cancel this order. Type the order number to confirm:',
                     )}
             </p>
-            <p className="text-xs font-mono font-semibold mb-2 break-all select-all" dir="ltr">
+            <p className="text-xs font-mono font-semibold mb-1 break-all select-all" dir="ltr">
               {confirmAction.order.order_number || confirmAction.order.id}
             </p>
+            {confirmAction.order.public_ref ? (
+              <p className="text-xs font-mono font-semibold mb-2 break-all select-all opacity-60" dir="ltr">
+                {confirmAction.order.public_ref}
+              </p>
+            ) : null}
             <input
               className="input input-bordered input-sm w-full mb-4 font-mono focus:outline-none focus:ring-0 focus:border-base-content/40 focus:shadow-none"
               value={confirmId}

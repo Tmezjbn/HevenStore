@@ -14,6 +14,7 @@ import { formatMoney } from '../../lib/formatMoney';
 type SaleRow = {
   order_id: string;
   order_number: string;
+  public_ref: string | null;
   created_at: string;
   status: string;
   line_total: number;
@@ -290,6 +291,9 @@ export default function SellerOrdersPage() {
                         <span aria-hidden>·</span>
                         <span className="font-mono text-xs inline-flex flex-col" dir="ltr">
                           <span>{sale.order_number || sale.order_id}</span>
+                          {sale.public_ref ? (
+                            <span className="text-[10px] opacity-60">{sale.public_ref}</span>
+                          ) : null}
                           {showFullIds ? (
                             <span className="text-[10px] opacity-50 break-all">{sale.order_id}</span>
                           ) : null}

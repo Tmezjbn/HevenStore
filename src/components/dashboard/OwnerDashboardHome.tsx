@@ -35,6 +35,7 @@ import { ORDER_STATUS_LABEL as STATUS_LABEL } from '../../lib/orderStatus';
 type RecentOrder = {
   id: string;
   order_number: string | null;
+  public_ref: string | null;
   total: number;
   status: string;
   created_at: string;
@@ -143,6 +144,7 @@ export default function OwnerDashboardHome() {
           `
             id,
             order_number,
+            public_ref,
             total,
             status,
             created_at,
@@ -199,6 +201,7 @@ export default function OwnerDashboardHome() {
         return {
           id: row.id,
           order_number: (row as { order_number?: string | null }).order_number ?? null,
+          public_ref: (row as { public_ref?: string | null }).public_ref ?? null,
           total: Number(row.total),
           status: row.status,
           created_at: row.created_at,
@@ -471,8 +474,11 @@ export default function OwnerDashboardHome() {
                           {st ? t(st[0], st[1]) : order.status}
                         </span>
                         <span aria-hidden>·</span>
-                        <span className="font-mono" dir="ltr">
-                          {order.order_number || `${order.id.slice(0, 8)}…`}
+                        <span className="font-mono inline-flex flex-col leading-tight" dir="ltr">
+                          <span>{order.order_number || `${order.id.slice(0, 8)}…`}</span>
+                          {order.public_ref ? (
+                            <span className="text-[10px] opacity-60">{order.public_ref}</span>
+                          ) : null}
                         </span>
                         <span aria-hidden>·</span>
                         <time dateTime={order.created_at}>{formatDate(order.created_at, lang)}</time>

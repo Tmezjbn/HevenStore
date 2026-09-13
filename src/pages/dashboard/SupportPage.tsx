@@ -311,11 +311,11 @@ export default function SupportPage() {
     void (async () => {
       const { data } = await supabase
         .from('orders')
-        .select('order_number')
+        .select('public_ref')
         .eq('id', orderId)
         .maybeSingle();
       if (cancelled) return;
-      const code = data?.order_number || `${orderId.slice(0, 8)}…`;
+      const code = data?.public_ref || `${orderId.slice(0, 8)}…`;
       setNewSubject((s) => s || t(`طلب ${code}`, `Order ${code}`));
     })();
     return () => {

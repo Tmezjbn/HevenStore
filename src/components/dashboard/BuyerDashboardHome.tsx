@@ -10,7 +10,7 @@ import { ORDER_STATUS_LABEL as STATUS_LABEL } from '../../lib/orderStatus';
 
 type RecentOrder = {
   id: string;
-  order_number: string | null;
+  public_ref: string | null;
   total: number;
   status: string;
   created_at: string;
@@ -64,7 +64,7 @@ export default function BuyerDashboardHome() {
           .select(
             `
             id,
-            order_number,
+            public_ref,
             total,
             status,
             created_at,
@@ -106,7 +106,7 @@ export default function BuyerDashboardHome() {
           });
           return {
             id: row.id,
-            order_number: (row as { order_number?: string | null }).order_number ?? null,
+            public_ref: (row as { public_ref?: string | null }).public_ref ?? null,
             total: Number(row.total),
             status: row.status,
             created_at: row.created_at,
@@ -265,7 +265,7 @@ export default function BuyerDashboardHome() {
                             {status ? t(status[0], status[1]) : order.status}
                           </span>
                           <span className="buyer-home__ticket-id" dir="ltr">
-                            {order.order_number || `${order.id.slice(0, 8)}…`}
+                            {order.public_ref || `${order.id.slice(0, 8)}…`}
                           </span>
                         </div>
                       </div>

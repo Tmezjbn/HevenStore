@@ -57,8 +57,8 @@ function formatDate(iso: string, lang: 'ar' | 'en') {
   });
 }
 
-function orderCode(order: Pick<Order, 'id' | 'order_number'>) {
-  return order.order_number || order.id;
+function orderCode(order: Pick<Order, 'id' | 'public_ref'>) {
+  return order.public_ref || order.id;
 }
 
 function productSummary(order: BuyerOrder, lang: 'ar' | 'en'): string {
@@ -118,8 +118,8 @@ export default function BuyerOrdersPage() {
       setLoadError(false);
 
       const [{ count: paid }, { count: pending }, { data: paidRows }] = await Promise.all([
-        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'paid'),
-        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'paid'),
+        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('orders').select('total').eq('status', 'paid'),
       ]);
       if (cancelled) return;
@@ -131,7 +131,11 @@ export default function BuyerOrdersPage() {
         .from('orders')
         .select(
           `
-          *,
+          id,
+          status,
+          total,
+          created_at,
+          public_ref,
           order_items (
             quantity,
             total_price,
@@ -148,7 +152,7 @@ export default function BuyerOrdersPage() {
         if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(term)) {
           q = q.eq('id', term);
         } else {
-          q = q.ilike('order_number', `%${term}%`);
+          q = q.ilike('public_ref', `%${term}%`);
         }
       }
 
@@ -225,7 +229,7 @@ export default function BuyerOrdersPage() {
     const v = typed.trim().toLowerCase();
     if (!v) return false;
     if (v === order.id.toLowerCase()) return true;
-    return !!order.order_number && v === order.order_number.toLowerCase();
+    return !!order.public_ref && v === order.public_ref.toLowerCase();
   };
 
   const runCancel = async () => {
