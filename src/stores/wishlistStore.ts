@@ -46,6 +46,16 @@ export const useWishlistStore = create<WishlistStore>()(
       name: 'heven-wishlist',
       version: 1,
       partialize: (state) => ({ items: state.items }),
+      // Persisted JSON is untrusted: a corrupt payload must not crash .some/.map.
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as { items?: unknown };
+        const items = Array.isArray(p.items)
+          ? p.items.filter(
+              (i): i is Product => !!i && typeof i.id === 'string' && typeof i.price === 'number',
+            )
+          : [];
+        return { ...current, items };
+      },
     },
   ),
 );

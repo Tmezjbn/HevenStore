@@ -25,7 +25,10 @@ export default function NotificationBell() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(20)
-      .then(({ data }) => { if (data) setNotifications(data as unknown as Notification[]); });
+      .then(
+        ({ data }) => { if (data) setNotifications(data as unknown as Notification[]); },
+        () => {},
+      );
   }, [user]);
 
   useEffect(() => {
@@ -47,7 +50,11 @@ export default function NotificationBell() {
 
   const markAllRead = async () => {
     if (!user) return;
-    await supabase.from('notifications').update({ is_read: true }).eq('user_id', user.id);
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', user.id);
+    if (error) return;
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 

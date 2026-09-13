@@ -22,7 +22,12 @@ export default function ScrollToTop() {
     const behavior = scrollBehavior();
 
     if (hash) {
-      const id = decodeURIComponent(hash.slice(1));
+      let id = hash.slice(1);
+      try {
+        id = decodeURIComponent(id);
+      } catch {
+        // Malformed % sequence in the hash — fall back to the raw id.
+      }
       // Wait a frame so the target exists after route paint.
       const idFrame = window.requestAnimationFrame(() => {
         const el = document.getElementById(id);

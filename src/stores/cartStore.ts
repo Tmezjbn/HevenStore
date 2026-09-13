@@ -99,6 +99,27 @@ export const useCartStore = create<CartStore>()(
       version: 1,
       // v0 = full Product snapshots (still accepted). Hydrate on CartPage.
       partialize: (state) => ({ items: state.items, coupon: state.coupon }),
+      // Persisted JSON is untrusted: a corrupt payload must not crash .reduce/.some.
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as { items?: unknown; coupon?: unknown };
+        const items = Array.isArray(p.items)
+          ? p.items.filter(
+              (i): i is CartItem =>
+                !!i &&
+                typeof i.quantity === 'number' &&
+                i.quantity > 0 &&
+                !!i.product &&
+                typeof i.product.id === 'string' &&
+                typeof i.product.price === 'number',
+            )
+          : [];
+        return {
+          ...current,
+          items,
+          coupon:
+            p.coupon && typeof p.coupon === 'object' ? (p.coupon as AppliedCoupon) : null,
+        };
+      },
     },
   ),
 );
