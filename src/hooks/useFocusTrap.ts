@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -14,6 +14,9 @@ export function useFocusTrap(
   options?: { lockScroll?: boolean },
 ) {
   const lockScroll = options?.lockScroll ?? true;
+  // Fresh callback every render must not re-run the trap (refocus steal).
+  const escapeRef = useRef(onEscape);
+  escapeRef.current = onEscape;
 
   useEffect(() => {
     if (!active) return;
@@ -43,7 +46,7 @@ export function useFocusTrap(
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onEscape();
+        escapeRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -72,5 +75,5 @@ export function useFocusTrap(
       }
       previous?.focus?.();
     };
-  }, [active, containerRef, onEscape, lockScroll]);
+  }, [active, containerRef, lockScroll]);
 }
