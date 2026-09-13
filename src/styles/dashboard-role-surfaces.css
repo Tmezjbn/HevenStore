@@ -1533,7 +1533,7 @@ a.admin-home__meter:hover {
   color: var(--color-warning);
 }
 .buyer-home__status--failed,
-.buyer-home__status--cancelledled {
+.buyer-home__status--cancelled {
   color: color-mix(in oklch, var(--color-base-content) 55%, transparent);
 }
 .buyer-home__status--refunded {
@@ -1902,7 +1902,7 @@ a.admin-home__meter:hover {
   color: var(--color-warning);
 }
 .buyer-ledger__status--failed,
-.buyer-ledger__status--cancelledled {
+.buyer-ledger__status--cancelled {
   color: color-mix(in oklch, var(--color-base-content) 55%, transparent);
 }
 .buyer-ledger__status--refunded {
