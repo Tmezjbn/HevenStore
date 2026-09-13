@@ -67,7 +67,10 @@ function profileMeta(profile: Profile | null, user: User | null): AccountMeta {
 }
 
 /** Active profile, or null after sign-out for still-disabled accounts. */
-async function resolveActiveProfile(profile: Profile | null): Promise<Profile | null> {
+async function resolveActiveProfile(
+  profile: Profile | null,
+  stale?: () => boolean,
+): Promise<Profile | null> {
   if (!profile) return null;
   if (profile.is_active) return profile;
 
@@ -84,6 +87,9 @@ async function resolveActiveProfile(profile: Profile | null): Promise<Profile | 
     }
   }
 
+  // Account switched while resolving — the live session belongs to someone
+  // else now; signing out would kill it.
+  if (stale?.()) return null;
   await supabase.auth.signOut();
   return null;
 }
@@ -110,8 +116,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
   setProfile: (profile) => set({ profile }),
   fetchProfile: async (userId: string, fullName = '') => {
+    // In-flight fetches can resolve after an account switch — committing a
+    // stale row (or its signOut side-effect) must not clobber the new session.
+    const stale = () => get().user?.id !== userId;
     const commit = async (row: Profile | null) => {
-      const next = await resolveActiveProfile(row);
+      const next = await resolveActiveProfile(row, stale);
+      if (stale()) return;
       if (row && !next) {
         set({ user: null, session: null, profile: null });
         return;
