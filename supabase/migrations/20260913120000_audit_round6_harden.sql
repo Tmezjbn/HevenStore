@@ -431,25 +431,59 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  UPDATE public.products p
-  SET stock = (
-        SELECT count(*) FROM public.product_keys k
-        WHERE k.product_id = p.id AND k.claimed_at IS NULL
-      ),
-      updated_at = now()
-  WHERE p.id IN (
-    SELECT product_id FROM new_keys
-    UNION
-    SELECT product_id FROM old_keys
-  );
+  -- transition tables are only visible for the event that declared them,
+  -- so each TG_OP branch must touch only its own tables
+  IF TG_OP = 'INSERT' THEN
+    UPDATE public.products p
+    SET stock = (
+          SELECT count(*) FROM public.product_keys k
+          WHERE k.product_id = p.id AND k.claimed_at IS NULL
+        ),
+        updated_at = now()
+    WHERE p.id IN (SELECT product_id FROM new_keys);
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE public.products p
+    SET stock = (
+          SELECT count(*) FROM public.product_keys k
+          WHERE k.product_id = p.id AND k.claimed_at IS NULL
+        ),
+        updated_at = now()
+    WHERE p.id IN (SELECT product_id FROM old_keys);
+  ELSE
+    UPDATE public.products p
+    SET stock = (
+          SELECT count(*) FROM public.product_keys k
+          WHERE k.product_id = p.id AND k.claimed_at IS NULL
+        ),
+        updated_at = now()
+    WHERE p.id IN (
+      SELECT product_id FROM new_keys
+      UNION
+      SELECT product_id FROM old_keys
+    );
+  END IF;
   RETURN NULL;
 END;
 $$;
 
+-- transition tables are not allowed on multi-event triggers — one per event
 DROP TRIGGER IF EXISTS on_product_keys_sync_stock ON public.product_keys;
-CREATE TRIGGER on_product_keys_sync_stock
-  AFTER INSERT OR UPDATE OR DELETE ON public.product_keys
+DROP TRIGGER IF EXISTS on_product_keys_sync_stock_ins ON public.product_keys;
+DROP TRIGGER IF EXISTS on_product_keys_sync_stock_upd ON public.product_keys;
+DROP TRIGGER IF EXISTS on_product_keys_sync_stock_del ON public.product_keys;
+CREATE TRIGGER on_product_keys_sync_stock_ins
+  AFTER INSERT ON public.product_keys
+  REFERENCING NEW TABLE AS new_keys
+  FOR EACH STATEMENT
+  EXECUTE FUNCTION public.sync_stock_from_keys();
+CREATE TRIGGER on_product_keys_sync_stock_upd
+  AFTER UPDATE ON public.product_keys
   REFERENCING NEW TABLE AS new_keys OLD TABLE AS old_keys
+  FOR EACH STATEMENT
+  EXECUTE FUNCTION public.sync_stock_from_keys();
+CREATE TRIGGER on_product_keys_sync_stock_del
+  AFTER DELETE ON public.product_keys
+  REFERENCING OLD TABLE AS old_keys
   FOR EACH STATEMENT
   EXECUTE FUNCTION public.sync_stock_from_keys();
 
