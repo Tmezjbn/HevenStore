@@ -61,7 +61,9 @@ export default function GamesPage({ types, titleAr, titleEn }: CatalogProps = {}
   const [searchDraft, setSearchDraft] = useState(search);
 
   useEffect(() => {
-    setSearchDraft(search);
+    // Skip when `search` is just our own debounced commit echoing back —
+    // overwriting the draft mid-typing would eat a trailing space.
+    setSearchDraft((draft) => (draft.trim() === search ? draft : search));
   }, [search]);
 
   useEffect(() => {
