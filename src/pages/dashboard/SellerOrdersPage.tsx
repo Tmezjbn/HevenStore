@@ -59,6 +59,7 @@ export default function SellerOrdersPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [fulfillment, setFulfillment] = useState<Record<string, FulfillmentItem[]>>({});
+  const [fulfillmentError, setFulfillmentError] = useState<Record<string, boolean>>({});
   const [loadingFul, setLoadingFul] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [showFullIds, setShowFullIds] = useState(false);
@@ -128,8 +129,14 @@ export default function SellerOrdersPage() {
     setExpandedId(orderId);
     if (fulfillment[orderId]) return;
     setLoadingFul(orderId);
-    const { data } = await supabase.rpc('get_order_fulfillment', { p_order_id: orderId });
-    setFulfillment((prev) => ({ ...prev, [orderId]: (data as FulfillmentItem[]) ?? [] }));
+    const { data, error } = await supabase.rpc('get_order_fulfillment', { p_order_id: orderId });
+    if (error) {
+      // Don't cache a fake empty — a transient failure must stay retry-able.
+      setFulfillmentError((prev) => ({ ...prev, [orderId]: true }));
+    } else {
+      setFulfillment((prev) => ({ ...prev, [orderId]: (data as FulfillmentItem[]) ?? [] }));
+      setFulfillmentError((prev) => ({ ...prev, [orderId]: false }));
+    }
     setLoadingFul(null);
   };
 
@@ -316,6 +323,13 @@ export default function SellerOrdersPage() {
                         <div className="flex justify-center py-8" role="status">
                           <span className="loading loading-spinner loading-sm text-primary" />
                         </div>
+                      ) : fulfillmentError[sale.order_id] ? (
+                        <p className="text-sm text-error text-center py-6" role="alert">
+                          {t(
+                            'تعذر تحميل بيانات التسليم — أغلق التفاصيل وأعد فتحها للمحاولة.',
+                            'Could not load fulfillment — close and reopen details to retry.',
+                          )}
+                        </p>
                       ) : items.length === 0 ? (
                         <p className="text-sm text-base-content/55 text-center py-6">
                           {t('لا توجد بيانات تسليم لهذا الطلب.', 'No fulfillment data for this order.')}

@@ -206,6 +206,7 @@ function FulfillmentPanel({
   orderId,
   items,
   loading,
+  failed,
   copied,
   onCopy,
   t,
@@ -213,6 +214,7 @@ function FulfillmentPanel({
   orderId: string;
   items: FulfillmentItem[];
   loading: boolean;
+  failed?: boolean;
   copied: string | null;
   onCopy: (key: string, content: string) => void;
   t: (ar: string, en: string) => string;
@@ -230,6 +232,13 @@ function FulfillmentPanel({
         <div className="flex justify-center py-8" role="status">
           <span className="loading loading-spinner loading-sm text-primary" />
         </div>
+      ) : failed ? (
+        <p className="px-4 py-6 text-sm text-error text-center" role="alert">
+          {t(
+            'تعذر تحميل بيانات التسليم — أغلق التفاصيل وأعد فتحها للمحاولة.',
+            'Could not load fulfillment — close and reopen details to retry.',
+          )}
+        </p>
       ) : items.length === 0 ? (
         <p className="px-4 py-6 text-sm text-base-content/55 text-center">
           {t('لا توجد بيانات تسليم لهذا الطلب.', 'No fulfillment data for this order.')}
@@ -352,6 +361,7 @@ function StaffBuyerOrdersPage() {
   const [showPending, setShowPending] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [fulfillment, setFulfillment] = useState<Record<string, FulfillmentItem[]>>({});
+  const [fulfillmentError, setFulfillmentError] = useState<Record<string, boolean>>({});
   const [loadingFulfillment, setLoadingFulfillment] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('recent');
@@ -361,6 +371,7 @@ function StaffBuyerOrdersPage() {
   const [actionMsg, setActionMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [confirmAction, setConfirmAction] = useState<null | { kind: 'cancel' | 'delete'; order: Order }>(null);
   const [confirmId, setConfirmId] = useState('');
+  const [confirmError, setConfirmError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [attentionOnly, setAttentionOnly] = useState(false);
   const [showFullIds, setShowFullIds] = useState(false);
@@ -590,8 +601,14 @@ function StaffBuyerOrdersPage() {
     if (fulfillment[orderId]) return;
 
     setLoadingFulfillment(orderId);
-    const { data } = await supabase.rpc('get_order_fulfillment', { p_order_id: orderId });
-    setFulfillment((prev) => ({ ...prev, [orderId]: (data as FulfillmentItem[]) ?? [] }));
+    const { data, error } = await supabase.rpc('get_order_fulfillment', { p_order_id: orderId });
+    if (error) {
+      // Don't cache a fake empty — a transient failure must stay retry-able.
+      setFulfillmentError((prev) => ({ ...prev, [orderId]: true }));
+    } else {
+      setFulfillment((prev) => ({ ...prev, [orderId]: (data as FulfillmentItem[]) ?? [] }));
+      setFulfillmentError((prev) => ({ ...prev, [orderId]: false }));
+    }
     setLoadingFulfillment(null);
   };
 
@@ -607,6 +624,7 @@ function StaffBuyerOrdersPage() {
     if (actionBusy) return;
     setConfirmAction(null);
     setConfirmId('');
+    setConfirmError(null);
   };
 
   const idMatches = (typed: string, order: Order) => {
@@ -617,25 +635,29 @@ function StaffBuyerOrdersPage() {
   };
 
   const runConfirm = async () => {
-    if (!confirmAction || !idMatches(confirmId, confirmAction.order)) return;
+    if (!confirmAction) return;
     const { kind, order } = confirmAction;
+    if (!idMatches(confirmId, order)) {
+      setConfirmError(t('رقم الطلب غير مطابق.', 'Order number does not match.'));
+      return;
+    }
     setActionBusy(order.id);
     setActionMsg(null);
+    setConfirmError(null);
     const { error } =
       kind === 'cancel' ? await cancelOrder(order.id) : await deleteOrder(order.id);
     setActionBusy(null);
     if (error) {
-      setActionMsg({
-        kind: 'err',
-        text:
-          error === 'cannot_cancel'
-            ? t('لا يمكن إلغاء هذا الطلب.', 'This order cannot be cancelled.')
-            : error === 'forbidden'
-              ? t('غير مسموح.', 'Not allowed.')
-              : kind === 'cancel'
-                ? t('تعذر الإلغاء.', 'Could not cancel.')
-                : t('تعذر الحذف.', 'Could not delete.'),
-      });
+      // Keep the dialog open — the error renders inside it, not behind it.
+      setConfirmError(
+        error === 'cannot_cancel'
+          ? t('لا يمكن إلغاء هذا الطلب.', 'This order cannot be cancelled.')
+          : error === 'forbidden'
+            ? t('غير مسموح.', 'Not allowed.')
+            : kind === 'cancel'
+              ? t('تعذر الإلغاء.', 'Could not cancel.')
+              : t('تعذر الحذف.', 'Could not delete.'),
+      );
       return;
     }
     if (kind === 'delete' && expandedId === order.id) setExpandedId(null);
@@ -823,6 +845,7 @@ function StaffBuyerOrdersPage() {
                     orderId={order.id}
                     items={fulfillment[order.id] ?? []}
                     loading={loadingFulfillment === order.id}
+                    failed={fulfillmentError[order.id] === true}
                     copied={copied}
                     onCopy={copyContent}
                     t={t}
@@ -901,6 +924,7 @@ function StaffBuyerOrdersPage() {
                 orderId={order.id}
                 items={fulfillment[order.id] ?? []}
                 loading={loadingFulfillment === order.id}
+                failed={fulfillmentError[order.id] === true}
                 copied={copied}
                 onCopy={copyContent}
                 t={t}
@@ -1356,6 +1380,7 @@ function StaffBuyerOrdersPage() {
                                 orderId={order.id}
                                 items={fulfillment[order.id] ?? []}
                                 loading={loadingFulfillment === order.id}
+                                failed={fulfillmentError[order.id] === true}
                                 copied={copied}
                                 onCopy={copyContent}
                                 t={t}
@@ -1444,6 +1469,11 @@ function StaffBuyerOrdersPage() {
                 }
               }}
             />
+            {confirmError ? (
+              <p className="mb-3 text-sm text-error" role="alert">
+                {confirmError}
+              </p>
+            ) : null}
             <div className="flex justify-end gap-2">
               <button
                 type="button"

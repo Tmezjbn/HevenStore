@@ -96,12 +96,14 @@ export default function BuyerOrdersPage() {
   const [showFullIds, setShowFullIds] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [fulfillment, setFulfillment] = useState<Record<string, FulfillmentItem[]>>({});
+  const [fulfillmentError, setFulfillmentError] = useState<Record<string, boolean>>({});
   const [loadingFul, setLoadingFul] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [confirmOrder, setConfirmOrder] = useState<BuyerOrder | null>(null);
   const [confirmId, setConfirmId] = useState('');
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   useEffect(() => {
     setPage(0);
@@ -198,8 +200,14 @@ export default function BuyerOrdersPage() {
     setExpandedId(orderId);
     if (fulfillment[orderId]) return;
     setLoadingFul(orderId);
-    const { data } = await supabase.rpc('get_order_fulfillment', { p_order_id: orderId });
-    setFulfillment((prev) => ({ ...prev, [orderId]: (data as FulfillmentItem[]) ?? [] }));
+    const { data, error } = await supabase.rpc('get_order_fulfillment', { p_order_id: orderId });
+    if (error) {
+      // Don't cache a fake empty — a transient failure must stay retry-able.
+      setFulfillmentError((prev) => ({ ...prev, [orderId]: true }));
+    } else {
+      setFulfillment((prev) => ({ ...prev, [orderId]: (data as FulfillmentItem[]) ?? [] }));
+      setFulfillmentError((prev) => ({ ...prev, [orderId]: false }));
+    }
     setLoadingFul(null);
   };
 
@@ -221,21 +229,25 @@ export default function BuyerOrdersPage() {
   };
 
   const runCancel = async () => {
-    if (!confirmOrder || !confirmMatches(confirmId, confirmOrder)) return;
+    if (!confirmOrder) return;
+    if (!confirmMatches(confirmId, confirmOrder)) {
+      setConfirmError(t('رقم الطلب غير مطابق.', 'Order number does not match.'));
+      return;
+    }
     setActionBusy(confirmOrder.id);
     setActionMsg(null);
+    setConfirmError(null);
     const { error } = await cancelOrder(confirmOrder.id);
     setActionBusy(null);
     if (error) {
-      setActionMsg({
-        kind: 'err',
-        text:
-          error === 'cannot_cancel'
-            ? t('لا يمكن إلغاء هذا الطلب.', 'This order cannot be cancelled.')
-            : error === 'forbidden'
-              ? t('غير مسموح.', 'Not allowed.')
-              : t('تعذر الإلغاء.', 'Could not cancel.'),
-      });
+      // Keep the dialog open — the error renders inside it, not behind it.
+      setConfirmError(
+        error === 'cannot_cancel'
+          ? t('لا يمكن إلغاء هذا الطلب.', 'This order cannot be cancelled.')
+          : error === 'forbidden'
+            ? t('غير مسموح.', 'Not allowed.')
+            : t('تعذر الإلغاء.', 'Could not cancel.'),
+      );
       return;
     }
     setConfirmOrder(null);
@@ -483,6 +495,13 @@ export default function BuyerOrdersPage() {
                           <div className="flex justify-center py-8" role="status">
                             <span className="loading loading-spinner loading-sm text-primary" />
                           </div>
+                        ) : fulfillmentError[order.id] ? (
+                          <p className="buyer-ledger__fulfill-empty text-error" role="alert">
+                            {t(
+                              'تعذر تحميل بيانات التسليم — أغلق التفاصيل وأعد فتحها للمحاولة.',
+                              'Could not load fulfillment — close and reopen details to retry.',
+                            )}
+                          </p>
                         ) : items.length === 0 ? (
                           <p className="buyer-ledger__fulfill-empty">
                             {t(
@@ -570,6 +589,7 @@ export default function BuyerOrdersPage() {
           if (actionBusy) return;
           setConfirmOrder(null);
           setConfirmId('');
+          setConfirmError(null);
         }}
         labelledBy="buyer-cancel-title"
         boxClassName="max-w-md text-start"
@@ -605,6 +625,11 @@ export default function BuyerOrdersPage() {
                 }
               }}
             />
+            {confirmError ? (
+              <p className="mb-3 text-sm text-error" role="alert">
+                {confirmError}
+              </p>
+            ) : null}
             <div className="flex justify-end gap-2">
               <button
                 type="button"
@@ -613,6 +638,7 @@ export default function BuyerOrdersPage() {
                 onClick={() => {
                   setConfirmOrder(null);
                   setConfirmId('');
+                  setConfirmError(null);
                 }}
               >
                 {t('رجوع', 'Back')}
