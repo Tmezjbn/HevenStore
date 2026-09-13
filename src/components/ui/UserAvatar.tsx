@@ -33,17 +33,17 @@ export default function UserAvatar({
   sizeClass = 'w-10',
   className = '',
 }: UserAvatarProps) {
-  const [broken, setBroken] = useState(false);
+  const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
   const letter = initialLetter(name, email);
   const script = letterScript(letter);
   const src = avatarUrl?.trim() || '';
   const label = name || email || '';
 
-  if (src && !broken) {
+  if (src && src !== brokenSrc) {
     return (
       <div className={`avatar user-avatar ${className}`.trim()}>
         <div className={`user-avatar-photo aspect-square rounded-full ${sizeClass}`}>
-          <img src={src} alt={label} onError={() => setBroken(true)} />
+          <img src={src} alt={label} onError={() => setBrokenSrc(src)} />
         </div>
       </div>
     );

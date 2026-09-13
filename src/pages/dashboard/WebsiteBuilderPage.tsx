@@ -29,6 +29,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useSiteSettings, useSaveSiteSettings } from '../../hooks/useSiteSettings';
 import { CATEGORY_COLS } from '../../lib/dbCols';
 import HeroMediaBackdrop from '../../components/home/HeroMediaBackdrop';
+import ConfirmDialog from '../../components/dashboard/ConfirmDialog';
 import {
   parseSections,
   DEFAULT_HOME_SECTIONS,
@@ -416,6 +417,7 @@ export default function WebsiteBuilderPage() {
   );
   const [presetName, setPresetName] = useState('');
   const [presetBusy, setPresetBusy] = useState(false);
+  const [pendingPreset, setPendingPreset] = useState<BuilderPreset | null>(null);
   const [newPresetLocked, setNewPresetLocked] = useState(false);
   const [footerNav, setFooterNav] = useState<FooterNavColumn[]>(() =>
     parseFooterNav(settings.footer_nav)
@@ -680,17 +682,6 @@ export default function WebsiteBuilderPage() {
   }, [builderDirty]);
 
   const leaveBlocker = useBlocker(builderDirty);
-  useEffect(() => {
-    if (leaveBlocker.state !== 'blocked') return;
-    const ok = window.confirm(
-      t(
-        'لديك تغييرات غير محفوظة. مغادرة الصفحة؟',
-        'You have unsaved changes. Leave this page?',
-      ),
-    );
-    if (ok) leaveBlocker.proceed();
-    else leaveBlocker.reset();
-  }, [leaveBlocker, t]);
 
   const toggleSection = (
     setter: React.Dispatch<React.SetStateAction<PageSection[]>>,
@@ -1152,17 +1143,17 @@ export default function WebsiteBuilderPage() {
     );
   };
 
-  const applyPreset = async (preset: BuilderPreset) => {
+  const applyPreset = (preset: BuilderPreset) => {
     if (!user) return;
     if (builderDirty) {
-      const ok = window.confirm(
-        t(
-          'تطبيق الإعداد يستبدل التغييرات غير المحفوظة. متابعة؟',
-          'Applying this preset replaces unsaved changes. Continue?',
-        ),
-      );
-      if (!ok) return;
+      setPendingPreset(preset);
+      return;
     }
+    void doApplyPreset(preset);
+  };
+
+  const doApplyPreset = async (preset: BuilderPreset) => {
+    if (!user) return;
     setPresetBusy(true);
     setError('');
     try {
@@ -4471,6 +4462,38 @@ export default function WebsiteBuilderPage() {
           </ul>
         )}
       </section>
+
+      <ConfirmDialog
+        open={leaveBlocker.state === 'blocked'}
+        onClose={() => leaveBlocker.reset?.()}
+        onConfirm={() => leaveBlocker.proceed?.()}
+        danger
+        title={t('تغييرات غير محفوظة', 'Unsaved changes')}
+        body={t(
+          'لديك تغييرات غير محفوظة. مغادرة الصفحة؟',
+          'You have unsaved changes. Leave this page?',
+        )}
+        confirmLabel={t('مغادرة', 'Leave')}
+        cancelLabel={t('البقاء', 'Stay')}
+      />
+      <ConfirmDialog
+        open={!!pendingPreset}
+        onClose={() => setPendingPreset(null)}
+        onConfirm={async () => {
+          const preset = pendingPreset;
+          setPendingPreset(null);
+          if (preset) await doApplyPreset(preset);
+        }}
+        busy={presetBusy}
+        danger
+        title={t('تطبيق الإعداد المسبق؟', 'Apply preset?')}
+        body={t(
+          'تطبيق الإعداد يستبدل التغييرات غير المحفوظة. متابعة؟',
+          'Applying this preset replaces unsaved changes. Continue?',
+        )}
+        confirmLabel={t('تطبيق', 'Apply')}
+        cancelLabel={t('إلغاء', 'Cancel')}
+      />
     </div>
   );
 }
