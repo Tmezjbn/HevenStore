@@ -81,12 +81,20 @@ export function loadPark(): ParkedAccount | null {
 }
 
 export function savePark(park: ParkedAccount, opts?: { emit?: boolean }): void {
-  localStorage.setItem(ACCOUNT_PARK_KEY, JSON.stringify(park));
+  try {
+    localStorage.setItem(ACCOUNT_PARK_KEY, JSON.stringify(park));
+  } catch {
+    /* quota / private-mode — park just won't persist */
+  }
   if (opts?.emit !== false) emitPark();
 }
 
 export function clearPark(): void {
-  localStorage.removeItem(ACCOUNT_PARK_KEY);
+  try {
+    localStorage.removeItem(ACCOUNT_PARK_KEY);
+  } catch {
+    /* same — removal is best-effort */
+  }
   emitPark();
 }
 
@@ -232,6 +240,9 @@ export async function parkCurrentAndSignOutLocal(meta: AccountMeta): Promise<boo
   );
 
   await clearLocalSessionNoRevoke();
+  // Account B must not inherit A's cart/wishlist — same clear as switchToParked.
+  useCartStore.getState().clearCart();
+  useWishlistStore.getState().clear();
   emitPark();
   return true;
 }
