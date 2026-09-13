@@ -84,6 +84,8 @@ export default function SellerProductsPage() {
   const [listFilter, setListFilter] = useState<ListFilter>('all');
   const [pending, setPending] = useState<PendingConfirm | null>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [createdToday, setCreatedToday] = useState(0);
 
@@ -186,7 +188,15 @@ export default function SellerProductsPage() {
       setPending({ kind: 'hide', product });
       return;
     }
-    await supabase.from('products').update({ status: 'active' }).eq('id', product.id);
+    const { error } = await supabase
+      .from('products')
+      .update({ status: 'active' })
+      .eq('id', product.id);
+    if (error) {
+      setActionError(error.message || t('تعذر تحديث العرض', 'Could not update the listing'));
+      return;
+    }
+    setActionError(null);
     setProducts((prev) =>
       prev.map((p) => (p.id === product.id ? { ...p, status: 'active' as const } : p)),
     );
@@ -196,14 +206,28 @@ export default function SellerProductsPage() {
   const runPending = async () => {
     if (!pending || confirmBusy) return;
     setConfirmBusy(true);
+    setConfirmError(null);
     if (pending.kind === 'hide') {
-      await supabase.from('products').update({ status: 'inactive' }).eq('id', pending.product.id);
+      const { error } = await supabase
+        .from('products')
+        .update({ status: 'inactive' })
+        .eq('id', pending.product.id);
+      if (error) {
+        setConfirmBusy(false);
+        setConfirmError(error.message || t('تعذر إخفاء العرض', 'Could not hide the listing'));
+        return;
+      }
       setProducts((prev) =>
         prev.map((p) => (p.id === pending.product.id ? { ...p, status: 'inactive' as const } : p)),
       );
       refreshStorefront();
     } else {
-      await supabase.from('products').delete().eq('id', pending.id);
+      const { error } = await supabase.from('products').delete().eq('id', pending.id);
+      if (error) {
+        setConfirmBusy(false);
+        setConfirmError(error.message || t('تعذر حذف العرض', 'Could not delete the listing'));
+        return;
+      }
       setProducts((prev) => prev.filter((p) => p.id !== pending.id));
       setTotal((n) => Math.max(0, n - 1));
       refreshStorefront();
@@ -321,6 +345,12 @@ export default function SellerProductsPage() {
           ))}
         </div>
       </div>
+
+      {actionError ? (
+        <p className="mb-2 text-sm text-error" role="alert">
+          {actionError}
+        </p>
+      ) : null}
 
       <p className="seller-listings__count" aria-live="polite">
         <strong className="tabular-nums">{loading ? '—' : total}</strong> {countWord}
@@ -508,9 +538,14 @@ export default function SellerProductsPage() {
 
       <ConfirmDialog
         open={!!pending}
-        onClose={() => !confirmBusy && setPending(null)}
+        onClose={() => {
+          if (confirmBusy) return;
+          setPending(null);
+          setConfirmError(null);
+        }}
         onConfirm={runPending}
         busy={confirmBusy}
+        error={confirmError}
         danger={pending?.kind === 'delete'}
         title={
           pending?.kind === 'hide'
