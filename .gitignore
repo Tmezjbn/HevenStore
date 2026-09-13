@@ -50,3 +50,5 @@ src/lib/impeccable/[0-9a-f]*/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+.devin/mcp_config.local.json
