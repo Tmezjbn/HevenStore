@@ -103,6 +103,8 @@ export default function UsersPage() {
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [rolePending, setRolePending] = useState<RolePending | null>(null);
   const [roleBusy, setRoleBusy] = useState(false);
+  const [roleError, setRoleError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const isOwner = profile?.role === 'owner';
   const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50';
@@ -178,6 +180,15 @@ export default function UsersPage() {
     return true;
   };
 
+  // Server allows admin→admin ENABLE (admin_disable_user blocks admin→admin,
+  // admin_enable_user only guards owner targets). Without this, a disabled
+  // admin could only be re-enabled by the owner.
+  const canEnable = (u: Profile | null) => {
+    if (!u || !profile) return false;
+    if (u.id === profile.id || u.role === 'owner' || u.is_active) return false;
+    return profile.role === 'owner' || profile.role === 'admin';
+  };
+
   useEffect(() => {
     if (!dangerOpen) return;
     let cancelled = false;
@@ -198,7 +209,9 @@ export default function UsersPage() {
       }
       const { data } = await q;
       if (cancelled) return;
-      setDangerCandidates(((data as unknown as Profile[]) || []).filter((u) => canDanger(u)));
+      setDangerCandidates(
+        ((data as unknown as Profile[]) || []).filter((u) => canDanger(u) || canEnable(u)),
+      );
       setDangerLoading(false);
     };
     const tmr = window.setTimeout(load, dangerSearch.trim() ? 200 : 0);
@@ -224,13 +237,13 @@ export default function UsersPage() {
   };
 
   const changeRole = async (userId: string, newRole: string) => {
-    setError('');
+    setRoleError('');
     const { error: err } = await supabase.rpc('set_user_role', {
       target_user: userId,
       new_role: newRole,
     });
     if (err) {
-      setError(
+      setRoleError(
         err.message.includes('Only an owner')
           ? t('فقط المالك يمكنه تغيير الرتب', 'Only an owner can change roles')
           : t('تعذر تغيير الرتبة. شغّل آخر ترحيل SQL ثم أعد المحاولة.', 'Could not change the role. Run the latest SQL migration and try again.'),
@@ -273,7 +286,7 @@ export default function UsersPage() {
   };
 
   const enableSelected = async () => {
-    if (!selected || !canDanger(selected)) return;
+    if (!selected || !canEnable(selected)) return;
     setBusy(true);
     setError('');
     const { error: err } = await supabase.rpc('admin_enable_user', { p_user_id: selected.id });
@@ -293,21 +306,21 @@ export default function UsersPage() {
     if (!selected || !canDanger(selected) || !isOwner) return;
     const handle = selected.username?.trim();
     if (!handle) {
-      setError(t('لا يوجد اسم مستخدم لهذا الحساب', 'This account has no username'));
+      setDeleteError(t('لا يوجد اسم مستخدم لهذا الحساب', 'This account has no username'));
       return;
     }
     if (normalizeUsername(deleteConfirm.replace(/^@+/, '')) !== normalizeUsername(handle)) {
-      setError(t('اكتب اسم المستخدم للتأكيد', 'Type the username to confirm'));
+      setDeleteError(t('اكتب اسم المستخدم للتأكيد', 'Type the username to confirm'));
       return;
     }
     setBusy(true);
-    setError('');
+    setDeleteError('');
     const { error: err } = await supabase.rpc('admin_schedule_user_deletion', {
       p_user_id: selected.id,
     });
     setBusy(false);
     if (err) {
-      setError(
+      setDeleteError(
         t('تعذر جدولة الحذف. شغّل ترحيل SQL ثم أعد المحاولة.', 'Could not schedule deletion. Apply the SQL migration and try again.'),
       );
       return;
@@ -346,6 +359,7 @@ export default function UsersPage() {
 
   const pickRole = (user: Profile, to: Role) => {
     if (to === user.role) return;
+    setRoleError('');
     setRolePending({
       userId: user.id,
       from: user.role,
@@ -887,7 +901,11 @@ export default function UsersPage() {
                       disabled={busy}
                       onClick={() => {
                         void supabase.rpc('reset_support_standing', { p_agent_id: selected.id }).then(({ error: err }) => {
-                          if (!err) patchUser(selected.id, { support_standing: 100 });
+                          if (err) {
+                            setError(t('تعذر إعادة ضبط التقييم', 'Could not reset standing'));
+                            return;
+                          }
+                          patchUser(selected.id, { support_standing: 100 });
                         });
                       }}
                     >
@@ -895,6 +913,8 @@ export default function UsersPage() {
                     </button>
                   </div>
                 ) : null}
+                {canDanger(selected) ? (
+                <>
                 <p className="text-sm font-semibold tracking-tight flex items-center gap-1.5">
                   <Ban size={14} aria-hidden />
                   {t('تعطيل مؤقت', 'Disable temporarily')}
@@ -948,20 +968,23 @@ export default function UsersPage() {
                   >
                     {t('تعطيل بلا نهاية', 'Disable indefinitely')}
                   </button>
-                  {!selected.is_active ? (
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm gap-1"
-                      disabled={busy}
-                      onClick={() => void enableSelected()}
-                    >
-                      {busy ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
-                      {t('إعادة التفعيل', 'Re-enable')}
-                    </button>
-                  ) : null}
                 </div>
+                </>
+                ) : null}
+                {!selected.is_active && canEnable(selected) ? (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm gap-1"
+                    disabled={busy}
+                    onClick={() => void enableSelected()}
+                  >
+                    {busy ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                    {t('إعادة التفعيل', 'Re-enable')}
+                  </button>
+                ) : null}
               </div>
 
+              {canDanger(selected) ? (
               <div className="space-y-3 rounded-lg border border-error/40 bg-error/5 p-3">
                 <p className="text-sm font-semibold tracking-tight text-error flex items-center gap-1.5">
                   <Trash2 size={14} aria-hidden />
@@ -980,6 +1003,7 @@ export default function UsersPage() {
                     disabled={busy}
                     onClick={() => {
                       setDeleteConfirm('');
+                      setDeleteError('');
                       setDeleteOpen(true);
                     }}
                   >
@@ -992,6 +1016,7 @@ export default function UsersPage() {
                   </p>
                 )}
               </div>
+              ) : null}
             </div>
           )}
         </div>
@@ -1003,6 +1028,7 @@ export default function UsersPage() {
           if (!busy) {
             setDeleteOpen(false);
             setDeleteConfirm('');
+            setDeleteError('');
           }
         }}
         labelledBy="users-delete-title"
@@ -1030,6 +1056,11 @@ export default function UsersPage() {
           dir="ltr"
           spellCheck={false}
         />
+        {deleteError ? (
+          <p className="mb-3 text-sm text-error" role="alert">
+            {deleteError}
+          </p>
+        ) : null}
         <div className="flex justify-end gap-2">
           <button
             type="button"
@@ -1038,6 +1069,7 @@ export default function UsersPage() {
             onClick={() => {
               setDeleteOpen(false);
               setDeleteConfirm('');
+              setDeleteError('');
             }}
           >
             {t('إلغاء', 'Cancel')}
@@ -1056,9 +1088,15 @@ export default function UsersPage() {
 
       <ConfirmDialog
         open={!!rolePending}
-        onClose={() => !roleBusy && setRolePending(null)}
+        onClose={() => {
+          if (!roleBusy) {
+            setRolePending(null);
+            setRoleError('');
+          }
+        }}
         onConfirm={confirmRoleChange}
         busy={roleBusy}
+        error={roleError || null}
         danger={rolePending?.to === 'owner' || rolePending?.from === 'owner'}
         title={t('تأكيد تغيير الرتبة؟', 'Confirm role change?')}
         body={

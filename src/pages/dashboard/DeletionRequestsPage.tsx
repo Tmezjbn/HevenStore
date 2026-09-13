@@ -152,6 +152,7 @@ export default function DeletionRequestsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [purgeTarget, setPurgeTarget] = useState<Profile | null>(null);
   const [purgeConfirm, setPurgeConfirm] = useState('');
+  const [purgeError, setPurgeError] = useState('');
   const [tab, setTab] = useState<TabId>('pending');
   const [copied, setCopied] = useState<string | null>(null);
   const typeCustoms = parseProductTypesJson(settings.product_types_json);
@@ -255,15 +256,15 @@ export default function DeletionRequestsPage() {
     if (!purgeTarget) return;
     const handle = purgeTarget.username?.trim();
     if (!handle) {
-      setError(t('لا يوجد اسم مستخدم لهذا الحساب', 'This account has no username'));
+      setPurgeError(t('لا يوجد اسم مستخدم لهذا الحساب', 'This account has no username'));
       return;
     }
     if (normalizeUsername(purgeConfirm.replace(/^@+/, '')) !== normalizeUsername(handle)) {
-      setError(t('اكتب اسم المستخدم للتأكيد', 'Type the username to confirm'));
+      setPurgeError(t('اكتب اسم المستخدم للتأكيد', 'Type the username to confirm'));
       return;
     }
     setBusyId(purgeTarget.id);
-    setError('');
+    setPurgeError('');
     const { data, error: err } = await supabase.functions.invoke('hard-delete-user', {
       body: { user_id: purgeTarget.id },
     });
@@ -287,7 +288,7 @@ export default function DeletionRequestsPage() {
         ],
       };
       const msg = messages[code];
-      setError(
+      setPurgeError(
         msg
           ? t(msg[0], msg[1])
           : t(
@@ -299,6 +300,7 @@ export default function DeletionRequestsPage() {
     }
     setPurgeTarget(null);
     setPurgeConfirm('');
+    setPurgeError('');
     setTab('history');
     await load();
   };
@@ -526,6 +528,7 @@ export default function DeletionRequestsPage() {
                         onClick={() => {
                           setError('');
                           setPurgeConfirm('');
+                          setPurgeError('');
                           setPurgeTarget(p);
                         }}
                       >
@@ -828,6 +831,7 @@ export default function DeletionRequestsPage() {
           if (busyId) return;
           setPurgeTarget(null);
           setPurgeConfirm('');
+          setPurgeError('');
         }}
         labelledBy="purge-now-title"
         boxClassName="max-w-md text-start"
@@ -854,6 +858,11 @@ export default function DeletionRequestsPage() {
           dir="ltr"
           spellCheck={false}
         />
+        {purgeError ? (
+          <p className="mb-3 text-sm text-error" role="alert">
+            {purgeError}
+          </p>
+        ) : null}
         <div className="flex justify-end gap-2">
           <button
             type="button"
@@ -862,6 +871,7 @@ export default function DeletionRequestsPage() {
             onClick={() => {
               setPurgeTarget(null);
               setPurgeConfirm('');
+              setPurgeError('');
             }}
           >
             {t('إلغاء', 'Cancel')}
