@@ -501,6 +501,7 @@ export default function CategoriesPage() {
                   : t('رئيسي جديد', 'New main')
               }
               onClose={closePanel}
+              t={t}
             >
               {createParent && (
                 <p className="owner-tree__path" dir="ltr">
@@ -537,7 +538,7 @@ export default function CategoriesPage() {
           )}
 
           {panel.kind === 'edit' && selected && (
-            <PanelShell title={t('تعديل', 'Edit')} onClose={closePanel}>
+            <PanelShell title={t('تعديل', 'Edit')} onClose={closePanel} t={t}>
               <p className="owner-tree__path" dir="ltr">
                 {categoryPathLabel(selected, byId, lang)}
               </p>
@@ -586,6 +587,7 @@ export default function CategoriesPage() {
             <PanelShell
               title={lang === 'ar' ? selected.name_ar || selected.name : selected.name}
               onClose={() => setSelectedId(null)}
+              t={t}
             >
               <p className="owner-tree__path" dir="ltr">
                 {categoryPathLabel(selected, byId, lang)}
@@ -711,10 +713,12 @@ export default function CategoriesPage() {
 function PanelShell({
   title,
   onClose,
+  t,
   children,
 }: {
   title: string;
   onClose: () => void;
+  t: (ar: string, en: string) => string;
   children: ReactNode;
 }) {
   return (
@@ -725,7 +729,7 @@ function PanelShell({
           type="button"
           className="owner-tree__icon-btn"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('إغلاق', 'Close')}
         >
           <X size={14} />
         </button>

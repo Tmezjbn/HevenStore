@@ -121,15 +121,28 @@ function RouteFallback() {
 }
 
 function MissingEnvScreen() {
+  // Renders before I18nProvider — mirror ErrorBoundary's document.lang check.
+  const ar = typeof document !== 'undefined' && document.documentElement.lang === 'ar';
   return (
     <div className="min-h-screen bg-[#161616] text-[#ececec] flex items-center justify-center px-4">
       <div className="max-w-lg space-y-3 text-center" role="alert">
-        <h1 className="text-2xl font-bold">Deploy config missing</h1>
+        <h1 className="text-2xl font-bold">{ar ? 'إعداد النشر ناقص' : 'Deploy config missing'}</h1>
         <p className="text-sm opacity-80 text-pretty">
-          Set <code className="font-mono text-xs">VITE_SUPABASE_URL</code> and{' '}
-          <code className="font-mono text-xs">VITE_SUPABASE_ANON_KEY</code> in the host
-          environment, then rebuild. Vite bakes these in at build time — a{' '}
-          <code className="font-mono text-xs">dist/</code> built without them boots blank.
+          {ar ? (
+            <>
+              اضبط <code className="font-mono text-xs">VITE_SUPABASE_URL</code> و{' '}
+              <code className="font-mono text-xs">VITE_SUPABASE_ANON_KEY</code> في بيئة
+              الاستضافة ثم أعد البناء. تُدمج قيم Vite وقت البناء — نسخة{' '}
+              <code className="font-mono text-xs">dist/</code> بدونها تفتح صفحة فارغة.
+            </>
+          ) : (
+            <>
+              Set <code className="font-mono text-xs">VITE_SUPABASE_URL</code> and{' '}
+              <code className="font-mono text-xs">VITE_SUPABASE_ANON_KEY</code> in the host
+              environment, then rebuild. Vite bakes these in at build time — a{' '}
+              <code className="font-mono text-xs">dist/</code> built without them boots blank.
+            </>
+          )}
         </p>
       </div>
     </div>

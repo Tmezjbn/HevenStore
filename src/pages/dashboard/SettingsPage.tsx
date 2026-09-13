@@ -257,7 +257,7 @@ export default function SettingsPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-20" aria-busy="true">
-        <span className="loading loading-spinner loading-md text-primary" aria-label="Loading" />
+        <span className="loading loading-spinner loading-md text-primary" aria-label={t('جارٍ التحميل', 'Loading')} />
       </div>
     );
   }
