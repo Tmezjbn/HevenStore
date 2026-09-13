@@ -24,11 +24,14 @@ function json(req: Request, body: unknown, status = 200): Response {
 }
 
 const hits = new Map<string, { n: number; t: number }>();
+/** Spoofed X-Forwarded-For could grow the map unboundedly — hard cap. */
+const HITS_MAX = 5000;
 
 function rateOk(ip: string, limit = 30, windowMs = 60_000): boolean {
   const now = Date.now();
   const row = hits.get(ip);
   if (!row || now - row.t > windowMs) {
+    if (hits.size >= HITS_MAX) hits.clear();
     hits.set(ip, { n: 1, t: now });
     return true;
   }

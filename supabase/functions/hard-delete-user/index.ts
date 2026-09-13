@@ -76,16 +76,18 @@ Deno.serve(async (req) => {
       return json(req, { error: 'archive_failed' }, 500);
     }
 
-    await admin
+    const { error: cancelErr } = await admin
       .from('account_deletion_requests')
       .update({ status: 'cancelled', reviewed_at: new Date().toISOString(), reviewed_by: callerId })
       .eq('user_id', targetId)
       .in('status', ['pending', 'approved']);
+    // Stale request rows must not block the delete — log for manual cleanup.
+    if (cancelErr) console.error('deletion-request cancel failed:', targetId, cancelErr);
 
     const { error: delErr } = await admin.auth.admin.deleteUser(targetId);
     if (delErr) {
       console.error('deleteUser failed:', targetId, delErr.message);
-      return json(req, { error: 'delete_failed', message: delErr.message }, 500);
+      return json(req, { error: 'delete_failed' }, 500);
     }
 
     return json(req, { ok: true, deleted: targetId });

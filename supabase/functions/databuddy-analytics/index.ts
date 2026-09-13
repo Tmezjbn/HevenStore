@@ -126,10 +126,10 @@ Deno.serve(async (req) => {
   }
 
   if (!result.ok) {
+    console.error('databuddy query failed:', result.status, JSON.stringify(result.payload).slice(0, 500));
     return json(req, {
       error: 'databuddy_query_failed',
       status: result.status,
-      detail: result.payload,
     }, 502);
   }
 

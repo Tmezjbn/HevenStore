@@ -46,7 +46,12 @@ Deno.serve(async (req) => {
 
   try {
     const { order_id } = await req.json();
-    if (!order_id) return json(req, { error: 'order_id required' }, 400);
+    if (
+      typeof order_id !== 'string' ||
+      !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(order_id)
+    ) {
+      return json(req, { error: 'order_id required' }, 400);
+    }
 
     const authHeader = req.headers.get('Authorization') ?? '';
     const anonClient = createClient(
@@ -105,16 +110,23 @@ Deno.serve(async (req) => {
     if (!res.ok) {
       const detail = await res.text();
       console.error('Polar checkout create failed:', res.status, detail);
-      return json(req, { error: 'polar_error', polar_status: res.status, detail: detail.slice(0, 500) }, 502);
+      // Raw upstream detail stays in function logs — don't echo it to callers.
+      return json(req, { error: 'polar_error', polar_status: res.status }, 502);
     }
 
     const checkout = await res.json();
 
-    // Link Polar checkout to our order for webhook correlation.
-    await admin
+    // Link Polar checkout to our order for webhook correlation. Status guard:
+    // the order may have finalized between the check above and this write.
+    const { error: stampErr } = await admin
       .from('orders')
       .update({ polar_checkout_id: checkout.id })
-      .eq('id', order.id);
+      .eq('id', order.id)
+      .eq('status', 'pending');
+    if (stampErr) {
+      // Non-fatal: the webhook still correlates via metadata.order_id.
+      console.error('polar_checkout_id stamp failed:', order.id, stampErr);
+    }
 
     return json(req, { url: checkout.url });
   } catch (e) {

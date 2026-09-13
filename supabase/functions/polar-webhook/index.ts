@@ -83,11 +83,13 @@ async function markOrderPaid(data: LooseRecord, eventType: string): Promise<Mark
   }
 
   // SEC-6: never finalize without a paid amount — null would skip the
-  // underpay guard inside finalize_paid_order.
+  // underpay guard inside finalize_paid_order. Retry, not ACK: if no later
+  // amount-bearing event arrives, a 200 here would strand a paid order as
+  // pending forever (Polar stops redelivering).
   const paidCents = getPaidCents(data);
   if (paidCents == null) {
-    console.warn('paid event missing amount — skip finalize, wait for order.paid', eventType, orderId);
-    return 'ok';
+    console.warn('paid event missing amount — ask Polar to redeliver', eventType, orderId);
+    return 'retry';
   }
 
   // Server-authoritative transition: verifies the paid amount covers the

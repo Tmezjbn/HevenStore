@@ -70,6 +70,14 @@ export async function archiveDeletedUser(
     ) ?? [],
   }));
 
+  // Idempotent: purge retries / a second hard-delete must not duplicate history.
+  const { data: existing } = await admin
+    .from('account_deletion_history')
+    .select('id')
+    .eq('former_user_id', userId)
+    .limit(1);
+  if (existing?.length) return;
+
   const { error: iErr } = await admin.from('account_deletion_history').insert({
     former_user_id: userId,
     email: profile.email,

@@ -36,6 +36,7 @@ Deno.serve(async (req) => {
   }
 
   const archiveFailures: { id: string; message: string }[] = [];
+  const failedIds: string[] = [];
   for (const row of dueRows ?? []) {
     try {
       await archiveDeletedUser(admin, row.id, null);
@@ -43,6 +44,27 @@ Deno.serve(async (req) => {
       const message = e instanceof Error ? e.message : String(e);
       console.error('archive failed:', row.id, message);
       archiveFailures.push({ id: row.id, message });
+      failedIds.push(row.id);
+    }
+  }
+
+  // Claim anonymizes + deleteUser hard-deletes — neither may run for a user
+  // whose archive failed (history would be lost forever). Postpone their due
+  // date so claim skips them; the next cron run retries the archive.
+  if (failedIds.length) {
+    const retryAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const { error: postponeErr } = await admin
+      .from('profiles')
+      .update({ deletion_scheduled_at: retryAt })
+      .in('id', failedIds);
+    if (postponeErr) {
+      // Failing to postpone means they'd still be claimed unarchived —
+      // abort the whole run rather than lose history.
+      console.error('postpone failed for archive failures — aborting purge:', postponeErr);
+      return new Response(
+        JSON.stringify({ error: 'archive postpone failed, purge aborted', archiveFailures }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } },
+      );
     }
   }
 
