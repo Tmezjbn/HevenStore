@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Loader2, Clock, Copy, Check, KeyRound, XCircle, PackageSearch, ArrowRight, ShoppingBag } from 'lucide-react';
 import { track } from '@databuddy/sdk/react';
@@ -43,6 +43,11 @@ export default function CheckoutSuccessPage() {
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [pollKey, setPollKey] = useState(0);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+  }, []);
 
   useEffect(() => {
     // No order reference: never fake a success screen.
@@ -55,12 +60,28 @@ export default function CheckoutSuccessPage() {
     let cancelled = false;
 
     const poll = async () => {
-      const { data } = await supabase
-        .from('orders')
-        .select('status, order_number')
-        .eq('id', orderId)
-        .maybeSingle();
+      let data: { status: string; order_number: string | null } | null = null;
+      let failed = false;
+      try {
+        const res = await supabase
+          .from('orders')
+          .select('status, order_number')
+          .eq('id', orderId)
+          .maybeSingle();
+        data = res.data;
+        failed = Boolean(res.error);
+      } catch {
+        failed = true;
+      }
       if (cancelled) return;
+      // Transient fetch failure is not "no order" — keep polling, then land
+      // on the retry-able processing state instead of a dead spinner.
+      if (failed) {
+        attempts += 1;
+        if (attempts >= 45) setState('processing');
+        else timer = setTimeout(poll, 2000);
+        return;
+      }
       if (data?.order_number) setOrderNumber(data.order_number);
       if (data?.status === 'paid') {
         setState('paid');
@@ -124,8 +145,9 @@ export default function CheckoutSuccessPage() {
   const copyContent = async (id: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
       setCopied(id);
-      setTimeout(() => setCopied(null), 2000);
+      copyTimer.current = setTimeout(() => setCopied(null), 2000);
     } catch {
       // Clipboard unavailable (e.g. insecure context) — user can select manually.
     }
