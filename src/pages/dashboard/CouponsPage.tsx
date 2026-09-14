@@ -126,7 +126,9 @@ export default function CouponsPage() {
         discount_type: form.discount_type,
         discount_value: value,
         min_order_amount: Number(form.min_order_amount) || 0,
-        max_uses: form.max_uses ? Number(form.max_uses) : null,
+        // 0/negative must become null — the server treats uses_count >= max_uses
+        // as exhausted, so a stored 0 would make the coupon instantly dead.
+        max_uses: Number(form.max_uses) > 0 ? Number(form.max_uses) : null,
         expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
         required_badge_id: form.required_badge_id || null,
         is_active: true,

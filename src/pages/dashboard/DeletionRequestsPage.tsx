@@ -356,15 +356,14 @@ export default function DeletionRequestsPage() {
         )}
       </p>
 
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label={t('أقسام', 'Sections')}>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t('أقسام', 'Sections')}>
         {tabs.map(({ id, ar, en, count, tone, Icon }) => {
           const on = tab === id;
           return (
             <button
               key={id}
               type="button"
-              role="tab"
-              aria-selected={on}
+              aria-pressed={on}
               className={`btn btn-sm gap-2 border ${focusRing} ${
                 on ? `${tone} bg-base-200` : 'btn-ghost border-base-300 text-base-content/70'
               }`}

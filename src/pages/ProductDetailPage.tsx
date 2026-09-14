@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ShoppingCart, ArrowLeft, ArrowRight, Check, PackageOpen, Pencil, Play, Zap, Shield } from 'lucide-react';
 import { useI18n } from '../lib/i18n';
@@ -24,7 +24,7 @@ import {
   type VideoEmbedSlotIndex,
   type VideoEmbedVariant,
 } from '../lib/videoEmbeds';
-import { UGC_DIR, UGC_TEXT_CLASS, ugcDisplay } from '../lib/bidi';
+import { UGC_TEXT_CLASS, ugcDir, ugcDisplay } from '../lib/bidi';
 import { sellerPath } from '../lib/username';
 import { canUsePublicProfile } from '../lib/roles';
 import type { Role } from '../types';
@@ -49,6 +49,10 @@ export default function ProductDetailPage() {
   const { settings } = useSiteSettings();
   const plyrConfig = useMemo(() => parsePlyrConfig(settings.plyr_json), [settings.plyr_json]);
   const [added, setAdded] = useState(false);
+  const addedTimer = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (addedTimer.current) window.clearTimeout(addedTimer.current);
+  }, []);
   /** null = show video (if any); else gallery/thumbnail url */
   const [stageUrl, setStageUrl] = useState<string | null>(null);
   const [showVideo, setShowVideo] = useState(true);
@@ -81,7 +85,7 @@ export default function ProductDetailPage() {
         ? product.thumbnail_url
         : `${origin}${product.thumbnail_url.startsWith('/') ? '' : '/'}${product.thumbnail_url}`
       : undefined;
-    const pageUrl = `${origin}/product/${product.slug}`;
+    const pageUrl = `${origin}/product/${encodeURIComponent(product.slug)}`;
     const sellerName =
       product.show_seller_name && product.seller?.full_name?.trim()
         ? product.seller.full_name.trim()
@@ -94,7 +98,7 @@ export default function ProductDetailPage() {
       url: pageUrl,
       image: image ? [image] : undefined,
       sku: product.id,
-      brand: { '@type': 'Brand', name: 'HEVEN.FUN' },
+      brand: { '@type': 'Brand', name: settings.site_name?.trim() || 'HEVEN.FUN' },
       offers: {
         '@type': 'Offer',
         url: pageUrl,
@@ -127,13 +131,18 @@ export default function ProductDetailPage() {
     return () => {
       document.getElementById(PRODUCT_LD_ID)?.remove();
     };
-  }, [product, ar]);
+  }, [product, ar, settings.site_name]);
 
   const handleAdd = () => {
     if (!product || product.stock <= 0) return;
+    // addItem clamps at stock — a no-op must not flash "Added".
+    const inCart =
+      useCartStore.getState().items.find((i) => i.product.id === product.id)?.quantity ?? 0;
+    if (inCart >= product.stock) return;
     addItem(product);
     setAdded(true);
-    window.setTimeout(() => setAdded(false), 2000);
+    if (addedTimer.current) window.clearTimeout(addedTimer.current);
+    addedTimer.current = window.setTimeout(() => setAdded(false), 2000);
   };
 
   const goBack = () => {
@@ -151,12 +160,14 @@ export default function ProductDetailPage() {
   );
 
   useEffect(() => {
-    if (!product) return;
+    if (!product?.id) return;
     setVideoSlot(videoEmbeds.defaultSlot);
     setVideoVariant(videoEmbeds.defaultVariant);
     setShowVideo(true);
     setStageUrl(null);
-  }, [product, product?.id, videoEmbeds.defaultSlot, videoEmbeds.defaultVariant]);
+    // Depend on identity only — a background refetch must not reset the
+    // shopper's selected image/video stage.
+  }, [product?.id, videoEmbeds.defaultSlot, videoEmbeds.defaultVariant]);
 
   if (isLoading) {
     return (
@@ -358,7 +369,9 @@ export default function ProductDetailPage() {
                   );
                 })}
                 {strip.map((url, i) => {
-                  const active = !stageIsVideo && (stageUrl || product.thumbnail_url) === url;
+                  // Compare to what the stage actually shows — falls back to
+                  // strip[0] when no thumbnail_url exists.
+                  const active = !stageIsVideo && stillSrc === url;
                   return (
                     <button
                       type="button"
@@ -524,7 +537,7 @@ export default function ProductDetailPage() {
               {description && (
                 <p
                   className={`text-base text-base-content/85 leading-relaxed text-pretty whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${UGC_TEXT_CLASS}`}
-                  dir={UGC_DIR}
+                  dir={ugcDir(description)}
                 >
                   {ugcDisplay(description)}
                 </p>

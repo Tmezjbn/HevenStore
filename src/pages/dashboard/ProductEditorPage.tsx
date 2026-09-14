@@ -51,6 +51,7 @@ import {
 import { useSaveSiteSettings, useSiteSettings } from '../../hooks/useSiteSettings';
 import {
   allProductTypes,
+  isValidProductTypeId,
   parseProductTypesJson,
   serializeProductTypesJson,
   slugifyProductType,
@@ -723,6 +724,17 @@ export default function ProductEditorPage() {
       return;
     }
     const id = slugifyProductType(labelEn);
+    if (!isValidProductTypeId(id)) {
+      // slugify keeps non-ASCII letters; the column only allows a-z0-9_ —
+      // reject here instead of silently dropping the type on serialize.
+      setFormError(
+        t(
+          'اسم النوع بالإنجليزية يحتاج حرفاً لاتينياً أو رقماً واحداً على الأقل',
+          'English type name needs at least one Latin letter or digit',
+        ),
+      );
+      return;
+    }
     if (allProductTypes(customProductTypes).some((t) => t.id === id)) {
       setFormError(t('هذا النوع موجود مسبقاً', 'That type already exists'));
       return;

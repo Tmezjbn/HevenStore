@@ -28,6 +28,7 @@ import { useI18n } from '../../lib/i18n';
 import { useAuthStore } from '../../stores/authStore';
 import { useSiteSettings, useSaveSiteSettings } from '../../hooks/useSiteSettings';
 import { CATEGORY_COLS } from '../../lib/dbCols';
+import { formatMoney } from '../../lib/formatMoney';
 import HeroMediaBackdrop from '../../components/home/HeroMediaBackdrop';
 import ConfirmDialog from '../../components/dashboard/ConfirmDialog';
 import {
@@ -3749,7 +3750,7 @@ export default function WebsiteBuilderPage() {
                       <Box size={14} className="opacity-40 shrink-0" />
                     )}
                     <span className="text-sm truncate flex-1">{label}</span>
-                    <span className="text-xs tabular-nums opacity-50">${p.price}</span>
+                    <span className="text-xs tabular-nums opacity-50">{formatMoney(p.price)}</span>
                   </label>
                 );
               });
@@ -3957,7 +3958,7 @@ export default function WebsiteBuilderPage() {
                           <Box size={14} className="opacity-40 shrink-0" />
                         )}
                         <span className="text-sm truncate flex-1">{label}</span>
-                        <span className="text-xs tabular-nums opacity-50">${p.price}</span>
+                        <span className="text-xs tabular-nums opacity-50">{formatMoney(p.price)}</span>
                       </label>
                     );
                   });
@@ -4216,7 +4217,7 @@ export default function WebsiteBuilderPage() {
                           <Box size={14} className="opacity-40 shrink-0" />
                         )}
                         <span className="text-sm truncate flex-1">{label}</span>
-                        <span className="text-xs tabular-nums opacity-50">${p.price}</span>
+                        <span className="text-xs tabular-nums opacity-50">{formatMoney(p.price)}</span>
                       </label>
                     );
                   });

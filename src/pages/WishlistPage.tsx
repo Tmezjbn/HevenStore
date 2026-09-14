@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Trash2 } from 'lucide-react';
 import { useWishlistStore } from '../stores/wishlistStore';
@@ -6,11 +6,13 @@ import { useI18n } from '../lib/i18n';
 import { usePageMeta } from '../hooks/usePageMeta';
 import { useProductsByIds } from '../hooks/useCatalog';
 import ProductCard from '../components/ui/ProductCard';
+import ConfirmDialog from '../components/dashboard/ConfirmDialog';
 
 export default function WishlistPage() {
   const { t, contentDir } = useI18n();
   usePageMeta({ title: t('قائمة المفضلة', 'Wishlist'), noindex: true });
   const { items, clear, hydrateFromLive } = useWishlistStore();
+  const [confirmClear, setConfirmClear] = useState(false);
   const ids = items.map((p) => p.id);
   const { data: live, isSuccess: liveReady } = useProductsByIds(ids);
   useEffect(() => {
@@ -27,7 +29,11 @@ export default function WishlistPage() {
             {t('قائمة المفضلة', 'Wishlist')}
           </h1>
           {items.length > 0 && (
-            <button type="button" onClick={clear} className="btn btn-ghost btn-sm gap-2 text-error">
+            <button
+              type="button"
+              onClick={() => setConfirmClear(true)}
+              className="btn btn-ghost btn-sm gap-2 text-error"
+            >
               <Trash2 size={14} />
               {t('مسح الكل', 'Clear all')}
             </button>
@@ -51,6 +57,20 @@ export default function WishlistPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmClear}
+        onClose={() => setConfirmClear(false)}
+        onConfirm={() => {
+          clear();
+          setConfirmClear(false);
+        }}
+        danger
+        title={t('مسح قائمة المفضلة؟', 'Clear your wishlist?')}
+        body={t('سيُحذف كل المنتجات المحفوظة.', 'Every saved product will be removed.')}
+        confirmLabel={t('مسح الكل', 'Clear all')}
+        cancelLabel={t('إلغاء', 'Cancel')}
+      />
     </div>
   );
 }

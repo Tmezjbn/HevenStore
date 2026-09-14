@@ -17,6 +17,7 @@ export default function MyBadgesPage() {
 
   const [badges, setBadges] = useState<Earned[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
   const [showBadges, setShowBadges] = useState(profile?.show_badges !== false);
   const [prefBusy, setPrefBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
@@ -30,13 +31,15 @@ export default function MyBadgesPage() {
     let cancelled = false;
     void (async () => {
       setLoading(true);
-      const { data } = await supabase
+      setLoadErr(false);
+      const { data, error } = await supabase
         .from('user_badges')
         .select('user_id, badge_id, awarded_at, badge:badges(*)')
         .eq('user_id', user.id)
         .order('awarded_at', { ascending: false });
       if (cancelled) return;
-      setBadges((data as Earned[] | null) ?? []);
+      if (error) setLoadErr(true);
+      else setBadges((data as unknown as Earned[] | null) ?? []);
       setLoading(false);
     })();
     return () => {
@@ -110,6 +113,12 @@ export default function MyBadgesPage() {
       {loading ? (
         <div className="flex justify-center py-14" role="status">
           <span className="loading loading-spinner loading-md text-primary" />
+        </div>
+      ) : loadErr ? (
+        <div className="rounded-xl border border-dashed border-base-300 px-4 py-12 text-center">
+          <p className="text-sm text-error" role="alert">
+            {t('تعذر تحميل الشارات', 'Could not load badges')}
+          </p>
         </div>
       ) : badges.length === 0 ? (
         <div className="rounded-xl border border-dashed border-base-300 px-4 py-12 text-center">

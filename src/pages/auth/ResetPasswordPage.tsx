@@ -24,8 +24,10 @@ export default function ResetPasswordPage() {
   // Only PASSWORD_RECOVERY (or hash type=recovery) — not a normal logged-in session.
   useEffect(() => {
     let settled = false;
+    // A genuine PASSWORD_RECOVERY/session is authoritative — it must win even
+    // after the 8s timeout guessed 'invalid' (slow token exchange). Expired
+    // links never emit it, so letting it override cannot un-block a dead link.
     const markReady = () => {
-      if (settled) return;
       settled = true;
       setGate('ready');
     };

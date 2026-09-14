@@ -96,11 +96,18 @@ export default function OwnerChangelogsPage() {
   const [scaleTab, setScaleTab] = useState<OwnerUpdateScale>('big');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Memoized baseline: parseUserChangelog generates fresh ids for entries that
+  // lack them — re-parsing per render would mint new keys and wedge userDirty.
+  const userBaseline = useMemo(
+    () => parseUserChangelog(settings.user_changelog_json),
+    [settings.user_changelog_json],
+  );
+
   useEffect(() => {
     if (!settingsLoading) {
-      setUserEntries(parseUserChangelog(settings.user_changelog_json));
+      setUserEntries(userBaseline);
     }
-  }, [settings.user_changelog_json, settingsLoading]);
+  }, [userBaseline, settingsLoading]);
 
   const refreshOwner = () => qc.invalidateQueries({ queryKey: OWNER_LOG_KEY });
 
@@ -114,7 +121,10 @@ export default function OwnerChangelogsPage() {
 
   const deleteMut = useMutation({
     mutationFn: deleteOwnerChangelogEntry,
-    onSuccess: refreshOwner,
+    onSuccess: () => {
+      setDeleteId(null);
+      refreshOwner();
+    },
   });
 
   const saveUserChangelog = async () => {
@@ -150,8 +160,8 @@ export default function OwnerChangelogsPage() {
     [ownerRows, scaleTab],
   );
   const userDirty = useMemo(
-    () => JSON.stringify(userEntries) !== JSON.stringify(parseUserChangelog(settings.user_changelog_json)),
-    [userEntries, settings.user_changelog_json],
+    () => JSON.stringify(userEntries) !== JSON.stringify(userBaseline),
+    [userEntries, userBaseline],
   );
 
   useEffect(() => {
@@ -169,11 +179,10 @@ export default function OwnerChangelogsPage() {
             'Internal log is owner-only. The public log appears under Resources for visitors.',
           )}
         </p>
-        <div className="changelog-page__tabs" role="tablist" aria-label={t('السجلات', 'Logs')}>
+        <div className="changelog-page__tabs" role="group" aria-label={t('السجلات', 'Logs')}>
           <button
             type="button"
-            role="tab"
-            aria-selected={logTab === 'internal'}
+            aria-pressed={logTab === 'internal'}
             className={`changelog-page__tab${logTab === 'internal' ? ' is-active' : ''}`}
             onClick={() => setLogTab('internal')}
           >
@@ -183,8 +192,7 @@ export default function OwnerChangelogsPage() {
           </button>
           <button
             type="button"
-            role="tab"
-            aria-selected={logTab === 'public'}
+            aria-pressed={logTab === 'public'}
             className={`changelog-page__tab${logTab === 'public' ? ' is-active' : ''}`}
             onClick={() => setLogTab('public')}
           >
@@ -223,13 +231,12 @@ export default function OwnerChangelogsPage() {
 
           <div
             className="changelog-scale-tabs"
-            role="tablist"
+            role="group"
             aria-label={t('حجم التحديث', 'Update size')}
           >
             <button
               type="button"
-              role="tab"
-              aria-selected={scaleTab === 'big'}
+              aria-pressed={scaleTab === 'big'}
               className={`changelog-scale-tabs__tab${scaleTab === 'big' ? ' is-active' : ''}`}
               onClick={() => setScaleTab('big')}
             >
@@ -238,8 +245,7 @@ export default function OwnerChangelogsPage() {
             </button>
             <button
               type="button"
-              role="tab"
-              aria-selected={scaleTab === 'small'}
+              aria-pressed={scaleTab === 'small'}
               className={`changelog-scale-tabs__tab${scaleTab === 'small' ? ' is-active' : ''}`}
               onClick={() => setScaleTab('small')}
             >
@@ -375,6 +381,11 @@ export default function OwnerChangelogsPage() {
                   {t('إلغاء', 'Cancel')}
                 </button>
               </div>
+              {insertMut.isError && (
+                <p className="changelog-panel__error text-pretty" role="alert">
+                  {t('فشل الحفظ — حاول مجدداً.', 'Save failed — try again.')}
+                </p>
+              )}
             </div>
           )}
 
@@ -569,10 +580,11 @@ export default function OwnerChangelogsPage() {
         onClose={() => !deleteMut.isPending && setDeleteId(null)}
         onConfirm={() => {
           if (!deleteId) return;
-          deleteMut.mutate(deleteId, { onSettled: () => setDeleteId(null) });
+          deleteMut.mutate(deleteId);
         }}
         busy={deleteMut.isPending}
         danger
+        error={deleteMut.isError ? t('فشل الحذف — حاول مجدداً.', 'Delete failed — try again.') : null}
         title={t('حذف هذا الإدخال؟', 'Delete this entry?')}
         confirmLabel={t('حذف', 'Delete')}
         cancelLabel={t('إلغاء', 'Cancel')}

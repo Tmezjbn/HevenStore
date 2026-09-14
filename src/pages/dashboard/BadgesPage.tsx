@@ -169,7 +169,8 @@ export default function BadgesPage() {
     const byEmail = raw.includes('@');
     let q = supabase.from('profiles').select('id');
     q = byEmail
-      ? q.ilike('email', raw.toLowerCase())
+      ? // Escape ilike wildcards — '%'/'_' in the input must match literally.
+        q.ilike('email', raw.toLowerCase().replace(/[%_\\]/g, (ch) => `\\${ch}`))
       : q.eq('username', normalizeUsername(raw));
     const { data: peep, error: pErr } = await q.maybeSingle();
     if (pErr || !peep) {

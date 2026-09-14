@@ -38,18 +38,18 @@ function PolicyDoc({
         <div className="rounded-xl border border-base-300 bg-base-200/60 p-5 mb-10">
           <h2 className="text-sm font-semibold tracking-wide text-base-content/70 mb-3">{shortTitle}</h2>
           <ul className="list-disc ps-5 space-y-2 text-sm leading-relaxed text-base-content/80 text-pretty">
-            {shortBullets.map((b) => (
-              <li key={b}>{b}</li>
+            {shortBullets.map((b, i) => (
+              <li key={`${i}-${b.slice(0, 32)}`}>{b}</li>
             ))}
           </ul>
         </div>
 
         <div className="space-y-8">
-          {sections.map((s) => (
-            <section key={s.title}>
+          {sections.map((s, si) => (
+            <section key={`${si}-${s.title}`}>
               <h2 className="text-lg font-bold mb-2">{s.title}</h2>
-              {s.body.map((p) => (
-                <p key={p.slice(0, 48)} className="text-sm text-base-content/80 leading-relaxed text-pretty mb-2">
+              {s.body.map((p, pi) => (
+                <p key={pi} className="text-sm text-base-content/80 leading-relaxed text-pretty mb-2">
                   {p}
                 </p>
               ))}

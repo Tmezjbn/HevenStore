@@ -18,7 +18,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import { useI18n } from '../../lib/i18n';
-import { UGC_DIR, UGC_TEXT_CLASS, ugcDisplay } from '../../lib/bidi';
+import { UGC_TEXT_CLASS, ugcDir, ugcDisplay } from '../../lib/bidi';
 import UserAvatar from '../../components/ui/UserAvatar';
 import type { Notification, Profile } from '../../types';
 import { NOTIFICATION_COLS } from '../../lib/dbCols';
@@ -82,6 +82,7 @@ export default function NotificationsPage() {
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
   const [view, setView] = useState<ViewTab>(isOwner ? 'compose' : 'inbox');
   const [inboxFilter, setInboxFilter] = useState<InboxFilter>('all');
 
@@ -107,13 +108,15 @@ export default function NotificationsPage() {
   const loadInbox = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
+    setLoadErr(false);
+    const { data, error } = await supabase
       .from('notifications')
       .select(NOTIFICATION_COLS)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50);
-    setNotifications((data as unknown as Notification[]) || []);
+    if (error) setLoadErr(true);
+    else setNotifications((data as unknown as Notification[]) || []);
     setLoading(false);
   }, [user]);
 
@@ -132,7 +135,8 @@ export default function NotificationsPage() {
         .neq('full_name', 'deleted')
         .order('created_at', { ascending: false })
         .limit(40);
-      const term = pickerQ.trim().replace(/[%_,]/g, '');
+      // PostgREST .or() uses ,()'" as syntax — strip them so the term is inert.
+      const term = pickerQ.trim().replace(/[%_,()'"\\]/g, '');
       if (term) {
         q = q.or(`full_name.ilike.%${term}%,email.ilike.%${term}%,username.ilike.%${term}%`);
       }
@@ -595,6 +599,11 @@ export default function NotificationsPage() {
                 aria-label={t('جارٍ التحميل', 'Loading')}
               />
             </div>
+          ) : loadErr ? (
+            <Empty
+              icon={<Bell size={28} className="text-base-content/35" aria-hidden />}
+              title={t('تعذر تحميل الإشعارات', 'Could not load notifications')}
+            />
           ) : visible.length === 0 ? (
             <Empty
               icon={<Bell size={28} className="text-base-content/35" aria-hidden />}
@@ -638,7 +647,7 @@ export default function NotificationsPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <p
                             className={`text-base font-semibold tracking-tight leading-snug text-balance ${UGC_TEXT_CLASS}`}
-                            dir={UGC_DIR}
+                            dir={ugcDir(nTitle)}
                           >
                             {ugcDisplay(nTitle)}
                           </p>
@@ -649,7 +658,7 @@ export default function NotificationsPage() {
                         {nBody ? (
                           <p
                             className={`text-sm text-base-content/70 leading-relaxed text-pretty max-w-prose ${UGC_TEXT_CLASS}`}
-                            dir={UGC_DIR}
+                            dir={ugcDir(nBody)}
                           >
                             {ugcDisplay(nBody)}
                           </p>
