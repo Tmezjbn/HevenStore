@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
 import { supabase } from '../../lib/supabase';
 import { useI18n } from '../../lib/i18n';
-import { UGC_DIR, UGC_TEXT_CLASS, ugcDisplay } from '../../lib/bidi';
+import { UGC_TEXT_CLASS, ugcDir, ugcDisplay } from '../../lib/bidi';
 import { NOTIFICATION_COLS } from '../../lib/dbCols';
 import type { Notification } from '../../types';
 
@@ -103,11 +103,17 @@ export default function NotificationBell() {
                     <div className="flex items-start gap-2">
                       {!n.is_read && <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />}
                       <div className={!n.is_read ? '' : 'ps-3.5'}>
-                        <p className={`text-sm font-medium ${UGC_TEXT_CLASS}`} dir={UGC_DIR}>
+                        <p
+                          className={`text-sm font-medium ${UGC_TEXT_CLASS}`}
+                          dir={ugcDir(lang === 'ar' ? n.title_ar || n.title : n.title)}
+                        >
                           {ugcDisplay(lang === 'ar' ? n.title_ar || n.title : n.title)}
                         </p>
                         {n.body && (
-                          <p className={`text-xs text-base-content/70 mt-0.5 ${UGC_TEXT_CLASS}`} dir={UGC_DIR}>
+                          <p
+                            className={`text-xs text-base-content/70 mt-0.5 ${UGC_TEXT_CLASS}`}
+                            dir={ugcDir(lang === 'ar' ? n.body_ar || n.body : n.body)}
+                          >
                             {ugcDisplay(lang === 'ar' ? n.body_ar || n.body : n.body)}
                           </p>
                         )}

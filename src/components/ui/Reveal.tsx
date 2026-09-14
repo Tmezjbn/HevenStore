@@ -14,6 +14,23 @@ function storageKey(pathname: string, id: string) {
   return `heven:reveal:${pathname}:${id}`;
 }
 
+// sessionStorage throws when storage is disabled — reveal still works, just no persistence.
+function readShown(key: string): boolean {
+  try {
+    return sessionStorage.getItem(key) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeShown(key: string) {
+  try {
+    sessionStorage.setItem(key, '1');
+  } catch {
+    /* best-effort */
+  }
+}
+
 // Scroll-reveal below hero: slow fade + rise once per session.
 export default function Reveal({ children, as, className = '', delay = 0, id }: RevealProps) {
   const Tag = (as ?? 'div') as ElementType;
@@ -28,7 +45,7 @@ export default function Reveal({ children, as, className = '', delay = 0, id }: 
     if (!el) return;
 
     const key = storageKey(pathname, revealId);
-    if (sessionStorage.getItem(key) === '1') {
+    if (readShown(key)) {
       setShown(true);
       return;
     }
@@ -36,13 +53,13 @@ export default function Reveal({ children, as, className = '', delay = 0, id }: 
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce || typeof IntersectionObserver === 'undefined') {
       setShown(true);
-      sessionStorage.setItem(key, '1');
+      writeShown(key);
       return;
     }
 
     const markShown = () => {
       setShown(true);
-      sessionStorage.setItem(key, '1');
+      writeShown(key);
     };
 
     const observer = new IntersectionObserver(

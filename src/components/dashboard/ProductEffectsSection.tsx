@@ -35,6 +35,7 @@ import {
 } from '../../lib/productHover3d';
 import { AuraFrame } from '../ui/ElectricBorder';
 import Hover3dZones from '../ui/Hover3dZones';
+import { formatMoney } from '../../lib/formatMoney';
 
 type EffectsProduct = {
   id: string;
@@ -220,11 +221,17 @@ export default function ProductEffectsSection({ active = true, embedded = false 
       aura_electric_json: electric,
       hover_3d: d.hover_3d,
     };
-    const { error: err } = await supabase.from('products').update(payload).eq('id', id);
-    setSavingId(null);
-    if (err) {
-      setError(err.message);
+    try {
+      const { error: err } = await supabase.from('products').update(payload).eq('id', id);
+      if (err) {
+        setError(err.message);
+        return;
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('فشل الحفظ', 'Save failed'));
       return;
+    } finally {
+      setSavingId(null);
     }
     setProducts((prev) =>
       prev.map((p) =>
@@ -247,24 +254,30 @@ export default function ProductEffectsSection({ active = true, embedded = false 
     if (dirtyIds.length === 0) return;
     setBulkSaving(true);
     setError('');
-    for (const id of dirtyIds) {
-      const d = draft[id];
-      if (!d) continue;
-      const electric = serializeElectricAuraTune(d.aura_electric);
-      const { error: err } = await supabase
-        .from('products')
-        .update({
-          aura_style: d.aura_style,
-          aura_color: d.aura_color,
-          aura_electric_json: electric,
-          hover_3d: d.hover_3d,
-        })
-        .eq('id', id);
-      if (err) {
-        setError(err.message);
-        setBulkSaving(false);
-        return;
+    try {
+      for (const id of dirtyIds) {
+        const d = draft[id];
+        if (!d) continue;
+        const electric = serializeElectricAuraTune(d.aura_electric);
+        const { error: err } = await supabase
+          .from('products')
+          .update({
+            aura_style: d.aura_style,
+            aura_color: d.aura_color,
+            aura_electric_json: electric,
+            hover_3d: d.hover_3d,
+          })
+          .eq('id', id);
+        if (err) {
+          setError(err.message);
+          return;
+        }
       }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('فشل الحفظ', 'Save failed'));
+      return;
+    } finally {
+      setBulkSaving(false);
     }
     setProducts((prev) =>
       prev.map((p) => {
@@ -280,7 +293,6 @@ export default function ProductEffectsSection({ active = true, embedded = false 
           : p;
       }),
     );
-    setBulkSaving(false);
     setOkMsg(
       t(
         `تم حفظ ${dirtyIds.length} منتج`,
@@ -662,7 +674,7 @@ export default function ProductEffectsSection({ active = true, embedded = false 
                     <p className="text-sm font-semibold tracking-tight truncate leading-snug">
                       {name}
                     </p>
-                    <p className="text-sm text-base-content/65 tabular-nums">${p.price}</p>
+                    <p className="text-sm text-base-content/65 tabular-nums">{formatMoney(p.price)}</p>
                     <span
                       className={`badge badge-sm badge-outline font-semibold tracking-wide ${
                         p.status === 'active'
@@ -682,7 +694,7 @@ export default function ProductEffectsSection({ active = true, embedded = false 
                   <button
                     type="button"
                     onClick={() => void saveOne(p.id)}
-                    disabled={!dirty || savingId === p.id}
+                    disabled={!dirty || savingId === p.id || bulkSaving}
                     className={`btn btn-sm gap-1 ${focusRing} ${
                       dirty ? 'btn-primary' : 'btn-ghost border border-base-300'
                     }`}

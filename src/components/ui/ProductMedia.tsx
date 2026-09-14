@@ -59,7 +59,9 @@ export function InViewVideo({
       loop
       playsInline
       preload="metadata"
+      role={alt ? 'img' : undefined}
       aria-label={alt || undefined}
+      aria-hidden={alt ? undefined : true}
     />
   );
 }
@@ -93,7 +95,9 @@ export default function ProductMedia({
         loop
         playsInline
         preload="metadata"
+        role={alt ? 'img' : undefined}
         aria-label={alt || undefined}
+        aria-hidden={alt ? undefined : true}
       />
     );
   }

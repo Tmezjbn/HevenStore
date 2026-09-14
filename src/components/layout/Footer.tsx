@@ -71,7 +71,7 @@ export default function Footer() {
   return (
     <>
       {columns.length > 0 && (
-        <footer className="footer sm:footer-horizontal bg-base-200 text-base-content p-10 border-t border-base-300 place-content-center justify-items-center gap-x-20 sm:gap-x-28 gap-y-8">
+        <div className="footer sm:footer-horizontal bg-base-200 text-base-content p-10 border-t border-base-300 place-content-center justify-items-center gap-x-20 sm:gap-x-28 gap-y-8">
           {columns.map((col) => {
             const title =
               lang === 'ar' ? col.title_ar || col.title_en : col.title_en || col.title_ar;
@@ -81,8 +81,8 @@ export default function Footer() {
                   {title}
                 </h6>
                 {col.links.map((link, i) => {
-                  const path = link.href.replace(/\/$/, '') || '/';
-                  if (user && AUTH_HREFS.has(path)) return null;
+                  const safe = safeHref(link.href);
+                  if (safe && user && AUTH_HREFS.has(safe.replace(/\/$/, '') || '/')) return null;
                   const label =
                     lang === 'ar' ? link.label_ar || link.label_en : link.label_en || link.label_ar;
                   if (!label) return null;
@@ -99,7 +99,7 @@ export default function Footer() {
               </nav>
             );
           })}
-        </footer>
+        </div>
       )}
 
       <footer className="footer bg-base-200 text-base-content border-base-300 border-t px-10 py-5 md:py-6">

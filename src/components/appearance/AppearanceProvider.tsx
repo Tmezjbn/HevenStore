@@ -46,6 +46,9 @@ export default function AppearanceProvider({ children }: { children: React.React
       document.head.appendChild(style);
     }
     style.textContent = `:root[data-theme]{${rules.join('')}}`;
+    return () => {
+      document.getElementById(STYLE_ID)?.remove();
+    };
   }, [settings.brand_primary, settings.brand_accent]);
 
   // Document title / OG tags live in usePageMeta (per-route). Do not set them here.

@@ -100,6 +100,8 @@ export default function ProductAdsBanner({
   const [dir, setDir] = useState<1 | -1>(1);
   const [hoverPaused, setHoverPaused] = useState(false);
   const [tabHidden, setTabHidden] = useState(() => document.hidden);
+  // Live region announces only user-driven slide changes, not every auto-advance.
+  const [userNav, setUserNav] = useState(false);
   // Hover / hidden tab pause — autoplay resumes when pointer leaves / tab visible.
   // Storefront merch ignores OS reduced-motion (Cursor often forces the flag).
   const paused = hoverPaused || tabHidden;
@@ -134,6 +136,7 @@ export default function ProductAdsBanner({
   const name = ar ? product.name_ar || product.name : product.name;
   const go = (nextDir: 1 | -1) => {
     if (count < 2) return;
+    setUserNav(true);
     setDir(nextDir);
     setIndex((i) => (i + nextDir + count) % count);
   };
@@ -172,7 +175,7 @@ export default function ProductAdsBanner({
           if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHoverPaused(false);
         }}
       >
-        <p className="sr-only" aria-live="polite">
+        <p className="sr-only" aria-live={userNav ? 'polite' : 'off'}>
           {liveLabel}
         </p>
         {showBlade ? (
@@ -289,18 +292,18 @@ export default function ProductAdsBanner({
             <div
               className={`absolute inset-x-0 flex justify-center gap-0.5 z-10 ${showBlade ? 'bottom-7' : 'bottom-3'}`}
               dir="ltr"
-              role="tablist"
+              role="group"
               aria-label={t('الشرائح', 'Slides')}
             >
               {products.map((p, i) => (
                 <button
                   key={p.id}
                   type="button"
-                  role="tab"
-                  aria-selected={i === index}
+                  aria-pressed={i === index}
                   aria-label={t(`شريحة ${i + 1}`, `Slide ${i + 1}`)}
                   className="min-h-11 min-w-11 flex items-center justify-center"
                   onClick={() => {
+                    setUserNav(true);
                     setDir(i > index ? 1 : -1);
                     setIndex(i);
                   }}

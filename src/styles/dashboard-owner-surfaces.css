@@ -1515,12 +1515,6 @@
   color: color-mix(in oklch, var(--color-primary) 72%, var(--color-base-content));
   margin-bottom: 0.2rem;
 }
-.admin-roster__title {
-  font-size: 1.85rem;
-  font-weight: 750;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-}
 .admin-roster__help {
   display: grid;
   place-items: center;

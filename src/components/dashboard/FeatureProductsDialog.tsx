@@ -1,6 +1,7 @@
 import { Check, Loader2, Save, Star, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { fetchPagedRows } from '../../lib/dashboardPage';
 import { useI18n } from '../../lib/i18n';
 import { useAuthStore } from '../../stores/authStore';
 import { useSaveSiteSettings, useSiteSettings } from '../../hooks/useSiteSettings';
@@ -34,6 +35,8 @@ export default function FeatureProductsDialog({ open, onClose }: Props) {
 
   const [pickerProducts, setPickerProducts] = useState<ProductIdListItem[]>([]);
   const [pickerLoading, setPickerLoading] = useState(false);
+  const [pickerErr, setPickerErr] = useState(false);
+  const [saveErr, setSaveErr] = useState(false);
   const [pickerTick, setPickerTick] = useState(0);
 
   useEffect(() => {
@@ -57,15 +60,20 @@ export default function FeatureProductsDialog({ open, onClose }: Props) {
     let cancelled = false;
     const load = async () => {
       setPickerLoading(true);
-      const { data, error } = await supabase
-        .from('products')
-        .select('id, name, name_ar, thumbnail_url, price, status')
-        .order('created_at', { ascending: false });
+      setPickerErr(false);
+      // Page past the ~1000-row PostgREST cap so big catalogs list fully.
+      const { rows, error } = await fetchPagedRows<ProductIdListItem>((from, to) =>
+        supabase
+          .from('products')
+          .select('id, name, name_ar, thumbnail_url, price, status')
+          .order('created_at', { ascending: false })
+          .range(from, to),
+      );
       if (cancelled) return;
       if (error) {
-        setPickerProducts([]);
+        setPickerErr(true);
       } else {
-        setPickerProducts((data ?? []) as ProductIdListItem[]);
+        setPickerProducts(rows);
       }
       setPickerLoading(false);
     };
@@ -82,16 +90,21 @@ export default function FeatureProductsDialog({ open, onClose }: Props) {
 
   const save = async () => {
     if (!user || !dirty) return;
-    await saveMutation.mutateAsync({
-      userId: user.id,
-      updates: {
-        home_featured_product_ids: JSON.stringify(homeIds),
-        store_featured_product_ids: JSON.stringify(storeIds),
-        store_featured_mirror_home: mirrorHome ? 'true' : 'false',
-      },
-    });
-    setDirty(false);
-    setSavedFlash(true);
+    setSaveErr(false);
+    try {
+      await saveMutation.mutateAsync({
+        userId: user.id,
+        updates: {
+          home_featured_product_ids: JSON.stringify(homeIds),
+          store_featured_product_ids: JSON.stringify(storeIds),
+          store_featured_mirror_home: mirrorHome ? 'true' : 'false',
+        },
+      });
+      setDirty(false);
+      setSavedFlash(true);
+    } catch {
+      setSaveErr(true);
+    }
   };
 
   const title = t('تمييز المنتجات', 'Feature products');
@@ -213,6 +226,16 @@ export default function FeatureProductsDialog({ open, onClose }: Props) {
       </div>
 
       <div className="modal-action mt-5 sticky bottom-0 bg-base-100 pt-2">
+        {saveErr ? (
+          <span className="text-sm text-error self-center" role="alert">
+            {t('فشل الحفظ', 'Save failed')}
+          </span>
+        ) : null}
+        {pickerErr ? (
+          <span className="text-sm text-error self-center" role="alert">
+            {t('تعذر تحميل المنتجات', 'Could not load products')}
+          </span>
+        ) : null}
         <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
           {t('إغلاق', 'Close')}
         </button>

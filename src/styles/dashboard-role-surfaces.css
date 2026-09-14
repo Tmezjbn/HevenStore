@@ -361,8 +361,8 @@
   font-weight: 700;
 }
 .owner-home__st--failed,
-.owner-home__st--cancelleded,
-.owner-home__st--cancelleded {
+.owner-home__st--refunded,
+.owner-home__st--cancelled {
   color: color-mix(in oklch, var(--color-error) 80%, var(--color-base-content));
   font-weight: 650;
 }
@@ -796,7 +796,7 @@ a.admin-home__meter:hover {
 }
 .admin-home__st--failed,
 .admin-home__st--refunded,
-.admin-home__st--cancelleded {
+.admin-home__st--cancelled {
   color: color-mix(in oklch, var(--color-error) 80%, var(--color-base-content));
   font-weight: 650;
 }

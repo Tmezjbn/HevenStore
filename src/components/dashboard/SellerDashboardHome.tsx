@@ -52,6 +52,7 @@ export default function SellerDashboardHome() {
   const { t, lang } = useI18n();
 
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
   const [liveCount, setLiveCount] = useState(0);
   const [draftCount, setDraftCount] = useState(0);
@@ -72,51 +73,73 @@ export default function SellerDashboardHome() {
 
     const load = async () => {
       setLoading(true);
+      setLoadErr(false);
       const uid = user.id;
-      const [listRes, liveRes, draftRes, lowRes, notifRes, salesRes] = await Promise.all([
-        supabase
-          .from('products')
-          .select('id, name, name_ar, slug, status, stock, price, thumbnail_url, updated_at')
-          .eq('seller_id', uid)
-          .order('updated_at', { ascending: false })
-          .limit(12),
-        supabase
-          .from('products')
-          .select('id', { count: 'exact', head: true })
-          .eq('seller_id', uid)
-          .eq('status', 'active'),
-        supabase
-          .from('products')
-          .select('id', { count: 'exact', head: true })
-          .eq('seller_id', uid)
-          .eq('status', 'draft'),
-        supabase
-          .from('products')
-          .select('id', { count: 'exact', head: true })
-          .eq('seller_id', uid)
-          .eq('status', 'active')
-          .lte('stock', 2),
-        supabase
-          .from('notifications')
-          .select('id, title, title_ar, is_read, created_at')
-          .eq('user_id', uid)
-          .order('created_at', { ascending: false })
-          .limit(6),
-        supabase.rpc('count_seller_sales', { p_q: null }),
-      ]);
-      if (cancelled) return;
+      try {
+        const [listRes, liveRes, draftRes, lowRes, notifRes, salesRes, unreadRes] =
+          await Promise.all([
+            supabase
+              .from('products')
+              .select('id, name, name_ar, slug, status, stock, price, thumbnail_url, updated_at')
+              .eq('seller_id', uid)
+              .order('updated_at', { ascending: false })
+              .limit(12),
+            supabase
+              .from('products')
+              .select('id', { count: 'exact', head: true })
+              .eq('seller_id', uid)
+              .eq('status', 'active'),
+            supabase
+              .from('products')
+              .select('id', { count: 'exact', head: true })
+              .eq('seller_id', uid)
+              .eq('status', 'draft'),
+            supabase
+              .from('products')
+              .select('id', { count: 'exact', head: true })
+              .eq('seller_id', uid)
+              .eq('status', 'active')
+              .lte('stock', 2),
+            supabase
+              .from('notifications')
+              .select('id, title, title_ar, is_read, created_at')
+              .eq('user_id', uid)
+              .order('created_at', { ascending: false })
+              .limit(6),
+            supabase.rpc('count_seller_sales', { p_q: null }),
+            supabase
+              .from('notifications')
+              .select('id', { count: 'exact', head: true })
+              .eq('user_id', uid)
+              .eq('is_read', false),
+          ]);
+        if (cancelled) return;
 
-      setListings((listRes.data ?? []) as Listing[]);
-      setLiveCount(liveRes.count ?? 0);
-      setDraftCount(draftRes.count ?? 0);
-      setLowStockCount(lowRes.count ?? 0);
-      const tally = Array.isArray(salesRes.data) ? salesRes.data[0] : salesRes.data;
-      setSaleCount(Number(tally?.sale_count) || 0);
-      setRevenue(Number(tally?.revenue) || 0);
-      const notifs = (notifRes.data ?? []) as Notif[];
-      setNotifications(notifs);
-      setUnreadCount(notifs.filter((n) => !n.is_read).length);
-      setLoading(false);
+        if (
+          listRes.error ||
+          liveRes.error ||
+          draftRes.error ||
+          lowRes.error ||
+          notifRes.error ||
+          salesRes.error ||
+          unreadRes.error
+        ) {
+          setLoadErr(true);
+        }
+        setListings((listRes.data ?? []) as Listing[]);
+        setLiveCount(liveRes.count ?? 0);
+        setDraftCount(draftRes.count ?? 0);
+        setLowStockCount(lowRes.count ?? 0);
+        const tally = Array.isArray(salesRes.data) ? salesRes.data[0] : salesRes.data;
+        setSaleCount(Number(tally?.sale_count) || 0);
+        setRevenue(Number(tally?.revenue) || 0);
+        setNotifications((notifRes.data ?? []) as Notif[]);
+        setUnreadCount(unreadRes.count ?? 0);
+      } catch {
+        if (!cancelled) setLoadErr(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
     void load();
@@ -199,6 +222,12 @@ export default function SellerDashboardHome() {
           </nav>
         </div>
       </header>
+
+      {loadErr ? (
+        <p className="mb-4 text-sm text-error" role="alert">
+          {t('تعذر تحميل بعض البيانات — المعروض قد يكون ناقصاً.', 'Some data failed to load — figures shown may be incomplete.')}
+        </p>
+      ) : null}
 
       <section className="seller-home__shelf-wrap" aria-labelledby="seller-shelf-title">
         <div className="seller-home__shelf-head">

@@ -52,6 +52,12 @@ export default function AvatarUploader({ sizeClass = 'w-10' }: { sizeClass?: str
         .eq('id', user.id);
       if (dbErr) throw dbErr;
 
+      // Old upload with a different extension orphans — clear the other candidates.
+      const stale = ['png', 'jpg', 'jpeg', 'webp', 'gif']
+        .map((e) => `${user.id}/avatar.${e}`)
+        .filter((p) => p !== path);
+      void supabase.storage.from('avatars').remove(stale).then(() => {});
+
       setProfile({ ...profile, avatar_url: url });
     } catch {
       setError(t('فشل رفع الصورة. حاول مجدداً أو جرّب ملفاً أصغر.', 'Upload failed. Try again or use a smaller file.'));
@@ -64,7 +70,11 @@ export default function AvatarUploader({ sizeClass = 'w-10' }: { sizeClass?: str
     setError('');
     setBusy(true);
     try {
-      await supabase.from('profiles').update({ avatar_url: null }).eq('id', user.id);
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', user.id);
+      if (dbErr) throw dbErr;
       setProfile({ ...profile, avatar_url: null });
     } catch {
       setError(t('تعذر الحذف', 'Could not remove'));

@@ -82,8 +82,9 @@ export default function FindMoreProducts({ excludeProductId }: FindMoreProductsP
   const [dir, setDir] = useState<1 | -1>(1);
   const [hoverPaused, setHoverPaused] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
+  const [tabHidden, setTabHidden] = useState(() => document.hidden);
   // Storefront merch ignores OS reduced-motion (Cursor often forces the flag).
-  const paused = hoverPaused || userPaused;
+  const paused = hoverPaused || userPaused || tabHidden;
   const intervalMs = Math.max(1, intervalSec) * 1000;
   const canRotate = pool.length > slots;
 
@@ -96,6 +97,12 @@ export default function FindMoreProducts({ excludeProductId }: FindMoreProductsP
   useEffect(() => {
     setOffset(0);
   }, [poolKey]);
+
+  useEffect(() => {
+    const onVisibility = () => setTabHidden(document.hidden);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
 
   useEffect(() => {
     if (!canRotate || paused) return;

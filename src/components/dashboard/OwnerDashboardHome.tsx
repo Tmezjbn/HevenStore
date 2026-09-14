@@ -29,6 +29,7 @@ import {
   dashboardStatsSinceIso,
   parseDashboardStatsResetAt,
 } from '../../lib/siteSettings';
+import { buildLast7Days, fetchPagedRows } from '../../lib/dashboardPage';
 import { formatMoney } from '../../lib/formatMoney';
 import { ORDER_STATUS_LABEL as STATUS_LABEL } from '../../lib/orderStatus';
 
@@ -50,13 +51,6 @@ type RecentNotification = {
   created_at: string;
 };
 
-type DayPoint = {
-  key: string;
-  label: string;
-  revenue: number;
-  orders: number;
-};
-
 const focusRing =
   'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
@@ -67,42 +61,13 @@ function formatDate(iso: string, lang: 'ar' | 'en') {
   });
 }
 
-function buildLast7Days(
-  orders: { total: number; status: string; created_at: string }[],
-  lang: 'ar' | 'en',
-): DayPoint[] {
-  const days: DayPoint[] = [];
-  const now = new Date();
-  for (let i = 6; i >= 0; i -= 1) {
-    const d = new Date(now);
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    days.push({
-      key,
-      label: d.toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'short' }),
-      revenue: 0,
-      orders: 0,
-    });
-  }
-  const map = new Map(days.map((d) => [d.key, d]));
-  for (const o of orders) {
-    if (o.status !== 'paid') continue;
-    const key = new Date(o.created_at).toISOString().slice(0, 10);
-    const bucket = map.get(key);
-    if (!bucket) continue;
-    bucket.revenue += Number(o.total) || 0;
-    bucket.orders += 1;
-  }
-  return days;
-}
-
 export default function OwnerDashboardHome() {
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const { t, lang } = useI18n();
 
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
   const [paidCount, setPaidCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [productCount, setProductCount] = useState(0);
@@ -124,24 +89,26 @@ export default function OwnerDashboardHome() {
 
     const load = async () => {
       setLoading(true);
+      setLoadErr(false);
+      try {
+        const since7 = new Date();
+        since7.setDate(since7.getDate() - 7);
+        since7.setHours(0, 0, 0, 0);
 
-      const since7 = new Date();
-      since7.setDate(since7.getDate() - 7);
-      since7.setHours(0, 0, 0, 0);
+        const { data: resetRow, error: resetErr } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'dashboard_stats_reset_at')
+          .maybeSingle();
+        if (cancelled) return;
+        if (resetErr) setLoadErr(true);
+        const resetAt = parseDashboardStatsResetAt(resetRow?.value ?? '');
+        const chartSince = dashboardStatsSinceIso(resetAt, since7.toISOString())!;
 
-      const { data: resetRow } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'dashboard_stats_reset_at')
-        .maybeSingle();
-      if (cancelled) return;
-      const resetAt = parseDashboardStatsResetAt(resetRow?.value ?? '');
-      const chartSince = dashboardStatsSinceIso(resetAt, since7.toISOString())!;
-
-      let ordersQ = supabase
-        .from('orders')
-        .select(
-          `
+        let ordersQ = supabase
+          .from('orders')
+          .select(
+            `
             id,
             order_number,
             public_ref,
@@ -153,73 +120,107 @@ export default function OwnerDashboardHome() {
               products ( name, name_ar )
             )
           `,
-        )
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (resetAt) ordersQ = ordersQ.gte('created_at', resetAt);
-
-      let paidQ = supabase.from('orders').select('total, status').eq('status', 'paid');
-      if (resetAt) paidQ = paidQ.gte('created_at', resetAt);
-
-      let productsQ = supabase.from('products').select('id', { count: 'exact', head: true });
-      if (resetAt) productsQ = productsQ.gte('created_at', resetAt);
-
-      const [ordersRes, notifRes, productsRes, paidRes, pendingRes, chartRes] = await Promise.all([
-        ordersQ,
-        supabase
-          .from('notifications')
-          .select('id, title, title_ar, is_read, created_at')
-          .eq('user_id', user.id)
+          )
           .order('created_at', { ascending: false })
-          .limit(6),
-        productsQ,
-        paidQ,
-        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase
-          .from('orders')
-          .select('total, status, created_at')
-          .gte('created_at', chartSince)
-          .order('created_at', { ascending: true }),
-      ]);
+          .limit(10);
+        if (resetAt) ordersQ = ordersQ.gte('created_at', resetAt);
 
-      if (cancelled) return;
+        let productsQ = supabase.from('products').select('id', { count: 'exact', head: true });
+        if (resetAt) productsQ = productsQ.gte('created_at', resetAt);
 
-      const rows = ordersRes.data ?? [];
-      const paidRows = paidRes.data ?? [];
-      const mapped: RecentOrder[] = rows.slice(0, 8).map((row) => {
-        const rawItems = (row.order_items ?? []) as unknown as {
-          quantity: number;
-          products: { name: string; name_ar: string | null } | null;
-        }[];
-        const names = rawItems.map((item) => {
-          const name =
-            lang === 'ar' && item.products?.name_ar
-              ? item.products.name_ar
-              : item.products?.name ?? '?';
-          return item.quantity > 1 ? `${name} ×${item.quantity}` : name;
+        const [ordersRes, notifRes, productsRes, paidRes, pendingRes, chartRes, unreadRes] =
+          await Promise.all([
+            ordersQ,
+            supabase
+              .from('notifications')
+              .select('id, title, title_ar, is_read, created_at')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(6),
+            productsQ,
+            // PostgREST caps at ~1000 rows — page so revenue/count stay honest.
+            fetchPagedRows<{ total: number; status: string }>((from, to) => {
+              let q = supabase
+                .from('orders')
+                .select('total, status')
+                .eq('status', 'paid');
+              if (resetAt) q = q.gte('created_at', resetAt);
+              return q.range(from, to);
+            }),
+            supabase
+              .from('orders')
+              .select('id', { count: 'exact', head: true })
+              .eq('status', 'pending'),
+            fetchPagedRows<{ total: number; status: string; created_at: string }>(
+              (from, to) =>
+                supabase
+                  .from('orders')
+                  .select('total, status, created_at')
+                  .gte('created_at', chartSince)
+                  .order('created_at', { ascending: true })
+                  .range(from, to),
+            ),
+            supabase
+              .from('notifications')
+              .select('id', { count: 'exact', head: true })
+              .eq('user_id', user.id)
+              .eq('is_read', false),
+          ]);
+
+        if (cancelled) return;
+
+        if (
+          ordersRes.error ||
+          notifRes.error ||
+          productsRes.error ||
+          pendingRes.error ||
+          unreadRes.error ||
+          paidRes.error ||
+          chartRes.error
+        ) {
+          setLoadErr(true);
+        }
+
+        const rows = ordersRes.data ?? [];
+        const paidRows = paidRes.rows;
+        const mapped: RecentOrder[] = rows.slice(0, 8).map((row) => {
+          const rawItems = (row.order_items ?? []) as unknown as {
+            quantity: number;
+            products: { name: string; name_ar: string | null } | null;
+          }[];
+          const names = rawItems.map((item) => {
+            const name =
+              lang === 'ar' && item.products?.name_ar
+                ? item.products.name_ar
+                : item.products?.name ?? '?';
+            return item.quantity > 1 ? `${name} ×${item.quantity}` : name;
+          });
+          return {
+            id: row.id,
+            order_number: (row as { order_number?: string | null }).order_number ?? null,
+            public_ref: (row as { public_ref?: string | null }).public_ref ?? null,
+            total: Number(row.total),
+            status: row.status,
+            created_at: row.created_at,
+            product_name: names.join(', ') || '—',
+          };
         });
-        return {
-          id: row.id,
-          order_number: (row as { order_number?: string | null }).order_number ?? null,
-          public_ref: (row as { public_ref?: string | null }).public_ref ?? null,
-          total: Number(row.total),
-          status: row.status,
-          created_at: row.created_at,
-          product_name: names.join(', ') || '—',
-        };
-      });
 
-      setPaidCount(paidRows.length);
-      setTotalRevenue(paidRows.reduce((s, o) => s + Number(o.total), 0));
-      setPendingCount(pendingRes.count ?? 0);
-      setProductCount(productsRes.count ?? 0);
-      setChartOrders(chartRes.data ?? []);
-      setRecentOrders(mapped);
+        setPaidCount(paidRows.length);
+        setTotalRevenue(paidRows.reduce((s, o) => s + Number(o.total), 0));
+        setPendingCount(pendingRes.count ?? 0);
+        setProductCount(productsRes.count ?? 0);
+        setChartOrders(chartRes.rows);
+        setRecentOrders(mapped);
 
-      const notifs = (notifRes.data ?? []) as RecentNotification[];
-      setNotifications(notifs);
-      setUnreadCount(notifs.filter((n) => !n.is_read).length);
-      setLoading(false);
+        const notifs = (notifRes.data ?? []) as RecentNotification[];
+        setNotifications(notifs);
+        setUnreadCount(unreadRes.count ?? 0);
+      } catch {
+        if (!cancelled) setLoadErr(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
     void load();
@@ -256,6 +257,12 @@ export default function OwnerDashboardHome() {
           </p>
         </div>
       </header>
+
+      {loadErr ? (
+        <p className="mb-4 text-sm text-error" role="alert">
+          {t('تعذر تحميل بعض الإحصاءات — الأرقام المعروضة قد تكون ناقصة.', 'Some stats failed to load — figures shown may be incomplete.')}
+        </p>
+      ) : null}
 
       <nav className="owner-home__dock" aria-label={t('اختصارات المالك', 'Owner shortcuts')}>
         <Link to="/dashboard/products" className={`owner-home__dock-item owner-home__dock-item--hot ${focusRing}`}>

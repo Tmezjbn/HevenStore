@@ -17,7 +17,7 @@ import ConfirmDialog from '../dashboard/ConfirmDialog';
 import Modal from '../ui/Modal';
 import UserAvatar from '../ui/UserAvatar';
 import RatingStars from '../ui/RatingStars';
-import { UGC_DIR, UGC_TEXT_CLASS, ugcAlignClass, ugcDir, ugcDisplay } from '../../lib/bidi';
+import { UGC_TEXT_CLASS, ugcAlignClass, ugcDir, ugcDisplay } from '../../lib/bidi';
 
 type Props = {
   productId: string;
@@ -196,6 +196,7 @@ export default function ProductReviews({
       armReviewCooldown(productId, userId);
       setCooldownMs(getReviewCooldownMs(productId, userId));
       setConfirmDelete(false);
+      setFormError(null);
       await invalidateAll(productSlug);
     } catch {
       setFormError(t('تعذر حذف التقييم', 'Could not delete review'));
@@ -207,6 +208,7 @@ export default function ProductReviews({
     try {
       await remove.mutateAsync(staffDeleteId);
       setStaffDeleteId(null);
+      setFormError(null);
       await invalidateAll(productSlug);
     } catch {
       setFormError(t('تعذر حذف التقييم', 'Could not delete review'));
@@ -217,6 +219,13 @@ export default function ProductReviews({
     const reply = (replyDrafts[reviewId] ?? '').trim();
     try {
       await staffReply.mutateAsync({ reviewId, reply });
+      // Clear the draft so the freshly saved reply isn't masked by it.
+      setReplyDrafts((d) => {
+        const next = { ...d };
+        delete next[reviewId];
+        return next;
+      });
+      setFormError(null);
       await invalidateAll(productSlug);
     } catch {
       setFormError(t('تعذر حفظ الرد', 'Could not save reply'));
@@ -263,6 +272,12 @@ export default function ProductReviews({
           </p>
         ) : null}
       </header>
+
+      {!composeOpen && formError ? (
+        <p className="text-sm text-error" role="alert">
+          {formError}
+        </p>
+      ) : null}
 
       {isLoading ? (
         <div className="pe-reviews__loading" aria-busy="true">
@@ -406,7 +421,7 @@ export default function ProductReviews({
               <span>{t('تعليق (اختياري)', 'Comment (optional)')}</span>
               <textarea
                 className={`textarea textarea-bordered w-full min-h-[7rem] leading-relaxed ${UGC_TEXT_CLASS}`}
-                dir={UGC_DIR}
+                dir={ugcDir(comment)}
                 maxLength={COMMENT_MAX}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
@@ -446,7 +461,10 @@ export default function ProductReviews({
 
       <ConfirmDialog
         open={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
+        onClose={() => {
+          setConfirmDelete(false);
+          setFormError(null);
+        }}
         onConfirm={() => void onDelete()}
         title={t('حذف التقييم؟', 'Delete review?')}
         body={t(
@@ -457,10 +475,14 @@ export default function ProductReviews({
         cancelLabel={t('إلغاء', 'Cancel')}
         danger
         busy={remove.isPending}
+        error={confirmDelete ? formError : null}
       />
       <ConfirmDialog
         open={Boolean(staffDeleteId)}
-        onClose={() => setStaffDeleteId(null)}
+        onClose={() => {
+          setStaffDeleteId(null);
+          setFormError(null);
+        }}
         onConfirm={() => void onStaffDelete()}
         title={t('حذف تقييم الزبون؟', 'Delete this review?')}
         body={t('يُحذف التقييم نهائياً من صفحة المنتج.', 'Removes the review from the product page.')}
@@ -468,6 +490,7 @@ export default function ProductReviews({
         cancelLabel={t('إلغاء', 'Cancel')}
         danger
         busy={remove.isPending}
+        error={staffDeleteId ? formError : null}
       />
     </section>
   );

@@ -13,6 +13,7 @@ export default function RatingStars({ value, size = 14, className = '', label }:
   return (
     <div
       className={`rating-stars inline-flex items-center gap-0.5 ${className}`.trim()}
+      role="img"
       aria-label={label ?? `${value} / 5`}
     >
       {Array.from({ length: 5 }).map((_, i) => {

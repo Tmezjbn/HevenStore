@@ -1,5 +1,4 @@
 import {
-  useId,
   useRef,
   type ReactNode,
 } from 'react';
@@ -10,14 +9,13 @@ type Props = {
   open: boolean;
   onClose: () => void;
   children: ReactNode;
-  /** id of the visible title element inside the box */
-  labelledBy?: string;
-  /** Used when labelledBy is omitted */
-  label?: string;
   /** Extra classes on the daisyUI modal-box */
   boxClassName?: string;
   closeLabel?: string;
-};
+} & (
+  | { /** id of the visible title element inside the box */ labelledBy: string; label?: never }
+  | { /** Used when labelledBy is omitted */ label: string; labelledBy?: never }
+);
 
 /**
  * DaisyUI modal with the a11y bits the raw markup lacks:
@@ -37,7 +35,6 @@ export default function Modal({
   const boxRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
-  const autoLabelId = useId();
 
   useFocusTrap(open, boxRef, () => onCloseRef.current());
 
@@ -48,7 +45,7 @@ export default function Modal({
       className="modal modal-open"
       role="dialog"
       aria-modal="true"
-      aria-labelledby={labelledBy ?? (label ? undefined : autoLabelId)}
+      aria-labelledby={labelledBy}
       aria-label={labelledBy ? undefined : label}
     >
       <div

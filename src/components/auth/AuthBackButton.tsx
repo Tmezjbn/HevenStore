@@ -1,14 +1,16 @@
 import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useI18n } from '../../lib/i18n';
 
 export default function AuthBackButton() {
   const { t, contentDir } = useI18n();
   const ar = contentDir === 'rtl';
   const navigate = useNavigate();
+  const location = useLocation();
 
   const goBack = () => {
-    if (window.history.length > 1) navigate(-1);
+    // history.length counts the external referrer — 'default' key means no in-app prior entry.
+    if (location.key !== 'default') navigate(-1);
     else navigate('/');
   };
 

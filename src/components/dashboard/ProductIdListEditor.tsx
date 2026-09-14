@@ -1,5 +1,6 @@
 import { Box, ChevronDown, ChevronUp, RefreshCw, Search, Trash2 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
+import { formatMoney } from '../../lib/formatMoney';
 
 export type ProductIdListItem = {
   id: string;
@@ -217,7 +218,7 @@ export default function ProductIdListEditor({
                   <Box size={14} className="opacity-40 shrink-0" />
                 )}
                 <span className="text-sm truncate flex-1">{label}</span>
-                <span className="text-xs tabular-nums opacity-50">${p.price}</span>
+                <span className="text-xs tabular-nums opacity-50">{formatMoney(p.price)}</span>
               </label>
             );
           })

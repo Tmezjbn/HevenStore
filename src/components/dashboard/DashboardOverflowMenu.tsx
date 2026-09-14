@@ -46,14 +46,30 @@ export default function DashboardOverflowMenu({
       el.style.left = 'auto';
       el.style.right = `${Math.round(window.innerWidth - r.right)}px`;
     };
+    const anchorSupported =
+      typeof CSS !== 'undefined' && CSS.supports?.('top', 'anchor(bottom)');
     const onToggle = (e: Event) => {
       const te = e as ToggleEvent;
       const isOpen = te.newState === 'open';
       onOpenChange(isOpen);
       if (isOpen) placeFallback();
     };
+    // Fallback fixed coords go stale on scroll — close instead of misplacing.
+    const onScroll = () => {
+      if (!anchorSupported && typeof el.hidePopover === 'function' && el.matches(':popover-open')) {
+        try {
+          el.hidePopover();
+        } catch {
+          /* ignore */
+        }
+      }
+    };
     el.addEventListener('toggle', onToggle);
-    return () => el.removeEventListener('toggle', onToggle);
+    window.addEventListener('scroll', onScroll, true);
+    return () => {
+      el.removeEventListener('toggle', onToggle);
+      window.removeEventListener('scroll', onScroll, true);
+    };
   }, [onOpenChange]);
 
   // Parent closed menu (chose an item) → hide popover if still open.

@@ -37,12 +37,6 @@
   color: color-mix(in oklch, var(--color-primary) 72%, var(--color-base-content));
   margin-bottom: 0.2rem;
 }
-.admin-catalog__title {
-  font-size: 1.85rem;
-  font-weight: 750;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-}
 .admin-catalog__lede {
   margin-top: 0.45rem;
   max-width: 36rem;

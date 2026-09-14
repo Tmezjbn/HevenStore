@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useI18n } from '../../lib/i18n';
 import { roleLabel } from '../../lib/roles';
 import { formatMoney } from '../../lib/formatMoney';
+import { fetchPagedRows } from '../../lib/dashboardPage';
 import { ORDER_STATUS_LABEL as STATUS_LABEL } from '../../lib/orderStatus';
 
 type RecentOrder = {
@@ -42,6 +43,7 @@ export default function BuyerDashboardHome() {
   const role = profile?.role || 'member';
 
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
   const [paidCount, setPaidCount] = useState(0);
   const [totalSpent, setTotalSpent] = useState(0);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -57,12 +59,13 @@ export default function BuyerDashboardHome() {
 
     const load = async () => {
       setLoading(true);
-
-      const [ordersRes, notifRes, paidRes] = await Promise.all([
-        supabase
-          .from('orders')
-          .select(
-            `
+      setLoadErr(false);
+      try {
+        const [ordersRes, notifRes, paidRes, unreadRes] = await Promise.all([
+          supabase
+            .from('orders')
+            .select(
+              `
             id,
             public_ref,
             total,
@@ -73,55 +76,75 @@ export default function BuyerDashboardHome() {
               products ( name, name_ar )
             )
           `,
-          )
-          .order('created_at', { ascending: false })
-          .limit(5),
-        supabase
-          .from('notifications')
-          .select('id, title, title_ar, is_read, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(6),
-        supabase.from('orders').select('total, status').eq('status', 'paid'),
-      ]);
+            )
+            .order('created_at', { ascending: false })
+            .limit(5),
+          supabase
+            .from('notifications')
+            .select('id, title, title_ar, is_read, created_at')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(6),
+          // PostgREST caps at ~1000 rows — page so totals stay honest.
+          fetchPagedRows<{ total: number; status: string }>((from, to) =>
+            supabase
+              .from('orders')
+              .select('total, status')
+              .eq('status', 'paid')
+              .range(from, to),
+          ),
+          supabase
+            .from('notifications')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('is_read', false),
+        ]);
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      const rows = ordersRes.data ?? [];
-      const paidRows = paidRes.data ?? [];
-      const mapped: RecentOrder[] = rows
-        .filter((row) => row.status === 'paid')
-        .slice(0, 5)
-        .map((row) => {
-          const rawItems = (row.order_items ?? []) as unknown as {
-            quantity: number;
-            products: { name: string; name_ar: string | null } | null;
-          }[];
-          const names = rawItems.map((item) => {
-            const name =
-              lang === 'ar' && item.products?.name_ar
-                ? item.products.name_ar
-                : item.products?.name ?? '?';
-            return item.quantity > 1 ? `${name} ×${item.quantity}` : name;
+        if (ordersRes.error || notifRes.error || paidRes.error || unreadRes.error) {
+          setLoadErr(true);
+        }
+
+        const rows = ordersRes.data ?? [];
+        const paidRows = paidRes.rows;
+        const mapped: RecentOrder[] = rows
+          .filter((row) => row.status === 'paid')
+          .slice(0, 5)
+          .map((row) => {
+            const rawItems = (row.order_items ?? []) as unknown as {
+              quantity: number;
+              products: { name: string; name_ar: string | null } | null;
+            }[];
+            const names = rawItems.map((item) => {
+              const name =
+                lang === 'ar' && item.products?.name_ar
+                  ? item.products.name_ar
+                  : item.products?.name ?? '?';
+              return item.quantity > 1 ? `${name} ×${item.quantity}` : name;
+            });
+            return {
+              id: row.id,
+              public_ref: (row as { public_ref?: string | null }).public_ref ?? null,
+              total: Number(row.total),
+              status: row.status,
+              created_at: row.created_at,
+              product_name: names.join(', ') || '—',
+            };
           });
-          return {
-            id: row.id,
-            public_ref: (row as { public_ref?: string | null }).public_ref ?? null,
-            total: Number(row.total),
-            status: row.status,
-            created_at: row.created_at,
-            product_name: names.join(', ') || '—',
-          };
-        });
 
-      setPaidCount(paidRows.length);
-      setTotalSpent(paidRows.reduce((s, o) => s + Number(o.total), 0));
-      setRecentOrders(mapped);
+        setPaidCount(paidRows.length);
+        setTotalSpent(paidRows.reduce((s, o) => s + Number(o.total), 0));
+        setRecentOrders(mapped);
 
-      const notifs = (notifRes.data ?? []) as RecentNotification[];
-      setNotifications(notifs);
-      setUnreadCount(notifs.filter((n) => !n.is_read).length);
-      setLoading(false);
+        const notifs = (notifRes.data ?? []) as RecentNotification[];
+        setNotifications(notifs);
+        setUnreadCount(unreadRes.count ?? 0);
+      } catch {
+        if (!cancelled) setLoadErr(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
     load();
@@ -170,6 +193,12 @@ export default function BuyerDashboardHome() {
           </Link>
         </nav>
       </header>
+
+      {loadErr ? (
+        <p className="mb-4 text-sm text-error" role="alert">
+          {t('تعذر تحميل بعض البيانات — المعروض قد يكون ناقصاً.', 'Some data failed to load — figures shown may be incomplete.')}
+        </p>
+      ) : null}
 
       <section className="buyer-home__vault" aria-labelledby="buyer-vault-title">
         <div className="buyer-home__vault-lead">

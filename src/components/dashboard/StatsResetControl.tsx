@@ -146,7 +146,7 @@ export default function StatsResetControl({ onReset, className = '' }: Props) {
                 aria-label={t('تأكيد التصفير', 'Confirm reset')}
               />
             </label>
-            {err ? <p className="text-sm text-error">{err}</p> : null}
+            {err ? <p className="text-sm text-error" role="alert">{err}</p> : null}
             <div className="modal-action mt-4">
               <button
                 type="button"

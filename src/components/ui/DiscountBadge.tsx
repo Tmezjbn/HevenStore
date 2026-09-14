@@ -9,10 +9,7 @@ interface DiscountBadgeProps {
 export default function DiscountBadge({ percent, className = '' }: DiscountBadgeProps) {
   if (percent <= 0) return null;
   return (
-    <div
-      className={`product-discount-badge ${className}`.trim()}
-      aria-label={`-${percent}%`}
-    >
+    <div className={`product-discount-badge ${className}`.trim()}>
       <BadgePercent className="product-discount-badge__icon" aria-hidden strokeWidth={2.5} />
       <span className="product-discount-badge__value">-{percent}%</span>
     </div>

@@ -176,10 +176,7 @@ export default function ProductCard({
           {name}
         </Link>
         {stockTone === 'low' && lowStockCopy ? (
-          <p
-            className="product-card__stock product-card__stock--low"
-            aria-label={`${lowStockCopy.before} ${product.stock} ${lowStockCopy.after}`}
-          >
+          <p className="product-card__stock product-card__stock--low">
             <span className="product-card__stock-label">{lowStockCopy.before}</span>
             <span className="product-card__stock-n tabular-nums">{product.stock}</span>
             <span className="product-card__stock-label">{lowStockCopy.after}</span>
@@ -189,10 +186,7 @@ export default function ProductCard({
 
       <div className="product-card__meta">
         {showSeller && product.seller ? (
-          <div
-            className="product-card__seller"
-            aria-label={`${t('البائع', 'Seller')}: ${product.seller.full_name || t('بائع', 'Seller')}`}
-          >
+          <div className="product-card__seller">
             <UserAvatar
               name={product.seller.full_name}
               avatarUrl={canUsePublicProfile(product.seller.role) ? product.seller.avatar_url : null}

@@ -29,6 +29,7 @@ export default function ModeratorDashboardHome() {
   const { t, lang } = useI18n();
 
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
   const [escalatedCount, setEscalatedCount] = useState(0);
   const [openTicketCount, setOpenTicketCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -43,30 +44,43 @@ export default function ModeratorDashboardHome() {
 
     const load = async () => {
       setLoading(true);
-      const [escRes, openRes, notifRes] = await Promise.all([
-        supabase
-          .from('support_tickets')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'escalated'),
-        supabase
-          .from('support_tickets')
-          .select('id', { count: 'exact', head: true })
-          .in('status', ['open', 'claimed', 'escalated']),
-        supabase
-          .from('notifications')
-          .select('id, title, title_ar, is_read, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(8),
-      ]);
-      if (cancelled) return;
+      setLoadErr(false);
+      try {
+        const [escRes, openRes, notifRes, unreadRes] = await Promise.all([
+          supabase
+            .from('support_tickets')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'escalated'),
+          supabase
+            .from('support_tickets')
+            .select('id', { count: 'exact', head: true })
+            .in('status', ['open', 'claimed', 'escalated']),
+          supabase
+            .from('notifications')
+            .select('id, title, title_ar, is_read, created_at')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(8),
+          supabase
+            .from('notifications')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('is_read', false),
+        ]);
+        if (cancelled) return;
 
-      setEscalatedCount(escRes.count ?? 0);
-      setOpenTicketCount(openRes.count ?? 0);
-      const notifs = (notifRes.data ?? []) as Notif[];
-      setNotifications(notifs);
-      setUnreadCount(notifs.filter((n) => !n.is_read).length);
-      setLoading(false);
+        if (escRes.error || openRes.error || notifRes.error || unreadRes.error) {
+          setLoadErr(true);
+        }
+        setEscalatedCount(escRes.count ?? 0);
+        setOpenTicketCount(openRes.count ?? 0);
+        setNotifications((notifRes.data ?? []) as Notif[]);
+        setUnreadCount(unreadRes.count ?? 0);
+      } catch {
+        if (!cancelled) setLoadErr(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
     void load();
@@ -114,6 +128,12 @@ export default function ModeratorDashboardHome() {
           </Link>
         </nav>
       </header>
+
+      {loadErr ? (
+        <p className="mb-4 text-sm text-error" role="alert">
+          {t('تعذر تحميل بعض البيانات — المعروض قد يكون ناقصاً.', 'Some data failed to load — figures shown may be incomplete.')}
+        </p>
+      ) : null}
 
       <section className="mod-home__pulse" aria-label={t('ملخص الإشراف', 'Moderation pulse')}>
         <div className="mod-home__pulse-cell">
