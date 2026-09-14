@@ -1,7 +1,7 @@
 /** USD money display for dashboard surfaces (shared — do not redeclare per page). */
 export function formatMoney(amount: number | string | undefined | null, currency = 'USD'): string {
   const n = Number(amount ?? 0);
-  if (Number.isNaN(n)) return `$${amount}`;
+  if (!Number.isFinite(n)) return `0 ${currency}`;
   try {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',

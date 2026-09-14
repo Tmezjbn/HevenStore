@@ -218,33 +218,37 @@ async function materializeParkSession(park: ParkedAccount): Promise<ParkedAccoun
 
 /** Park active session and clear local Supabase session (park stays). */
 export async function parkCurrentAndSignOutLocal(meta: AccountMeta): Promise<boolean> {
-  const { data } = await supabase.auth.getSession();
-  const session = data.session;
-  if (!session?.access_token || !session.refresh_token) return false;
+  try {
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
+    if (!session?.access_token || !session.refresh_token) return false;
 
-  // Silent write: emit before detach races UI sync while park still equals live user.
-  savePark(
-    sessionToPark(
-      session.access_token,
-      session.refresh_token,
-      session.user.id,
-      {
-        email: meta.email ?? session.user.email,
-        username: meta.username,
-        fullName: meta.fullName,
-        role: meta.role,
-      },
-      session.expires_at,
-    ),
-    { emit: false },
-  );
+    // Silent write: emit before detach races UI sync while park still equals live user.
+    savePark(
+      sessionToPark(
+        session.access_token,
+        session.refresh_token,
+        session.user.id,
+        {
+          email: meta.email ?? session.user.email,
+          username: meta.username,
+          fullName: meta.fullName,
+          role: meta.role,
+        },
+        session.expires_at,
+      ),
+      { emit: false },
+    );
 
-  await clearLocalSessionNoRevoke();
-  // Account B must not inherit A's cart/wishlist — same clear as switchToParked.
-  useCartStore.getState().clearCart();
-  useWishlistStore.getState().clear();
-  emitPark();
-  return true;
+    await clearLocalSessionNoRevoke();
+    // Account B must not inherit A's cart/wishlist — same clear as switchToParked.
+    useCartStore.getState().clearCart();
+    useWishlistStore.getState().clear();
+    emitPark();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function syncAuthStoreFromSupabase() {
@@ -347,6 +351,8 @@ export async function switchToParked(
     useWishlistStore.getState().clear();
     emitPark();
     return { ok: true };
+  } catch {
+    return { ok: false, error: 'switch_failed' };
   } finally {
     endSwitch();
     if (stoppedRefresh) {

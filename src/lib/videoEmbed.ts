@@ -33,7 +33,7 @@ export function youtubeId(url: string): string | null {
 export function vimeoId(url: string): string | null {
   try {
     const u = new URL(url);
-    if (!u.hostname.includes('vimeo.com')) return null;
+    if (u.hostname !== 'vimeo.com' && !u.hostname.endsWith('.vimeo.com')) return null;
     const m = u.pathname.match(/\/(\d+)/);
     return m?.[1] ?? null;
   } catch {

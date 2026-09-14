@@ -36,10 +36,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setSession(session);
       if (session?.user) {
-        void loadProfileOrKick(
-          session.user.id,
-          (session.user.user_metadata?.full_name as string | undefined) ?? '',
-        );
+        // Defer Supabase work out of the callback — awaiting supabase calls
+        // inside onAuthStateChange can deadlock on the internal auth lock.
+        const user = session.user;
+        setTimeout(() => {
+          void loadProfileOrKick(
+            user.id,
+            (user.user_metadata?.full_name as string | undefined) ?? '',
+          );
+        }, 0);
       }
     });
 

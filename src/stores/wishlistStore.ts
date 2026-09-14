@@ -33,7 +33,18 @@ export const useWishlistStore = create<WishlistStore>()(
             .filter((p): p is Product => Boolean(p));
           if (
             next.length === state.items.length &&
-            next.every((n, i) => n.id === state.items[i].id && n.price === state.items[i].price)
+            next.every((n, i) => {
+              const o = state.items[i];
+              return (
+                n.id === o.id &&
+                n.price === o.price &&
+                n.name === o.name &&
+                n.name_ar === o.name_ar &&
+                n.thumbnail_url === o.thumbnail_url &&
+                n.slug === o.slug &&
+                n.stock === o.stock
+              );
+            })
           ) {
             return state;
           }

@@ -132,18 +132,17 @@ export function roleLabel(role: string, lang: 'ar' | 'en'): string {
   return lang === 'ar' ? info.labelAr : info.labelEn;
 }
 
-/** Owner/admin/moderator/support/seller — public /seller card + avatar upload. */
+/** Roles get_seller_public() exposes — a /seller card only exists for these. */
 export function canUsePublicProfile(role: string | null | undefined): boolean {
   return (
     role === 'owner' ||
     role === 'admin' ||
     role === 'moderator' ||
-    role === 'support' ||
     role === 'seller'
   );
 }
 
-/** Alias: staff-facing store roles that may change photo. */
+/** Staff-facing roles that may upload a photo (shown in internal chat too). */
 export function canChangeAvatar(role: string | null | undefined): boolean {
-  return canUsePublicProfile(role);
+  return canUsePublicProfile(role) || role === 'support';
 }

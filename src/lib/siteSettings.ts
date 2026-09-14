@@ -1637,8 +1637,22 @@ export function parseAboutItems(raw: string): AboutItem[] {
   if (!raw.trim()) return DEFAULT_ABOUT_ITEMS;
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed as AboutItem[];
-    return DEFAULT_ABOUT_ITEMS;
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_ABOUT_ITEMS;
+    // Per-item validation — [null]/primitives would crash AboutPage on .icon.
+    const out: AboutItem[] = [];
+    for (const item of parsed) {
+      if (!item || typeof item !== 'object') continue;
+      const o = item as Record<string, unknown>;
+      const s = (k: keyof AboutItem) => (typeof o[k] === 'string' ? (o[k] as string) : '');
+      out.push({
+        icon: s('icon') || 'Zap',
+        title_ar: s('title_ar'),
+        title_en: s('title_en'),
+        desc_ar: s('desc_ar'),
+        desc_en: s('desc_en'),
+      });
+    }
+    return out.length ? out : DEFAULT_ABOUT_ITEMS;
   } catch {
     return DEFAULT_ABOUT_ITEMS;
   }

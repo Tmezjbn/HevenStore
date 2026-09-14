@@ -81,7 +81,10 @@ export const useCartStore = create<CartStore>()(
                 n.quantity === o.quantity &&
                 n.product.price === o.product.price &&
                 n.product.stock === o.product.stock &&
-                n.product.name === o.product.name
+                n.product.name === o.product.name &&
+                n.product.name_ar === o.product.name_ar &&
+                n.product.thumbnail_url === o.product.thumbnail_url &&
+                n.product.slug === o.product.slug
               );
             })
           ) {
@@ -113,12 +116,17 @@ export const useCartStore = create<CartStore>()(
                 typeof i.product.price === 'number',
             )
           : [];
-        return {
-          ...current,
-          items,
-          coupon:
-            p.coupon && typeof p.coupon === 'object' ? (p.coupon as AppliedCoupon) : null,
-        };
+        const c = p.coupon as AppliedCoupon | null | undefined;
+        const coupon =
+          c &&
+          typeof c === 'object' &&
+          typeof c.code === 'string' &&
+          (c.discount_type === 'percentage' || c.discount_type === 'fixed') &&
+          typeof c.discount_value === 'number' &&
+          Number.isFinite(c.discount_value)
+            ? c
+            : null;
+        return { ...current, items, coupon };
       },
     },
   ),

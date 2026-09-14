@@ -55,7 +55,8 @@ export function serializeSecretContent(details: string, valueLines: string): str
   return `${DETAILS_MARK}\n${d}\n\n${VALUES_MARK}\n${v}`;
 }
 
-/** Strip "Label: " prefixes from labeled lines only. */
+/** Strip "Label: " prefixes — only when the line is label-shaped.
+ *  Raw values containing colons (URLs, user:pass, AB:CD) stay intact. */
 function valuesOnlyFromLines(valueLines: string): string {
   if (!valueLines.trim()) return '';
   return valueLines
@@ -63,16 +64,16 @@ function valuesOnlyFromLines(valueLines: string): string {
     .map((line) => {
       const trimmed = line.trim();
       if (!trimmed) return '';
-      const idx = trimmed.indexOf(':');
-      if (idx === -1) return trimmed;
-      return trimmed.slice(idx + 1).trim();
+      const m = trimmed.match(/^[^:\s][^:]{0,39}:\s+/);
+      if (!m) return trimmed;
+      return trimmed.slice(m[0].length).trim();
     })
     .filter(Boolean)
     .join('\n');
 }
 
 /** Buyer-facing fulfillment: freeform details as-is + values without labels. */
-export function fulfillmentValuesOnly(content: string | null | undefined): string {
+function fulfillmentValuesOnly(content: string | null | undefined): string {
   if (!content?.trim()) return '';
   const { details, valueLines } = parseSecretContent(content);
   const values = valuesOnlyFromLines(valueLines);

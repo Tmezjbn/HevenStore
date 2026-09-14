@@ -23,11 +23,6 @@ export function softProductRating(
   return Math.round(((w * s + sum) / (w + n)) * 100) / 100;
 }
 
-/** @deprecated alias — same soft blend as DB. */
-export function displayProductRating(seed: number, reviewRatings: number[]): number {
-  return softProductRating(seed, reviewRatings);
-}
-
 /** Prefer DB rating; unreviewed products with stale 0 still show seed/5. */
 export function effectiveProductRating(p: {
   rating: number;

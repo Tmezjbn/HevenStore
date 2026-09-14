@@ -32,7 +32,12 @@ const I18nContext = createContext<I18nContextValue>({
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
-    return (localStorage.getItem('heven-lang') as Lang) || 'ar';
+    // Storage can throw (privacy mode / denied) — fall back to the default.
+    try {
+      return (localStorage.getItem('heven-lang') as Lang) || 'ar';
+    } catch {
+      return 'ar';
+    }
   });
   const busyRef = useRef(false);
 

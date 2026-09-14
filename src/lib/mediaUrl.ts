@@ -17,12 +17,14 @@ export function storageImageUrl(url: string, width: number, quality = 75): strin
   if (/\.(gif|svg)(\?|#|$)/i.test(url)) return url;
   const m = url.match(/^(https?:\/\/[^/]+)\/storage\/v1\/object\/public\/(.+)$/i);
   if (!m) return url;
+  // Existing query/fragment on the object path would produce a doubled '?'.
+  const objectPath = m[2].split(/[?#]/)[0];
   const q = new URLSearchParams({
     width: String(Math.round(width)),
     resize: 'contain',
     quality: String(quality),
   });
-  return `${m[1]}/storage/v1/render/image/public/${m[2]}?${q}`;
+  return `${m[1]}/storage/v1/render/image/public/${objectPath}?${q}`;
 }
 
 export function imageTransformsEnabled(): boolean {
