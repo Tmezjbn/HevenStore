@@ -5,7 +5,15 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'ponytail'] },
+  { ignores: ['dist', 'ponytail', '.agents', 'public', 'supabase/functions'] },
+  {
+    extends: [js.configs.recommended],
+    files: ['scripts/**/*.{js,mjs,cjs}', '*.{js,mjs,cjs}'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: { ...globals.node },
+    },
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

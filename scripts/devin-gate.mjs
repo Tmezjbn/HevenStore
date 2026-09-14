@@ -4,7 +4,7 @@
 //   PostToolUse(edit|write) -> re-run check-checkout-authority when a sensitive file changed
 
 export const SENSITIVE =
-  /(checkout|auth|fulfill|order|role|rls|support|polar|payment|refund|coupon|supabase[\\/])/i;
+  /(checkout|auth|fulfill|order|role|rls|support|polar|payment|refund|coupon|profile|cart|supabase[\\/])/i;
 
 export const BLOCKED = [
   { re: /\brm\s+-[a-z]*r[a-z]*f[a-z]*\s+(\/|~|\.|\*|$)/i, why: 'recursive force-delete on a broad target' },

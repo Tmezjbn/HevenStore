@@ -23,7 +23,7 @@ npm test
 npm run build
 ```
 
-- `npm test` runs every `scripts/check-*.mjs` via `scripts/run-checks.mjs` (**80** checks; all MUST pass).
+- `npm test` runs every `scripts/check-*.mjs` via `scripts/run-checks.mjs` (**82** checks; all MUST pass).
 - After checkout/auth/fulfillment edits, also run `node scripts/check-checkout-authority.mjs`.
 
 ## Owner internal log

@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
-Disallow: /dashboard/
-Disallow: /auth/
+Disallow: /dashboard
+Disallow: /auth
 Disallow: /cart
 Disallow: /wishlist
 Disallow: /checkout

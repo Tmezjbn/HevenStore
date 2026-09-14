@@ -230,7 +230,12 @@ if (url && key) {
   } else {
     for (const p of data ?? []) {
       const slug = String(p.slug || '').trim();
-      if (!slug) continue;
+      // Slug becomes a filesystem path — only the editor's slugify charset is
+      // safe ('..' / '/' via a direct API write must not escape dist/).
+      if (!/^[\p{L}\p{N}][\p{L}\p{N}-]*$/u.test(slug)) {
+        console.warn(`prerender: skipping unsafe slug ${JSON.stringify(slug)}`);
+        continue;
+      }
       const titleName = (p.name_ar && String(p.name_ar).trim()) || p.name || slug;
       const title = `${titleName} — HEVEN.FUN`;
       const description =

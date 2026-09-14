@@ -132,7 +132,11 @@ assert.doesNotMatch(
 
 const ads = read('src/components/home/ProductAdsBanner.tsx');
 assert.match(ads, /aria-roledescription="carousel"/, 'ads banner needs carousel role description');
-assert.match(ads, /aria-live="polite"/, 'ads banner needs live region for slide changes');
+assert.match(
+  ads,
+  /aria-live=\{userNav \? 'polite' : 'off'\}/,
+  'ads banner needs live region that only announces user-driven slide changes',
+);
 // Autoplay pauses on hover/focus + hidden tab — resumes after (no permanent kill).
 // Merch FX (aura/tilt/card canvases) calm via merch_motion_mode — not framer useReducedMotion.
 // Ads carousel autoplay stays independent of that gate (hover + tab hidden only).
