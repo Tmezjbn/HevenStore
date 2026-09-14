@@ -56,7 +56,9 @@ Deno.serve(async (req) => {
     const { error: postponeErr } = await admin
       .from('profiles')
       .update({ deletion_scheduled_at: retryAt })
-      .in('id', failedIds);
+      .in('id', failedIds)
+      // A restored account (deletion_scheduled_at cleared) must not be re-armed.
+      .not('deletion_scheduled_at', 'is', null);
     if (postponeErr) {
       // Failing to postpone means they'd still be claimed unarchived —
       // abort the whole run rather than lose history.
@@ -78,6 +80,27 @@ Deno.serve(async (req) => {
   }
 
   const userIds = (Array.isArray(ids) ? ids : []) as string[];
+
+  // TOCTOU: profiles can become due between the snapshot SELECT above and the
+  // claim (e.g. admin_purge_user_now mid-run). A claimed id with no history row
+  // would be hard-deleted unarchived — archive it now (post-anonymize is late,
+  // but orders survive) before deleteUser.
+  const { data: archivedRows } = await admin
+    .from('account_deletion_history')
+    .select('former_user_id')
+    .in('former_user_id', userIds.length ? userIds : ['00000000-0000-0000-0000-000000000000']);
+  const archivedIds = new Set((archivedRows ?? []).map((r) => r.former_user_id as string));
+  for (const id of userIds) {
+    if (archivedIds.has(id)) continue;
+    try {
+      await archiveDeletedUser(admin, id, null);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error('late archive failed:', id, message);
+      archiveFailures.push({ id, message });
+    }
+  }
+
   let deleted = 0;
   const failures: { id: string; message: string }[] = [];
 

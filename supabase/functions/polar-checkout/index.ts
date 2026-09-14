@@ -35,7 +35,8 @@ Deno.serve(async (req) => {
 
   const accessToken = Deno.env.get('POLAR_ACCESS_TOKEN');
   const productId = Deno.env.get('POLAR_PRODUCT_ID');
-  const siteUrl = Deno.env.get('SITE_URL') ?? 'http://localhost:5173';
+  const siteUrlEnv = Deno.env.get('SITE_URL');
+  const siteUrl = siteUrlEnv ?? 'http://localhost:5173';
   const polarBase = (Deno.env.get('POLAR_SERVER') ?? 'sandbox') === 'production'
     ? 'https://api.polar.sh'
     : 'https://sandbox-api.polar.sh';
@@ -43,9 +44,14 @@ Deno.serve(async (req) => {
   if (!accessToken || !productId) {
     return json(req, { error: 'polar_not_configured' }, 501);
   }
+  // Production without SITE_URL would build success_url on localhost — fail loudly.
+  if (polarBase === 'https://api.polar.sh' && !siteUrlEnv) {
+    return json(req, { error: 'site_url_not_configured' }, 500);
+  }
 
   try {
-    const { order_id } = await req.json();
+    const body = await req.json().catch(() => null);
+    const order_id = (body as { order_id?: unknown } | null)?.order_id;
     if (
       typeof order_id !== 'string' ||
       !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(order_id)
@@ -68,13 +74,17 @@ Deno.serve(async (req) => {
     );
     const { data: order, error: orderErr } = await admin
       .from('orders')
-      .select('id, user_id, total, status')
+      .select('id, user_id, total, status, polar_checkout_id')
       .eq('id', order_id)
       .single();
 
     if (orderErr || !order) return json(req, { error: 'order_not_found' }, 404);
     if (order.user_id !== userData.user.id) return json(req, { error: 'forbidden' }, 403);
     if (order.status !== 'pending') return json(req, { error: 'order_not_pending' }, 409);
+    // One Polar session per order — a second paid session double-charges the
+    // buyer and the later order.paid finalizes as already_paid (money taken,
+    // no fulfillment). Retries go through a fresh pending order instead.
+    if (order.polar_checkout_id) return json(req, { error: 'checkout_exists' }, 409);
 
     const amountCents = Math.round(Number(order.total) * 100);
     if (!Number.isFinite(amountCents) || amountCents < 50) {

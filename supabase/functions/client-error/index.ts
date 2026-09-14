@@ -68,6 +68,8 @@ Deno.serve(async (req) => {
   } catch {
     return json(req, { error: 'json' }, 400);
   }
+  // JSON `null`/primitive passes the parse — treat as a bad body, not a crash.
+  if (!body || typeof body !== 'object') return json(req, { error: 'json' }, 400);
 
   const payload = {
     message: clip(body.message, 500) ?? 'unknown',

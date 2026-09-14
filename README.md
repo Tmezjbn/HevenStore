@@ -120,7 +120,7 @@ See `.env.example`. Client-safe vars are `VITE_*` only. Server secrets (Polar to
 ## Deploy
 
 1. Apply Supabase migrations (`supabase db push` or SQL editor) — checkout RPCs and RLS are required.
-2. Deploy edge functions: `polar-checkout`, `polar-webhook` (`--no-verify-jwt`), `client-error` (`--no-verify-jwt`), `purge-deleted-accounts`, `hard-delete-user`, optional `databuddy-analytics`.
+2. Deploy edge functions: `polar-checkout`, `polar-webhook` (`--no-verify-jwt`), `client-error` (`--no-verify-jwt`), `purge-deleted-accounts` (`--no-verify-jwt`), `hard-delete-user`, optional `databuddy-analytics`. JWT posture is also pinned in `supabase/config.toml` — a flag-less deploy leaves `polar-webhook`/`client-error`/`purge-deleted-accounts` unreachable (401).
 3. Build the SPA (`npm run build`) and host `dist/` behind HTTPS. Build needs `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` for product HTML shells; without them, static routes still prerender.
 4. Security headers: `public/_headers` (Netlify / Cloudflare Pages), `vercel.json` (Vercel), or the same set on your reverse proxy. SPA rewrite: `public/_redirects` (`/* /index.html 200`).
 5. Set `VITE_SITE_URL` to the production origin for canonicals.

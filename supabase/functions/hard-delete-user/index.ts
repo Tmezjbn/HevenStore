@@ -29,7 +29,8 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(req, { error: 'method_not_allowed' }, 405);
 
   try {
-    const { user_id: targetId } = await req.json();
+    const body = await req.json().catch(() => null);
+    const targetId = (body as { user_id?: unknown } | null)?.user_id;
     if (!targetId || typeof targetId !== 'string') {
       return json(req, { error: 'user_id_required' }, 400);
     }

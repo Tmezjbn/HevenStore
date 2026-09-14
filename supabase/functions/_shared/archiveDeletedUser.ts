@@ -18,7 +18,7 @@ export async function archiveDeletedUser(
     .from('orders')
     .select(
       [
-        'id, status, total, currency, discount_amount, coupon_id, notes, created_at, updated_at',
+        'id, status, total, currency, discount_amount, coupon_id, notes, created_at, updated_at, order_number, public_ref',
         'order_items(',
         'id, product_id, quantity, unit_price, total_price,',
         'products(name, name_ar, slug, product_type, thumbnail_url, description, description_ar, product_secrets(content)),',

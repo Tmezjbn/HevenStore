@@ -1,0 +1,14 @@
+project_id = "heven-store"
+
+# JWT posture pinned in-repo: these functions serve machine/webhook callers
+# that cannot present a user JWT (Polar webhooks, browser error beacon, cron
+# secret). Without this, `supabase functions deploy` defaults verify_jwt=true
+# and the deploy flag is the only thing keeping them reachable.
+[functions.polar-webhook]
+verify_jwt = false
+
+[functions.client-error]
+verify_jwt = false
+
+[functions.purge-deleted-accounts]
+verify_jwt = false

@@ -33,14 +33,18 @@ function getCheckoutId(data: LooseRecord, eventType: string): string | null {
   return null;
 }
 
-/** Paid amount in cents from the Polar payload, when it carries one. */
+/** Paid amount in cents from the Polar payload, when it carries one.
+ *  net_amount is post-fee (< gross) — accepting it would false-trip the
+ *  underpay guard, so only gross fields count; anything else → retry. */
 function getPaidCents(data: LooseRecord): number | null {
-  for (const key of ['total_amount', 'amount', 'net_amount']) {
+  for (const key of ['total_amount', 'amount']) {
     const v = data[key];
     if (typeof v === 'number' && Number.isFinite(v)) return v;
   }
   return null;
 }
+
+const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 async function markOrderPaid(data: LooseRecord, eventType: string): Promise<MarkResult> {
   const admin = createClient(
@@ -50,10 +54,16 @@ async function markOrderPaid(data: LooseRecord, eventType: string): Promise<Mark
 
   // Correlate the event to our order row.
   let orderId = getOrderId(data);
+  if (orderId && !UUID_RE.test(orderId)) {
+    // Corrupt metadata.order_id — a cast error inside the RPC would retry
+    // forever; terminal + alert for manual reconciliation instead.
+    console.error('ALERT_BAD_ORDER_ID:', eventType, orderId);
+    return 'terminal';
+  }
   if (!orderId) {
     const checkoutId = getCheckoutId(data, eventType);
     if (!checkoutId) {
-      console.warn('paid event but no order_id or checkout_id', eventType, JSON.stringify(data).slice(0, 300));
+      console.warn('paid event but no order_id or checkout_id', eventType, data.id);
       return 'terminal';
     }
     const { data: row, error: lookupErr } = await admin

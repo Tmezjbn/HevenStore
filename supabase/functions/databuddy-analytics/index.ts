@@ -57,22 +57,29 @@ async function queryDatabuddy(
   preset: string,
   parameters: string[],
 ): Promise<{ ok: boolean; status: number; payload: unknown }> {
-  const res = await fetch(
-    `https://api.databuddy.cc/v1/query?website_id=${encodeURIComponent(websiteId)}`,
-    {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'Content-Type': 'application/json',
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://api.databuddy.cc/v1/query?website_id=${encodeURIComponent(websiteId)}`,
+      {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(8000),
+        body: JSON.stringify({
+          parameters,
+          preset,
+          limit: 12,
+          granularity: 'daily',
+        }),
       },
-      body: JSON.stringify({
-        parameters,
-        preset,
-        limit: 12,
-        granularity: 'daily',
-      }),
-    },
-  );
+    );
+  } catch (e) {
+    // Hung/failed upstream — surface as 502 to the caller, not an unhandled 500.
+    return { ok: false, status: 502, payload: e instanceof Error ? e.message : String(e) };
+  }
 
   const text = await res.text();
   let payload: unknown = text;

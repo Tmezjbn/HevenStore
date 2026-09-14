@@ -64,7 +64,7 @@ Supabase owns Postgres backups. Before launch marketing:
 Before a release that touches money/auth:
 
 1. `supabase db push` (or apply new migrations in SQL editor) — include latest audit/support/order-number migrations from `supabase/migrations/`.
-2. Redeploy edge fns: `polar-checkout`, `polar-webhook --no-verify-jwt`, `client-error --no-verify-jwt`, `purge-deleted-accounts`, `hard-delete-user`, optional `databuddy-analytics`.
+2. Redeploy edge fns: `polar-checkout`, `polar-webhook --no-verify-jwt`, `client-error --no-verify-jwt`, `purge-deleted-accounts --no-verify-jwt`, `hard-delete-user`, optional `databuddy-analytics` (`supabase/config.toml` pins verify_jwt so a missing flag doesn't silently re-enable JWT).
 3. Edge secret `SITE_URL` = production origin (no localhost fallback in prod).
 4. Host serves SPA rewrite (`public/_redirects` / `vercel.json`) + security headers.
 5. Build with `VITE_SUPABASE_*` so sitemap/prerender get product URLs.
