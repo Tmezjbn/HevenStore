@@ -94,6 +94,8 @@ export const SITE_SETTING_KEYS = [
   'product_author_lock',
   /** Max new products a seller may create per UTC day. 0 = unlimited. Default 3. */
   'seller_daily_product_limit',
+  /** When true, seller listings enter pending_review until owner/admin approves. Default off. */
+  'seller_listing_review',
   /** Which non-owner roles may use dual-account switch: { admin, moderator, seller }. */
   'multi_account_roles_json',
 ] as const;
@@ -1103,6 +1105,11 @@ export function parseProductAuthorLock(raw: string): boolean {
   return raw !== 'false' && raw !== '0' && raw !== 'off' && raw !== 'no';
 }
 
+/** Seller listings require owner/admin review before going live. Default off when unset. */
+export function parseSellerListingReview(raw: string): boolean {
+  return raw === 'true' || raw === '1' || raw === 'on' || raw === 'yes';
+}
+
 /** Seller create cap per UTC day. 0 = unlimited. Clamped 0–100; default 3. */
 export function parseSellerDailyProductLimit(raw: string | null | undefined): number {
   const n = Number.parseInt(String(raw ?? '').trim(), 10);
@@ -1609,6 +1616,7 @@ export const SITE_SETTING_DEFAULTS: SiteSettingsMap = {
   product_hover_3d_json: '{"motion":5,"speed":5,"smooth":5}',
   product_author_lock: 'true',
   seller_daily_product_limit: '3',
+  seller_listing_review: 'false',
   multi_account_roles_json: JSON.stringify(DEFAULT_MULTI_ACCOUNT_ROLES),
   drawer_categories_enabled: 'true',
   privacy_consent_banner: 'true',

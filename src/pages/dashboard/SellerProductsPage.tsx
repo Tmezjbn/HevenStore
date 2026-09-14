@@ -33,7 +33,7 @@ import { canDeleteProductByAuthor } from '../../lib/productAuthorLock';
 import { formatMoney } from '../../lib/formatMoney';
 import type { Product } from '../../types';
 
-type ListFilter = 'all' | 'live' | 'draft' | 'hidden' | 'low';
+type ListFilter = 'all' | 'live' | 'draft' | 'hidden' | 'low' | 'pending' | 'rejected';
 type PendingConfirm =
   | { kind: 'hide'; product: Product }
   | { kind: 'delete'; id: string };
@@ -52,6 +52,8 @@ function titleOf(product: Product, lang: 'ar' | 'en') {
 function toneOf(p: Product) {
   if (p.status === 'draft') return 'draft' as const;
   if (p.status === 'inactive') return 'muted' as const;
+  if (p.status === 'pending_review') return 'warn' as const;
+  if (p.status === 'rejected') return 'danger' as const;
   if (p.stock <= 0) return 'warn' as const;
   if (p.stock <= 2) return 'warn' as const;
   return 'live' as const;
@@ -60,6 +62,8 @@ function toneOf(p: Product) {
 function statusCopy(p: Product, t: (ar: string, en: string) => string) {
   if (p.status === 'draft') return t('مسودة', 'Draft');
   if (p.status === 'inactive') return t('مخفي', 'Hidden');
+  if (p.status === 'pending_review') return t('قيد المراجعة', 'In review');
+  if (p.status === 'rejected') return t('مرفوض', 'Rejected');
   if (p.stock <= 0) return t('نفد', 'Sold out');
   if (p.stock <= 2) return t('مخزون قليل', 'Low stock');
   return t('معروض', 'Live');
@@ -88,6 +92,7 @@ export default function SellerProductsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [createdToday, setCreatedToday] = useState(0);
+  const [needsReview, setNeedsReview] = useState(false);
 
   const profileId = profile?.id;
   const handle = (profile?.username || '').trim();
@@ -117,6 +122,19 @@ export default function SellerProductsPage() {
       cancelled = true;
     };
   }, [profileId, products]);
+
+  useEffect(() => {
+    if (!profileId) return;
+    let cancelled = false;
+    void supabase
+      .rpc('seller_needs_listing_review', { p_seller: profileId })
+      .then(({ data }) => {
+        if (!cancelled) setNeedsReview(data === true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [profileId]);
 
   useEffect(() => {
     const editId = searchParams.get('edit');
@@ -149,6 +167,8 @@ export default function SellerProductsPage() {
       else if (listFilter === 'draft') query = query.eq('status', 'draft');
       else if (listFilter === 'hidden') query = query.eq('status', 'inactive');
       else if (listFilter === 'low') query = query.eq('status', 'active').lte('stock', 2);
+      else if (listFilter === 'pending') query = query.eq('status', 'pending_review');
+      else if (listFilter === 'rejected') query = query.eq('status', 'rejected');
 
       const { data, count, error } = await query;
       if (cancelled) return;
@@ -188,18 +208,20 @@ export default function SellerProductsPage() {
       setPending({ kind: 'hide', product });
       return;
     }
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('products')
       .update({ status: 'active' })
-      .eq('id', product.id);
+      .eq('id', product.id)
+      .select('status')
+      .single();
     if (error) {
       setActionError(error.message || t('تعذر تحديث العرض', 'Could not update the listing'));
       return;
     }
     setActionError(null);
-    setProducts((prev) =>
-      prev.map((p) => (p.id === product.id ? { ...p, status: 'active' as const } : p)),
-    );
+    // Review gate may coerce 'active' to 'pending_review' — reflect the real status.
+    const next = (data?.status ?? 'active') as Product['status'];
+    setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, status: next } : p)));
     refreshStorefront();
   };
 
@@ -242,6 +264,8 @@ export default function SellerProductsPage() {
     { id: 'low', ar: 'مخزون قليل', en: 'Low stock' },
     { id: 'draft', ar: 'مسودة', en: 'Draft' },
     { id: 'hidden', ar: 'مخفي', en: 'Hidden' },
+    { id: 'pending', ar: 'قيد المراجعة', en: 'In review' },
+    { id: 'rejected', ar: 'مرفوض', en: 'Rejected' },
   ];
 
   const countWord =
@@ -467,6 +491,11 @@ export default function SellerProductsPage() {
                         }}
                       />
                     </div>
+                    {product.status === 'rejected' && product.review_note ? (
+                      <p className="text-xs text-error line-clamp-2" title={product.review_note}>
+                        {t('سبب الرفض', 'Rejection reason')}: {product.review_note}
+                      </p>
+                    ) : null}
 
                     <div className="seller-listings__actions">
                       <button
@@ -497,7 +526,9 @@ export default function SellerProductsPage() {
                             {product.status === 'active' ? <EyeOff size={14} /> : <Eye size={14} />}
                             {product.status === 'active'
                               ? t('إخفاء من المتجر', 'Hide from store')
-                              : t('إظهار في المتجر', 'Show in store')}
+                              : needsReview
+                                ? t('إرسال للمراجعة', 'Submit for review')
+                                : t('إظهار في المتجر', 'Show in store')}
                           </button>
                         </li>
                         {canDelete ? (

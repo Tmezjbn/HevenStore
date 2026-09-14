@@ -2901,6 +2901,9 @@ a.admin-home__meter:hover {
 .seller-listings__status--warn {
   color: var(--color-warning);
 }
+.seller-listings__status--danger {
+  color: var(--color-error);
+}
 .seller-listings__status--draft,
 .seller-listings__status--muted {
   color: color-mix(in oklch, var(--color-base-content) 70%, transparent);

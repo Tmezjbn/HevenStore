@@ -51,7 +51,7 @@ export const PRODUCT_LIST_COLS = [
 ].join(',');
 
 /** PDP / product editor — list cols + requirements + atmosphere + author + multi-embed. */
-export const PRODUCT_EDITOR_COLS = `${PRODUCT_LIST_COLS},requirements,atmosphere_logo_ids,created_by,added_by,video_embeds`;
+export const PRODUCT_EDITOR_COLS = `${PRODUCT_LIST_COLS},requirements,atmosphere_logo_ids,created_by,added_by,video_embeds,review_note`;
 
 /** @deprecated alias — same as PRODUCT_EDITOR_COLS for PDP */
 const PRODUCT_DETAIL_COLS = PRODUCT_EDITOR_COLS;

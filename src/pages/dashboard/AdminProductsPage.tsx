@@ -1,6 +1,8 @@
 import {
+  Check,
   Eye,
   EyeOff,
+  Loader2,
   Package,
   Pencil,
   Plus,
@@ -21,6 +23,7 @@ import { useI18n } from '../../lib/i18n';
 import ProductMedia from '../../components/ui/ProductMedia';
 import PageBar from '../../components/dashboard/PageBar';
 import ConfirmDialog from '../../components/dashboard/ConfirmDialog';
+import Modal from '../../components/ui/Modal';
 import DashboardOverflowMenu from '../../components/dashboard/DashboardOverflowMenu';
 import ProductEffectsDialog from '../../components/dashboard/ProductEffectsDialog';
 import { DASHBOARD_PAGE_SIZE, pageRange } from '../../lib/dashboardPage';
@@ -38,7 +41,7 @@ type AuthorPick = {
   role: string | null;
 };
 
-type ListFilter = 'all' | 'active' | 'inactive' | 'draft' | 'oos' | 'featured';
+type ListFilter = 'all' | 'active' | 'inactive' | 'draft' | 'oos' | 'featured' | 'pending';
 type PendingConfirm =
   | { kind: 'hide'; product: Product }
   | { kind: 'delete'; id: string };
@@ -54,9 +57,11 @@ function productListTitle(product: Product, lang: 'ar' | 'en'): string {
   return product.name;
 }
 
-function statusTone(product: Product): 'live' | 'warn' | 'draft' | 'muted' {
+function statusTone(product: Product): 'live' | 'warn' | 'draft' | 'muted' | 'danger' {
   if (product.status === 'draft') return 'draft';
   if (product.status === 'inactive') return 'muted';
+  if (product.status === 'pending_review') return 'warn';
+  if (product.status === 'rejected') return 'danger';
   if (product.stock <= 0) return 'warn';
   return 'live';
 }
@@ -86,6 +91,11 @@ export default function AdminProductsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [stockPulse, setStockPulse] = useState({ units: 0, oos: 0, listings: 0 });
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const [reviewBusyId, setReviewBusyId] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<Product | null>(null);
+  const [rejectNote, setRejectNote] = useState('');
+  const [rejectError, setRejectError] = useState<string | null>(null);
 
   const profileRole = profile?.role;
   const profileId = profile?.id;
@@ -111,12 +121,15 @@ export default function AdminProductsPage() {
     }
     let units = 0;
     let oos = 0;
+    let pendingReview = 0;
     for (const row of data ?? []) {
       const s = Number(row.stock) || 0;
       units += Math.max(0, s);
       if (row.status === 'active' && s <= 0) oos += 1;
+      if (row.status === 'pending_review') pendingReview += 1;
     }
     setStockPulse({ units, oos, listings: (data ?? []).length });
+    setPendingReviewCount(pendingReview);
   };
 
   useEffect(() => {
@@ -137,6 +150,8 @@ export default function AdminProductsPage() {
         query = query.eq('is_featured', true);
       } else if (listFilter === 'oos') {
         query = query.eq('status', 'active').lte('stock', 0);
+      } else if (listFilter === 'pending') {
+        query = query.eq('status', 'pending_review');
       }
       const [listRes] = await Promise.all([query, refreshStockPulse()]);
       if (cancelled) return;
@@ -287,6 +302,7 @@ export default function AdminProductsPage() {
     { id: 'featured', ar: 'مميّز', en: 'Featured' },
     { id: 'inactive', ar: 'مخفي', en: 'Hidden' },
     { id: 'draft', ar: 'مسودة', en: 'Draft' },
+    { id: 'pending', ar: 'قيد المراجعة', en: 'In review' },
   ];
 
   const countWord =
@@ -298,7 +314,58 @@ export default function AdminProductsPage() {
     }
     if (product.status === 'active') return t('نشط', 'Active');
     if (product.status === 'inactive') return t('مخفي', 'Hidden');
+    if (product.status === 'pending_review') return t('قيد المراجعة', 'In review');
+    if (product.status === 'rejected') return t('مرفوض', 'Rejected');
     return t('مسودة', 'Draft');
+  };
+
+  const reviewListing = async (product: Product, approve: boolean, note: string) => {
+    setReviewBusyId(product.id);
+    const { error } = await supabase.rpc('review_product_listing', {
+      p_id: product.id,
+      p_approve: approve,
+      p_note: note || null,
+    });
+    setReviewBusyId(null);
+    if (error) return error.message || t('تعذر تحديث المراجعة', 'Could not update the review');
+    const next = (approve ? 'active' : 'rejected') as Product['status'];
+    setProducts((prev) =>
+      listFilter === 'pending'
+        ? prev.filter((p) => p.id !== product.id)
+        : prev.map((p) =>
+            p.id === product.id
+              ? { ...p, status: next, review_note: approve ? null : note || null }
+              : p,
+          ),
+    );
+    if (listFilter === 'pending') setTotal((n) => Math.max(0, n - 1));
+    void refreshStockPulse();
+    refreshStorefront();
+    return null;
+  };
+
+  const approveListing = (product: Product) => {
+    void reviewListing(product, true, '').then((err) => {
+      if (err) setActionError(err);
+      else setActionError(null);
+    });
+  };
+
+  const rejectListing = async () => {
+    if (!rejectTarget || reviewBusyId) return;
+    const note = rejectNote.trim();
+    if (!note) {
+      setRejectError(t('سبب الرفض مطلوب', 'A rejection reason is required'));
+      return;
+    }
+    const err = await reviewListing(rejectTarget, false, note);
+    if (err) {
+      setRejectError(err);
+      return;
+    }
+    setRejectTarget(null);
+    setRejectNote('');
+    setRejectError(null);
   };
 
   const pendingHot = stockPulse.oos > 0;
@@ -355,6 +422,15 @@ export default function AdminProductsPage() {
           <p className="admin-catalog__meter-label">{t('بلا مخزون', 'Out of stock')}</p>
           <p className="admin-catalog__meter-value tabular-nums">{loading ? '—' : stockPulse.oos}</p>
         </button>
+        <button
+          type="button"
+          className={`admin-catalog__meter admin-catalog__meter--warn${pendingReviewCount > 0 ? ' is-hot' : ''} ${focusRing}`}
+          onClick={() => setListFilter('pending')}
+          disabled={pendingReviewCount === 0}
+        >
+          <p className="admin-catalog__meter-label">{t('قيد المراجعة', 'In review')}</p>
+          <p className="admin-catalog__meter-value tabular-nums">{loading ? '—' : pendingReviewCount}</p>
+        </button>
         <article className="admin-catalog__meter admin-catalog__meter--page">
           <p className="admin-catalog__meter-label">{t('هذه الصفحة', 'This page')}</p>
           <p className="admin-catalog__meter-value tabular-nums">
@@ -393,7 +469,9 @@ export default function AdminProductsPage() {
               aria-pressed={listFilter === f.id}
               onClick={() => setListFilter(f.id)}
             >
-              {t(f.ar, f.en)}
+              {f.id === 'pending' && pendingReviewCount > 0
+                ? `${t(f.ar, f.en)} (${pendingReviewCount})`
+                : t(f.ar, f.en)}
             </button>
           ))}
         </div>
@@ -542,6 +620,37 @@ export default function AdminProductsPage() {
                   </div>
 
                   <div className="admin-catalog__actions">
+                    {product.status === 'pending_review' ? (
+                      <>
+                        <button
+                          type="button"
+                          className={`admin-catalog__edit ${focusRing}`}
+                          disabled={reviewBusyId === product.id}
+                          onClick={() => approveListing(product)}
+                        >
+                          {reviewBusyId === product.id ? (
+                            <Loader2 size={14} className="animate-spin" aria-hidden />
+                          ) : (
+                            <Check size={14} aria-hidden />
+                          )}
+                          {t('موافقة', 'Approve')}
+                        </button>
+                        <button
+                          type="button"
+                          className={`admin-catalog__edit ${focusRing}`}
+                          disabled={reviewBusyId === product.id}
+                          onClick={() => {
+                            setMenuId(null);
+                            setRejectTarget(product);
+                            setRejectNote('');
+                            setRejectError(null);
+                          }}
+                        >
+                          <X size={14} aria-hidden />
+                          {t('رفض', 'Reject')}
+                        </button>
+                      </>
+                    ) : null}
                     <button
                       type="button"
                       className={`admin-catalog__edit ${focusRing}`}
@@ -573,18 +682,20 @@ export default function AdminProductsPage() {
                             : t('تمييز في الرئيسية', 'Feature on homepage')}
                         </button>
                       </li>
-                      <li role="none">
-                        <button type="button" role="menuitem" onClick={() => void toggleStatus(product)}>
-                          {product.status === 'active' ? (
-                            <EyeOff size={14} aria-hidden />
-                          ) : (
-                            <Eye size={14} aria-hidden />
-                          )}
-                          {product.status === 'active'
-                            ? t('إخفاء من المتجر', 'Hide from store')
-                            : t('إظهار في المتجر', 'Show in store')}
-                        </button>
-                      </li>
+                      {product.status === 'pending_review' || product.status === 'rejected' ? null : (
+                        <li role="none">
+                          <button type="button" role="menuitem" onClick={() => void toggleStatus(product)}>
+                            {product.status === 'active' ? (
+                              <EyeOff size={14} aria-hidden />
+                            ) : (
+                              <Eye size={14} aria-hidden />
+                            )}
+                            {product.status === 'active'
+                              ? t('إخفاء من المتجر', 'Hide from store')
+                              : t('إظهار في المتجر', 'Show in store')}
+                          </button>
+                        </li>
+                      )}
                       {canDelete ? (
                         <li role="none">
                           <button
@@ -681,6 +792,63 @@ export default function AdminProductsPage() {
         confirmLabel={pending?.kind === 'hide' ? t('إخفاء', 'Hide') : t('حذف', 'Delete')}
         cancelLabel={t('إلغاء', 'Cancel')}
       />
+
+      <Modal
+        open={!!rejectTarget}
+        onClose={() => {
+          if (reviewBusyId) return;
+          setRejectTarget(null);
+          setRejectNote('');
+          setRejectError(null);
+        }}
+        labelledBy="admin-reject-title"
+        boxClassName="max-w-md text-start"
+        closeLabel={t('إغلاق', 'Close')}
+      >
+        <h3 id="admin-reject-title" className="font-semibold text-lg tracking-tight text-error mb-2">
+          {t('رفض العرض', 'Reject listing')}
+        </h3>
+        <p className="text-sm text-base-content/70 mb-4 leading-relaxed">
+          {t(
+            'سيُرجع الرفض العرض للبائع مع السبب. اكتب السبب:',
+            'Rejection returns the listing to the seller with your reason. Write the reason:',
+          )}
+        </p>
+        <textarea
+          className="textarea textarea-bordered textarea-sm w-full mb-4 min-h-20 focus:outline-none focus:ring-0 focus:border-base-content/40"
+          value={rejectNote}
+          onChange={(e) => setRejectNote(e.target.value)}
+          placeholder={t('مثال: الصورة لا تطابق المنتج', 'e.g. Image does not match the product')}
+        />
+        {rejectError ? (
+          <p className="mb-3 text-sm text-error" role="alert">
+            {rejectError}
+          </p>
+        ) : null}
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            disabled={!!reviewBusyId}
+            onClick={() => {
+              setRejectTarget(null);
+              setRejectNote('');
+              setRejectError(null);
+            }}
+          >
+            {t('إلغاء', 'Cancel')}
+          </button>
+          <button
+            type="button"
+            className="btn btn-error btn-sm gap-1"
+            disabled={!!reviewBusyId || !rejectNote.trim()}
+            onClick={() => void rejectListing()}
+          >
+            {reviewBusyId ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+            {t('تأكيد الرفض', 'Confirm rejection')}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

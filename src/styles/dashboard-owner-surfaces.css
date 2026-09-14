@@ -2363,6 +2363,9 @@
 .owner-catalog__status--warn {
   color: color-mix(in oklch, var(--color-warning) 85%, var(--color-base-content));
 }
+.owner-catalog__status--danger {
+  color: color-mix(in oklch, var(--color-error) 85%, var(--color-base-content));
+}
 .owner-catalog__status--draft,
 .owner-catalog__status--muted {
   color: color-mix(in oklch, var(--color-base-content) 65%, transparent);

@@ -65,6 +65,7 @@ import {
   parseMultiAccountRoles,
   parseProductAuthorLock,
   parseSellerDailyProductLimit,
+  parseSellerListingReview,
   type MultiAccountRoleFlags,
 } from '../../lib/siteSettings';
 
@@ -1166,6 +1167,25 @@ export default function SettingsPage() {
                   {t(
                     'افتراضي: مفعّل. أنت تظهر كمؤلّف عند الإضافة، ويمكنك نسب المنتج لمدير.',
                     'Default: on. You are the author on add; you can attribute to an admin.',
+                  )}
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-3 cursor-pointer max-w-xl mt-4">
+              <input
+                type="checkbox"
+                className="checkbox checkbox-primary mt-0.5"
+                checked={parseSellerListingReview(form.seller_listing_review)}
+                onChange={(e) => set('seller_listing_review', e.target.checked ? 'true' : 'false')}
+              />
+              <span className="text-sm">
+                <span className="font-medium block">
+                  {t('مراجعة عروض البائعين قبل النشر', 'Require review for seller listings')}
+                </span>
+                <span className="text-base-content/65 text-pretty">
+                  {t(
+                    'عند التفعيل: عروض البائعين الجديدة والمعدّلة تدخل المراجعة ولا تظهر بالمتجر حتى يوافق مالك أو مدير. يمكن استثناء بائعين محددين من صفحة المستخدمين.',
+                    'When on: new and edited seller listings enter review and stay hidden until an owner or admin approves. Exempt specific sellers from the Users page.',
                   )}
                 </span>
               </span>

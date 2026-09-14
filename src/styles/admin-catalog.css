@@ -381,6 +381,9 @@ button.admin-catalog__meter:disabled {
 .admin-catalog__status--warn {
   color: color-mix(in oklch, var(--color-warning) 85%, var(--color-base-content));
 }
+.admin-catalog__status--danger {
+  color: color-mix(in oklch, var(--color-error) 85%, var(--color-base-content));
+}
 .admin-catalog__status--draft,
 .admin-catalog__status--muted {
   color: color-mix(in oklch, var(--color-base-content) 65%, transparent);

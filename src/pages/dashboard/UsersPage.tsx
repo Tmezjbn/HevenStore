@@ -913,6 +913,34 @@ export default function UsersPage() {
                     </button>
                   </div>
                 ) : null}
+                {selected.role === 'seller' ? (
+                  <label className="form-control w-full max-w-xs">
+                    <span className="label-text text-xs text-base-content/55 mb-1">
+                      {t('مراجعة عروض هذا البائع', 'Listing review for this seller')}
+                    </span>
+                    <select
+                      className="select select-bordered select-sm"
+                      value={selected.listing_review_override ?? 'default'}
+                      disabled={busy}
+                      onChange={(e) => {
+                        const mode = e.target.value as 'default' | 'always' | 'never';
+                        void supabase
+                          .rpc('set_listing_review_override', { p_user_id: selected.id, p_mode: mode })
+                          .then(({ error: err }) => {
+                            if (err) {
+                              setError(t('تعذر تحديث وضع المراجعة', 'Could not update review mode'));
+                              return;
+                            }
+                            patchUser(selected.id, { listing_review_override: mode });
+                          });
+                      }}
+                    >
+                      <option value="default">{t('افتراضي — حسب الإعداد العام', 'Default — follow global setting')}</option>
+                      <option value="always">{t('دائمًا — تتطلب المراجعة', 'Always — require review')}</option>
+                      <option value="never">{t('أبدًا — بلا مراجعة', 'Never — skip review')}</option>
+                    </select>
+                  </label>
+                ) : null}
                 {canDanger(selected) ? (
                 <>
                 <p className="text-sm font-semibold tracking-tight flex items-center gap-1.5">

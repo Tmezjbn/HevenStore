@@ -149,7 +149,7 @@ interface ProductForm {
   original_price: string;
   category_id: string;
   stock: string;
-  status: 'active' | 'inactive' | 'draft';
+  status: Product['status'];
   oos_message: 'out_of_stock' | 'not_available';
   delivery_preset: DeliveryPreset;
   delivery_custom_en: string;
@@ -698,6 +698,8 @@ export default function ProductEditorPage() {
   const [resourcesPickEnabled, setResourcesPickEnabled] = useState(false);
   const [mediaLibrary, setMediaLibrary] = useState<MediaLibraryItem[]>([]);
   const [mediaLibraryLoading, setMediaLibraryLoading] = useState(false);
+  /** Seller review gate: new/edited listings pend until owner/admin approves. */
+  const [needsReview, setNeedsReview] = useState(false);
   const [resourceSort, setResourceSort] = useState<ResourceSort>('all');
   const [addingType, setAddingType] = useState(false);
   const [newTypeEn, setNewTypeEn] = useState('');
@@ -827,6 +829,19 @@ export default function ProductEditorPage() {
     }
     return { form: next, keyOverrides: overrides };
   };
+
+  useEffect(() => {
+    if (!isSeller || !profileId) return;
+    let cancelled = false;
+    void supabase
+      .rpc('seller_needs_listing_review', { p_seller: profileId })
+      .then(({ data }) => {
+        if (!cancelled) setNeedsReview(data === true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isSeller, profileId]);
 
   const loadProductForEdit = async (product: Product) => {
     setEditing(product);
@@ -1340,6 +1355,8 @@ export default function ProductEditorPage() {
             prev
               ? {
                   ...prev,
+                  // Review gate may coerce 'active' → 'pending_review' — keep truth.
+                  status: (data as Product).status ?? prev.status,
                   created_by: (data as Product).created_by ?? prev.created_by,
                   added_by: (data as Product).added_by ?? prev.added_by,
                 }
@@ -1815,7 +1832,15 @@ export default function ProductEditorPage() {
   })();
 
   const statusLabel = (s: Product['status']) =>
-    s === 'active' ? t('نشط', 'Active') : s === 'inactive' ? t('غير نشط', 'Inactive') : t('مسودة', 'Draft');
+    s === 'active'
+      ? t('نشط', 'Active')
+      : s === 'inactive'
+        ? t('غير نشط', 'Inactive')
+        : s === 'pending_review'
+          ? t('قيد المراجعة', 'In review')
+          : s === 'rejected'
+            ? t('مرفوض', 'Rejected')
+            : t('مسودة', 'Draft');
 
   const summaryName = (lang === 'ar' && form.name_ar.trim()) ? form.name_ar.trim() : form.name.trim() || t('بدون اسم', 'Untitled');
   const priceNum = Number(form.price);
@@ -2034,9 +2059,11 @@ export default function ProductEditorPage() {
   const statusChipClass =
     form.status === 'active'
       ? 'product-editor__chip product-editor__chip--ok'
-      : form.status === 'draft'
+      : form.status === 'draft' || form.status === 'pending_review'
         ? 'product-editor__chip product-editor__chip--warn'
-        : 'product-editor__chip product-editor__chip--mute';
+        : form.status === 'rejected'
+          ? 'product-editor__chip product-editor__chip--danger'
+          : 'product-editor__chip product-editor__chip--mute';
 
   return (
     <div className={`product-editor product-editor-enter ${floatActions ? 'pb-28' : 'pb-8'}`}>
@@ -2425,6 +2452,13 @@ export default function ProductEditorPage() {
                           ['draft', 'مسودة', 'Draft'],
                           ['active', 'نشط', 'Active'],
                           ['inactive', 'غير نشط', 'Inactive'],
+                          // Review states are display-only context, not choices.
+                          ...(form.status === 'pending_review'
+                            ? ([['pending_review', 'قيد المراجعة', 'In review']] as const)
+                            : []),
+                          ...(form.status === 'rejected'
+                            ? ([['rejected', 'مرفوض', 'Rejected']] as const)
+                            : []),
                         ] as const).map(([id, ar, en]) => (
                           <button
                             key={id}
@@ -2439,6 +2473,19 @@ export default function ProductEditorPage() {
                           </button>
                         ))}
                   </div>
+                  {isSeller && needsReview ? (
+                    <p className="pe-field__hint text-warning text-pretty" role="status">
+                      {t(
+                        'التعديلات تدخل المراجعة ولن تظهر بالمتجر حتى يوافق مالك أو مدير.',
+                        'Edits enter review and stay hidden until an owner or admin approves.',
+                      )}
+                    </p>
+                  ) : null}
+                  {isSeller && form.status === 'rejected' && editing?.review_note ? (
+                    <p className="pe-field__hint text-error text-pretty" role="status">
+                      {t('سبب الرفض', 'Rejection reason')}: {editing.review_note}
+                    </p>
+                  ) : null}
                     </div>
                   </div>
                   {stockNum <= 0

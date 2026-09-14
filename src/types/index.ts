@@ -32,6 +32,8 @@ export interface Profile {
   disabled_until?: string | null;
   /** Last successful username rename — 14d cooldown after first change. */
   username_changed_at?: string | null;
+  /** Seller listing review: default = follow global toggle. */
+  listing_review_override?: 'default' | 'always' | 'never';
   created_at: string;
   updated_at: string;
 }
@@ -104,7 +106,11 @@ export interface Product {
   video_volume?: number;
   category_id: string | null;
   stock: number;
-  status: 'active' | 'inactive' | 'draft';
+  status: 'active' | 'inactive' | 'draft' | 'pending_review' | 'rejected';
+  /** Staff rejection reason shown to the seller; null otherwise. */
+  review_note?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
   /** Label when stock is 0. Defaults to out_of_stock. */
   oos_message?: 'out_of_stock' | 'not_available';
   /** Cart/checkout delivery. Defaults to instant. */
