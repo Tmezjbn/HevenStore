@@ -252,11 +252,14 @@ export async function parkCurrentAndSignOutLocal(meta: AccountMeta): Promise<boo
 }
 
 async function syncAuthStoreFromSupabase() {
+  await supabase.auth.getSession();
+  // Dynamic import avoids authStore ↔ accountSwitch cycle at module init.
+  const { useAuthStore } = await import('../stores/authStore');
+  // Re-read after the import microtask — an auth event could have landed between
+  // the first getSession and now, and the stale snapshot would overwrite it.
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  // Dynamic import avoids authStore ↔ accountSwitch cycle at module init.
-  const { useAuthStore } = await import('../stores/authStore');
   useAuthStore.getState().setSession(session);
 }
 

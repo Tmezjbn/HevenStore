@@ -56,6 +56,9 @@ export const useWishlistStore = create<WishlistStore>()(
     {
       name: 'heven-wishlist',
       version: 1,
+      // Without migrate, zustand discards stored v0 payloads — passthrough
+      // hands them to merge, which field-validates the snapshot.
+      migrate: (persisted) => persisted as { items: Product[] },
       partialize: (state) => ({ items: state.items }),
       // Persisted JSON is untrusted: a corrupt payload must not crash .some/.map.
       merge: (persisted, current) => {

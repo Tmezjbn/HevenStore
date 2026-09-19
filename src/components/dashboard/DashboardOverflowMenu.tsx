@@ -54,8 +54,8 @@ export default function DashboardOverflowMenu({
       onOpenChange(isOpen);
       if (isOpen) placeFallback();
     };
-    // Fallback fixed coords go stale on scroll — close instead of misplacing.
-    const onScroll = () => {
+    // Fallback fixed coords go stale on scroll/resize — close instead of misplacing.
+    const onStale = () => {
       if (!anchorSupported && typeof el.hidePopover === 'function' && el.matches(':popover-open')) {
         try {
           el.hidePopover();
@@ -65,10 +65,12 @@ export default function DashboardOverflowMenu({
       }
     };
     el.addEventListener('toggle', onToggle);
-    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('scroll', onStale, true);
+    window.addEventListener('resize', onStale);
     return () => {
       el.removeEventListener('toggle', onToggle);
-      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('scroll', onStale, true);
+      window.removeEventListener('resize', onStale);
     };
   }, [onOpenChange]);
 

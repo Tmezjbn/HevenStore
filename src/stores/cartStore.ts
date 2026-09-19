@@ -101,6 +101,9 @@ export const useCartStore = create<CartStore>()(
       name: 'heven-cart',
       version: 1,
       // v0 = full Product snapshots (still accepted). Hydrate on CartPage.
+      // Without migrate, zustand discards any stored payload whose version
+      // !== 1 — passthrough hands v0 to merge, which field-validates it.
+      migrate: (persisted) => persisted as { items: CartItem[]; coupon: AppliedCoupon | null },
       partialize: (state) => ({ items: state.items, coupon: state.coupon }),
       // Persisted JSON is untrusted: a corrupt payload must not crash .reduce/.some.
       merge: (persisted, current) => {
