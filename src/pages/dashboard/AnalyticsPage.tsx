@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState, type ComponentType, type ReactNode, type SVGProps } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ComponentType, type ReactNode, type SVGProps } from 'react';
 import { Link } from 'react-router-dom';
 // PERF-2: defer analytics CSS off storefront main chunk (loads with AnalyticsPage).
 void import('../../styles/analytics-page.css');
@@ -218,10 +218,10 @@ function formatDay(raw: string, lang: 'ar' | 'en'): string {
   return d.toLocaleDateString(lang === 'ar' ? 'ar' : 'en', { month: 'short', day: 'numeric' });
 }
 
-function formatDuration(sec: number): string {
+function formatDuration(sec: number, t: (ar: string, en: string) => string): string {
   if (!sec) return '—';
-  if (sec < 60) return `${Math.round(sec)}s`;
-  return `${Math.floor(sec / 60)}m ${Math.round(sec % 60)}s`;
+  if (sec < 60) return `${Math.round(sec)}${t('ث', 's')}`;
+  return `${Math.floor(sec / 60)}${t('د', 'm')} ${Math.round(sec % 60)}${t('ث', 's')}`;
 }
 
 function formatWhen(raw: string, lang: 'ar' | 'en'): string {
@@ -340,12 +340,15 @@ function parseTraffic(payload: unknown, lang: 'ar' | 'en'): TrafficOk {
       users: pickNum(errSum, ['affected_users', 'users', 'unique_users']),
       rate: pickNum(errSum, ['error_rate', 'rate']),
     },
-    recentErrors: unwrapRows(payload, 'recent_errors').slice(0, 8).map((r) => ({
-      message: pickStr(r, ['message', 'error_message', 'name'], 'Error'),
-      path: pickStr(r, ['path', 'page', 'url'], '—'),
-      type: pickStr(r, ['error_type', 'type'], 'Error'),
-      when: pickStr(r, ['timestamp', 'created_at', 'last_seen', 'time']),
-    })),
+    recentErrors: unwrapRows(payload, 'recent_errors').slice(0, 8).map((r) => {
+      const errWord = lang === 'ar' ? 'خطأ' : 'Error';
+      return {
+        message: pickStr(r, ['message', 'error_message', 'name'], errWord),
+        path: pickStr(r, ['path', 'page', 'url'], '—'),
+        type: pickStr(r, ['error_type', 'type'], errWord),
+        when: pickStr(r, ['timestamp', 'created_at', 'last_seen', 'time']),
+      };
+    }),
     liveSessions: unwrapRows(payload, 'realtime_sessions').slice(0, 12).map((r) => ({
       id: pickStr(r, ['session_id', 'id'], '—'),
       page: pickStr(r, ['current_page', 'path', 'page'], '/'),
@@ -376,7 +379,6 @@ function Panel({
   title,
   headingId,
   children,
-  action,
   icon: Icon,
   emphasis,
   tone = 'default',
@@ -384,7 +386,6 @@ function Panel({
   title: string;
   headingId?: string;
   children: ReactNode;
-  action?: ReactNode;
   icon?: IconComp;
   emphasis?: boolean;
   /** Category color for overview breakdown panels. */
@@ -409,7 +410,6 @@ function Panel({
           ) : null}
           <span className="truncate">{title}</span>
         </h2>
-        {action}
       </div>
       <div className="analytics-panel__body p-4 sm:p-5">{children}</div>
     </section>
@@ -593,8 +593,10 @@ function DevicePlatformList({
 
   const rows = deviceRows.map((device) => {
     const bucket = deviceBucket(device.name);
+    // First matching device row claims the platform — two device names in the
+    // same bucket must not render the same OS rows twice.
     const nested = platforms.filter((p) => {
-      if (osBucket(p.name) !== bucket) return false;
+      if (used.has(p.name) || osBucket(p.name) !== bucket) return false;
       used.add(p.name);
       return true;
     });
@@ -602,6 +604,7 @@ function DevicePlatformList({
   });
   const leftovers = platforms.filter((p) => !used.has(p.name));
   const max = Math.max(...rows.map((r) => r.device.views), ...platforms.map((p) => p.views), 1);
+  const deviceTotal = rows.reduce((s, x) => s + x.device.views, 0);
 
   return (
     <ul className="analytics-stat-list">
@@ -610,8 +613,8 @@ function DevicePlatformList({
         const pct =
           device.pct != null && device.pct > 0
             ? device.pct
-            : max > 0
-              ? (device.views / rows.reduce((s, x) => s + x.device.views, 0)) * 100
+            : deviceTotal > 0
+              ? (device.views / deviceTotal) * 100
               : 0;
         return (
           <li
@@ -686,10 +689,22 @@ function DevicePlatformList({
               {t('أخرى', 'Other')}
             </p>
             <ul className="analytics-stat__nested">
-              {leftovers.map((p) => (
-                <li key={p.name} className="analytics-stat__os">
+              {leftovers.map((p, li) => (
+                <li
+                  key={p.name}
+                  className="analytics-stat__os"
+                  style={
+                    {
+                      ['--i' as string]: rows.length * 3 + li + 1,
+                      ['--share' as string]: `${(p.views / max) * 100}%`,
+                    }
+                  }
+                >
                   <span className="analytics-stat__os-name">{prettyOs(p.name)}</span>
                   <span className="analytics-stat__os-n tabular-nums">{p.views}</span>
+                  <span className="analytics-stat__os-track" aria-hidden>
+                    <span className="analytics-stat__os-fill" />
+                  </span>
                 </li>
               ))}
             </ul>
@@ -761,15 +776,22 @@ export default function AnalyticsPage() {
   const [paidCount, setPaidCount] = useState(0);
   const [revenue, setRevenue] = useState(0);
   const [salesLoading, setSalesLoading] = useState(true);
+  const [salesErr, setSalesErr] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  /** Latest-request wins — overlapping polls/preset clicks can't render stale data. */
+  const trafficSeqRef = useRef(0);
 
   const loadTraffic = useCallback(async (range: Preset) => {
-    setTraffic({ status: 'loading' });
+    const seq = ++trafficSeqRef.current;
+    // Keep last good payload while revalidating — a 30s poll must not
+    // unmount every panel into a skeleton flash.
+    setTraffic((s) => (s.status === 'ok' ? s : { status: 'loading' }));
     const { data, error } = await supabase.functions.invoke('databuddy-analytics', {
       body: { preset: range },
     });
+    if (seq !== trafficSeqRef.current) return;
 
     let body = data as Record<string, unknown> | null;
     if (error && !body) {
@@ -820,25 +842,34 @@ export default function AnalyticsPage() {
     let cancelled = false;
     (async () => {
       setSalesLoading(true);
-      const rangeIso = rangeStart(preset).toISOString();
-      const { data: resetRow } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'dashboard_stats_reset_at')
-        .maybeSingle();
-      if (cancelled) return;
-      const resetAt = parseDashboardStatsResetAt(resetRow?.value ?? '');
-      const since = dashboardStatsSinceIso(resetAt, rangeIso)!;
-      const { data: paid } = await supabase
-        .from('orders')
-        .select('total, created_at')
-        .eq('status', 'paid')
-        .gte('created_at', since);
-      if (cancelled) return;
-      const rows = paid ?? [];
-      setPaidCount(rows.length);
-      setRevenue(rows.reduce((s, o) => s + (Number(o.total) || 0), 0));
-      setSalesLoading(false);
+      try {
+        const rangeIso = rangeStart(preset).toISOString();
+        const { data: resetRow } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'dashboard_stats_reset_at')
+          .maybeSingle();
+        if (cancelled) return;
+        const resetAt = parseDashboardStatsResetAt(resetRow?.value ?? '');
+        const since = dashboardStatsSinceIso(resetAt, rangeIso)!;
+        const { data: paid, error: paidErr } = await supabase
+          .from('orders')
+          .select('total, created_at')
+          .eq('status', 'paid')
+          .gte('created_at', since);
+        if (cancelled) return;
+        // A failed query must not render as a real $0 / 0-orders range.
+        setSalesErr(paidErr != null);
+        if (!paidErr) {
+          const rows = paid ?? [];
+          setPaidCount(rows.length);
+          setRevenue(rows.reduce((s, o) => s + (Number(o.total) || 0), 0));
+        }
+      } catch {
+        if (!cancelled) setSalesErr(true);
+      } finally {
+        if (!cancelled) setSalesLoading(false);
+      }
     })();
     return () => {
       cancelled = true;
@@ -922,7 +953,13 @@ export default function AnalyticsPage() {
                   role="tab"
                   id={`${uid}-tab-${item.id}`}
                   aria-selected={selected}
-                  aria-controls={`${uid}-panel-${item.id}`}
+                  aria-controls={
+                    // Only reference a panel that exists — non-overview panels
+                    // render only while traffic.status === 'ok'.
+                    selected && (item.id === 'overview' || traffic.status === 'ok')
+                      ? `${uid}-panel-${item.id}`
+                      : undefined
+                  }
                   tabIndex={selected ? 0 : -1}
                   className={`tab tab-sm gap-1.5 ${selected ? 'tab-active' : ''} ${focusRing}`}
                   onClick={() => setTab(item.id)}
@@ -1024,16 +1061,24 @@ export default function AnalyticsPage() {
             <div className="analytics-metric-grid">
               <MetricTile
                 label={t('الإيراد', 'Revenue')}
-                value={salesLoading ? '—' : `$${revenue.toFixed(2)}`}
-                hint={t('طلبات مدفوعة في الفترة', 'Paid orders in range')}
+                value={salesLoading || salesErr ? '—' : `$${revenue.toFixed(2)}`}
+                hint={
+                  salesErr
+                    ? t('تعذر تحميل المبيعات', 'Could not load sales')
+                    : t('طلبات مدفوعة في الفترة', 'Paid orders in range')
+                }
                 icon={Wallet}
                 accent
                 i={0}
               />
               <MetricTile
                 label={t('طلبات', 'Orders')}
-                value={salesLoading ? '—' : String(paidCount)}
-                hint={t('مكتملة الدفع', 'Completed payments')}
+                value={salesLoading || salesErr ? '—' : String(paidCount)}
+                hint={
+                  salesErr
+                    ? t('تعذر تحميل المبيعات', 'Could not load sales')
+                    : t('مكتملة الدفع', 'Completed payments')
+                }
                 icon={ShoppingBag}
                 tone="commerce"
                 i={1}
@@ -1054,11 +1099,19 @@ export default function AnalyticsPage() {
               />
               <MetricTile
                 label={t('جلسات', 'Sessions')}
-                value={traffic.status === 'ok' ? String(traffic.summary.sessions) : '—'}
+                value={
+                  traffic.status === 'ok'
+                    ? String(traffic.summary.sessions)
+                    : traffic.status === 'loading'
+                      ? '…'
+                      : '—'
+                }
                 hint={
                   traffic.status === 'ok'
                     ? `${traffic.summary.pageviews} ${t('مشاهدات', 'pageviews')}`
-                    : t('بعد ربط التتبع', 'After tracking connects')
+                    : traffic.status === 'loading'
+                      ? t('جارٍ التحميل', 'Loading')
+                      : t('بعد ربط التتبع', 'After tracking connects')
                 }
                 icon={Activity}
                 tone="traffic"
@@ -1078,7 +1131,7 @@ export default function AnalyticsPage() {
                   {t('مغادرة سريعة', 'Bounce')}: {bounce.value}
                 </span>
                 <span className="badge badge-ghost border border-base-300 gap-1.5 tabular-nums">
-                  {t('متوسط الجلسة', 'Avg session')}: {formatDuration(traffic.summary.duration_s)}
+                  {t('متوسط الجلسة', 'Avg session')}: {formatDuration(traffic.summary.duration_s, t)}
                 </span>
                 {bounce.hint ? (
                   <span className="badge badge-warning badge-outline gap-1.5 text-xs">
@@ -1379,7 +1432,7 @@ export default function AnalyticsPage() {
                   const pageInfo = pagePathLabel(s.page || '/', t);
                   return (
                     <li
-                      key={s.id}
+                      key={`${s.id}-${i}`}
                       className="analytics-live__session"
                       style={{ ['--i' as string]: i }}
                     >
