@@ -37,9 +37,13 @@ Deno.serve(async (req) => {
   const productId = Deno.env.get('POLAR_PRODUCT_ID');
   const siteUrlEnv = Deno.env.get('SITE_URL');
   const siteUrl = siteUrlEnv ?? 'http://localhost:5173';
-  const polarBase = (Deno.env.get('POLAR_SERVER') ?? 'sandbox') === 'production'
-    ? 'https://api.polar.sh'
-    : 'https://sandbox-api.polar.sh';
+  const polarServer = Deno.env.get('POLAR_SERVER') ?? 'sandbox';
+  // Typo like 'prodution' must fail loud, not silently hit sandbox.
+  if (polarServer !== 'sandbox' && polarServer !== 'production') {
+    return json(req, { error: 'polar_server_invalid' }, 500);
+  }
+  const polarBase =
+    polarServer === 'production' ? 'https://api.polar.sh' : 'https://sandbox-api.polar.sh';
 
   if (!accessToken || !productId) {
     return json(req, { error: 'polar_not_configured' }, 501);

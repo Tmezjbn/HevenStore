@@ -116,12 +116,19 @@ async function markOrderPaid(data: LooseRecord, eventType: string): Promise<Mark
   if (result === 'not_found') {
     // Money received but no order row — should be impossible now that
     // pending orders with a Polar session are superseded, never deleted.
-    // Keep the full payload in logs for manual reconciliation/refund.
-    console.error(
-      'ORPHAN_PAID_RECEIPT: paid event with no order row — reconcile manually:',
+    // Log only reconciliation keys — the raw payload carries customer
+    // email/name/billing address and function logs aren't a PII store.
+    const custId =
+      typeof (data.customer as LooseRecord | undefined)?.id === 'string'
+        ? (data.customer as LooseRecord).id
+        : null;
+    console.error('ORPHAN_PAID_RECEIPT: paid event with no order row — reconcile manually:', {
       orderId,
-      JSON.stringify(data).slice(0, 1000),
-    );
+      polarObjectId: typeof data.id === 'string' ? data.id : null,
+      checkoutId: getCheckoutId(data, eventType),
+      amountCents: getPaidCents(data),
+      polarCustomerId: custId,
+    });
     return 'terminal';
   }
   // Business rejections (underpay) — do not infinite-retry. ALERT_ tag → log-drain filter (OPS.md).
