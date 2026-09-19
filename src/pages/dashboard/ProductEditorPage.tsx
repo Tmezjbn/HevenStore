@@ -613,7 +613,7 @@ export default function ProductEditorPage() {
   const { t, lang } = useI18n();
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
-  const { settings } = useSiteSettings();
+  const { settings, isPlaceholderData: settingsPending } = useSiteSettings();
   const homeAdsSize = parseHomeAdsSize(settings.home_ads_size);
   const sellerDailyLimit = parseSellerDailyProductLimit(settings.seller_daily_product_limit);
   const saveSettings = useSaveSiteSettings();
@@ -712,6 +712,10 @@ export default function ProductEditorPage() {
       : '',
   );
   const topSentinelRef = useRef<HTMLDivElement>(null);
+  /** Route-init guards: survive dep-triggered re-runs (profile/settings hydration). */
+  const seededCreateRef = useRef(false);
+  const loadedProductRef = useRef<Product | null>(null);
+  const limitCheckedRef = useRef(false);
 
   const goBack = () => navigate('/dashboard/products');
 
@@ -804,11 +808,16 @@ export default function ProductEditorPage() {
     return { secret, gallery, keyRows };
   };
 
-  const applyExtrasToForm = (
+  const mapExtrasToForm = (
     base: ProductForm,
     extras: Awaited<ReturnType<typeof fetchProductExtras>>,
-  ): { form: ProductForm; keyOverrides: KeyOverride[] } => {
+  ): {
+    form: ProductForm;
+    keyCounts: { available: number; claimed: number } | null;
+    keyOverrides: KeyOverride[];
+  } => {
     let next = base;
+    let counts: { available: number; claimed: number } | null = null;
     let overrides: KeyOverride[] = [];
     if (extras.secret?.content) {
       const parsed = parseSecretContent(extras.secret.content);
@@ -833,13 +842,20 @@ export default function ProductEditorPage() {
           claimed_at: string | null;
         }[],
       );
-      setKeyCounts(mapped.counts);
+      counts = mapped.counts;
       overrides = mapped.overrides;
-      setKeyOverrides(overrides);
-    } else {
-      setKeyOverrides([]);
     }
-    return { form: next, keyOverrides: overrides };
+    return { form: next, keyCounts: counts, keyOverrides: overrides };
+  };
+
+  const applyExtrasToForm = (
+    base: ProductForm,
+    extras: Awaited<ReturnType<typeof fetchProductExtras>>,
+  ): { form: ProductForm; keyOverrides: KeyOverride[] } => {
+    const mapped = mapExtrasToForm(base, extras);
+    if (mapped.keyCounts) setKeyCounts(mapped.keyCounts);
+    setKeyOverrides(mapped.keyOverrides);
+    return { form: mapped.form, keyOverrides: mapped.keyOverrides };
   };
 
   useEffect(() => {
@@ -855,7 +871,7 @@ export default function ProductEditorPage() {
     };
   }, [isSeller, profileId]);
 
-  const loadProductForEdit = async (product: Product) => {
+  const loadProductForEdit = async (product: Product, isCancelled: () => boolean) => {
     setEditing(product);
     let next = buildFormFromProduct(product, { isSeller, userId: user?.id });
     setEmbedDrafts({});
@@ -868,8 +884,12 @@ export default function ProductEditorPage() {
     setMediaPickTarget(null);
     setMediaLibrary([]);
     const extras = await fetchProductExtras(product.id);
+    // A route change during the fetch must not let the old product's
+    // secrets/gallery overwrite the new init.
+    if (isCancelled()) return;
     const applied = applyExtrasToForm(next, extras);
     next = applied.form;
+    loadedProductRef.current = product;
     setForm(next);
     setBaseline(editorSnapshot(next, [], applied.keyOverrides));
     setTopOut(false);
@@ -893,7 +913,16 @@ export default function ProductEditorPage() {
 
     const init = async () => {
       if (isCreate) {
-        if (isSeller && profileId && sellerDailyLimit > 0) {
+        loadedProductRef.current = null;
+        // Gate on settled settings — placeholder defaults would false-block.
+        if (
+          isSeller &&
+          profileId &&
+          !settingsPending &&
+          sellerDailyLimit > 0 &&
+          !limitCheckedRef.current
+        ) {
+          limitCheckedRef.current = true;
           const { count } = await supabase
             .from('products')
             .select('id', { count: 'exact', head: true })
@@ -915,13 +944,17 @@ export default function ProductEditorPage() {
         if (cancelled) return;
         setCategories((cats as unknown as Category[]) || []);
         setSellers(sellersRes.data || []);
-        seedCreateForm();
+        // Re-runs (profile/settings resolving) refresh meta but must not
+        // wipe a form the user already started typing in.
+        if (!seededCreateRef.current) {
+          seededCreateRef.current = true;
+          seedCreateForm();
+        }
         return;
       }
 
       // List → Edit: product already in location.state — paint now, extras in background.
       if (warmProduct) {
-        canonicalizeEditUrl(warmProduct);
         setEditing(warmProduct);
         const shell = buildFormFromProduct(warmProduct, { isSeller, userId: user?.id });
         setForm(shell);
@@ -938,19 +971,28 @@ export default function ProductEditorPage() {
         setSellers(sellersRes.data || []);
         setForm((prev) => {
           const wasClean = editorSnapshot(prev, [], []) === editorSnapshot(shell, [], []);
-          const applied = applyExtrasToForm(wasClean ? shell : prev, extras);
-          if (wasClean) {
-            queueMicrotask(() => {
-              if (!cancelled) setBaseline(editorSnapshot(applied.form, [], applied.keyOverrides));
-            });
-          }
-          return applied.form;
+          const mapped = mapExtrasToForm(wasClean ? shell : prev, extras);
+          queueMicrotask(() => {
+            if (cancelled) return;
+            if (mapped.keyCounts) setKeyCounts(mapped.keyCounts);
+            setKeyOverrides(mapped.keyOverrides);
+            if (wasClean) setBaseline(editorSnapshot(mapped.form, [], mapped.keyOverrides));
+          });
+          return mapped.form;
         });
+        // Canonicalize after extras land — the slug-URL re-run skips reload
+        // via loadedProductRef instead of dropping this in-flight apply.
+        loadedProductRef.current = warmProduct;
+        canonicalizeEditUrl(warmProduct);
         return;
       }
 
-      setLoadState('loading');
       const key = productSlug!;
+      const loaded = loadedProductRef.current;
+      // Canonicalization (uuid → slug) re-runs this effect with the same
+      // product already on screen — skip the redundant reload.
+      if (loaded && (loaded.slug === key || loaded.id === key)) return;
+      setLoadState('loading');
       let query = supabase
         .from('products')
         .select(PRODUCT_EDITOR_COLS)
@@ -970,16 +1012,17 @@ export default function ProductEditorPage() {
         return;
       }
       const row = product as unknown as Product;
+      await loadProductForEdit(row, () => cancelled);
+      if (cancelled) return;
       canonicalizeEditUrl(row);
-      await loadProductForEdit(row);
     };
 
     void init();
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-init when route slug/mode changes
-  }, [productSlug, isCreate, profileRole, profileId, canAssignSeller]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-init when route slug/mode or auth/settings readiness changes
+  }, [productSlug, isCreate, profileRole, profileId, canAssignSeller, sellerDailyLimit, settingsPending]);
 
   // Detect when top actions leave the visible scrollport (main and/or window).
   useEffect(() => {
