@@ -218,6 +218,8 @@ async function materializeParkSession(park: ParkedAccount): Promise<ParkedAccoun
 
 /** Park active session and clear local Supabase session (park stays). */
 export async function parkCurrentAndSignOutLocal(meta: AccountMeta): Promise<boolean> {
+  // Parking while a switch is mid-flight would detach tokens out from under it.
+  if (isAccountSwitchInFlight()) return false;
   try {
     const { data } = await supabase.auth.getSession();
     const session = data.session;
@@ -286,6 +288,9 @@ async function restoreLiveSession(
 export async function switchToParked(
   activeMeta: AccountMeta,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  // switchGate counts in-flight switches — refuse re-entry rather than run two
+  // concurrent token swaps (UI busy-state is a courtesy, not a lock).
+  if (isAccountSwitchInFlight()) return { ok: false, error: 'switch_in_progress' };
   const parked = loadPark();
   if (!parked) return { ok: false, error: 'no_park' };
 

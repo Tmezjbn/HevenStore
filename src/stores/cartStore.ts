@@ -54,7 +54,9 @@ export const useCartStore = create<CartStore>()(
           items: state.items.map((i) => {
             if (i.product.id !== productId) return i;
             const max = i.product.stock > 0 ? i.product.stock : 0;
-            if (max <= 0) return i;
+            // Stale snapshot may carry stock<=0 — clamp increases only;
+            // the user must still be able to lower/remove the qty.
+            if (max <= 0) return { ...i, quantity: Math.min(quantity, i.quantity) };
             return { ...i, quantity: Math.min(quantity, max) };
           }),
         }));

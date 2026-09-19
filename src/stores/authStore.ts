@@ -91,6 +91,9 @@ async function resolveActiveProfile(
   // else now; signing out would kill it.
   if (stale?.()) return null;
   await supabase.auth.signOut();
+  // Same clear as the public signOut paths — the kicked account's cart/wishlist
+  // must not leak to whoever signs in on this device next.
+  clearLocalCommerce();
   return null;
 }
 

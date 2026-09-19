@@ -716,6 +716,8 @@ export default function ProductEditorPage() {
   const seededCreateRef = useRef(false);
   const loadedProductRef = useRef<Product | null>(null);
   const limitCheckedRef = useRef(false);
+  /** Latest media-library open wins — a stale fetch must not overwrite it. */
+  const mediaLibSeqRef = useRef(0);
 
   const goBack = () => navigate('/dashboard/products');
 
@@ -1217,19 +1219,23 @@ export default function ProductEditorPage() {
 
   const uploadGalleryFiles = async (files: FileList | null) => {
     if (!files?.length) return;
-    const room = GALLERY_MAX - form.galleryUrls.length;
+    let room = GALLERY_MAX - form.galleryUrls.length;
     if (room <= 0) {
       setFormError(t(`الحد الأقصى ${GALLERY_MAX} صور`, `Maximum ${GALLERY_MAX} gallery images`));
       return;
     }
     const list = Array.from(files).slice(0, room);
     for (const file of list) {
+      // form.galleryUrls is stale mid-loop — decrement the local budget so a
+      // multi-file batch can't upload objects the clamp would then drop.
+      if (room <= 0) break;
       if (!file.type.startsWith('image/')) {
         setFormError(t('المعرض للصور فقط', 'Gallery accepts images only'));
         continue;
       }
       const url = await uploadToBucket(file, 'gallery');
       if (url) {
+        room -= 1;
         setForm((prev) => ({
           ...prev,
           galleryUrls: [...prev.galleryUrls, url].slice(0, GALLERY_MAX),
@@ -1240,11 +1246,13 @@ export default function ProductEditorPage() {
   };
 
   const openMediaLibrary = async (target: MediaPickTarget) => {
+    const seq = ++mediaLibSeqRef.current;
     setMediaPickTarget(target);
     setResourceSort(defaultResourceSort(target));
     setMediaLibraryLoading(true);
     setFormError('');
     const fromResources = await listMediaResources();
+    if (seq !== mediaLibSeqRef.current) return;
     const fromForm = urlsToItems(collectFormMediaUrls(form));
     const fromCatalog = urlsToItems(await fetchRecentCatalogMediaUrls());
     let fromStorage: MediaLibraryItem[] = [];
@@ -1262,6 +1270,7 @@ export default function ProductEditorPage() {
           ),
       );
     }
+    if (seq !== mediaLibSeqRef.current) return;
     // Resources first (typed kinds), then form/catalog/storage fill gaps.
     setMediaLibrary(
       uniqueMediaItems([
@@ -1954,7 +1963,9 @@ export default function ProductEditorPage() {
 
   const leaveBlocker = useBlocker(blockLeave);
   useEffect(() => {
-    if (leaveBlocker.state === 'blocked') setLeaveOpen(true);
+    // When blockLeave flips false while 'blocked', React Router auto-resets
+    // the blocker — close the dialog too or it stays open with no pending nav.
+    setLeaveOpen(leaveBlocker.state === 'blocked');
   }, [leaveBlocker.state]);
 
   const bumpStockPerPage = (delta: number) => {
