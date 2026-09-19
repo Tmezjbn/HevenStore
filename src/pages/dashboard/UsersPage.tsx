@@ -138,7 +138,7 @@ export default function UsersPage() {
       let q = supabase
         .from('profiles')
         .select('*', { count: 'exact' })
-        .neq('full_name', 'deleted')
+        .is('anonymized_at', null)
         .order('created_at', { ascending: false })
         .range(from, to);
       const term = search.trim();
@@ -197,7 +197,7 @@ export default function UsersPage() {
       let q = supabase
         .from('profiles')
         .select(PROFILE_ADMIN_COLS)
-        .neq('full_name', 'deleted')
+        .is('anonymized_at', null)
         .order('created_at', { ascending: false })
         .limit(40);
       const term = dangerSearch.trim();

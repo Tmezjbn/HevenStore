@@ -132,7 +132,7 @@ export default function NotificationsPage() {
       let q = supabase
         .from('profiles')
         .select('id, email, full_name, username, avatar_url, role')
-        .neq('full_name', 'deleted')
+        .is('anonymized_at', null)
         .order('created_at', { ascending: false })
         .limit(40);
       // PostgREST .or() uses ,()'" as syntax — strip them so the term is inert.

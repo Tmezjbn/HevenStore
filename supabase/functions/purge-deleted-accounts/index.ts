@@ -26,7 +26,9 @@ Deno.serve(async (req) => {
     .select('id')
     .not('deletion_scheduled_at', 'is', null)
     .lte('deletion_scheduled_at', new Date().toISOString())
-    .neq('role', 'owner');
+    .neq('role', 'owner')
+    // Already-anonymized rows keep the schedule — skip or they re-archive forever.
+    .is('anonymized_at', null);
   if (dueErr) {
     console.error('due profiles query failed:', dueErr);
     return new Response(JSON.stringify({ error: dueErr.message }), {

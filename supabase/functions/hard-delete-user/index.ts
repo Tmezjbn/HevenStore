@@ -61,12 +61,12 @@ Deno.serve(async (req) => {
 
     const { data: target } = await admin
       .from('profiles')
-      .select('id, role, deletion_scheduled_at, full_name')
+      .select('id, role, deletion_scheduled_at, anonymized_at')
       .eq('id', targetId)
       .maybeSingle();
     if (!target) return json(req, { error: 'not_found' }, 404);
     if (target.role === 'owner') return json(req, { error: 'cannot_delete_owner' }, 403);
-    if (!target.deletion_scheduled_at && target.full_name !== 'deleted') {
+    if (!target.deletion_scheduled_at && target.anonymized_at == null) {
       return json(req, { error: 'not_scheduled' }, 409);
     }
 

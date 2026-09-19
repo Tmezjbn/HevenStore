@@ -28,6 +28,7 @@ export interface Profile {
   preferred_mode?: 'dark' | 'light' | null;
   /** Soft-delete: set when owner approves deletion (30-day window). */
   deletion_scheduled_at?: string | null;
+  anonymized_at?: string | null;
   /** Temp disable end; null + !is_active = indefinite. */
   disabled_until?: string | null;
   /** Last successful username rename — 14d cooldown after first change. */
