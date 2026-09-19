@@ -31,12 +31,6 @@
     padding: 1.55rem 1.5rem;
   }
 }
-.admin-catalog__kicker {
-  font-size: 0.8rem;
-  font-weight: 650;
-  color: color-mix(in oklch, var(--color-primary) 72%, var(--color-base-content));
-  margin-bottom: 0.2rem;
-}
 .admin-catalog__lede {
   margin-top: 0.45rem;
   max-width: 36rem;
@@ -261,20 +255,6 @@ button.admin-catalog__meter:disabled {
   border-color: transparent;
   background: color-mix(in oklch, var(--color-primary) 18%, var(--color-base-200));
   color: color-mix(in oklch, var(--color-primary) 85%, var(--color-base-content));
-}
-.admin-catalog__count {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.4rem;
-  font-size: 0.875rem;
-  color: color-mix(in oklch, var(--color-base-content) 65%, transparent);
-}
-.admin-catalog__count strong {
-  font-size: 1.5rem;
-  font-weight: 750;
-  letter-spacing: -0.03em;
-  color: var(--color-base-content);
 }
 .admin-catalog__list {
   list-style: none;

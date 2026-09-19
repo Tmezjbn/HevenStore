@@ -1319,10 +1319,6 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
 .product-price-off {
   transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.product-price-compare {
-  color: color-mix(in oklch, var(--color-base-content) 55%, transparent);
-  text-decoration: line-through;
-}
 .product-price-row:hover .product-price-compare {
   opacity: 0.42;
 }
