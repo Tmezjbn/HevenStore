@@ -7,11 +7,22 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { archiveDeletedUser } from '../_shared/archiveDeletedUser.ts';
 
+/** Constant-time compare — a cron secret shouldn't leak length/timing. */
+function safeSecretEqual(a: string, b: string): boolean {
+  const ea = new TextEncoder().encode(a);
+  const eb = new TextEncoder().encode(b);
+  if (ea.length !== eb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ea.length; i++) diff |= ea[i] ^ eb[i];
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
 
   const secret = Deno.env.get('PURGE_CRON_SECRET');
-  if (!secret || req.headers.get('x-purge-secret') !== secret) {
+  const given = req.headers.get('x-purge-secret') ?? '';
+  if (!secret || !safeSecretEqual(given, secret)) {
     return new Response('Unauthorized', { status: 401 });
   }
 
@@ -31,7 +42,8 @@ Deno.serve(async (req) => {
     .is('anonymized_at', null);
   if (dueErr) {
     console.error('due profiles query failed:', dueErr);
-    return new Response(JSON.stringify({ error: dueErr.message }), {
+    // Fixed code to the caller; raw DB error stays in function logs.
+    return new Response(JSON.stringify({ error: 'due_query_failed' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -75,7 +87,7 @@ Deno.serve(async (req) => {
   const { data: ids, error } = await admin.rpc('claim_due_account_deletions');
   if (error) {
     console.error('claim_due_account_deletions failed:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'claim_failed' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -103,10 +115,18 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Hard-delete only what was archived — a late-archive failure must not
+  // become an unrecoverable unarchived delete. The row stays anonymized with
+  // its schedule armed, so the next cron run re-claims and retries.
+  const archiveFailedIds = new Set(archiveFailures.map((f) => f.id));
   let deleted = 0;
   const failures: { id: string; message: string }[] = [];
 
   for (const id of userIds) {
+    if (archiveFailedIds.has(id)) {
+      failures.push({ id, message: 'archive_failed' });
+      continue;
+    }
     const { error: delErr } = await admin.auth.admin.deleteUser(id);
     if (delErr) {
       console.error('deleteUser failed:', id, delErr.message);

@@ -31,8 +31,9 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => null);
     const targetId = (body as { user_id?: unknown } | null)?.user_id;
-    if (!targetId || typeof targetId !== 'string') {
-      return json(req, { error: 'user_id_required' }, 400);
+    const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    if (typeof targetId !== 'string' || !UUID_RE.test(targetId)) {
+      return json(req, { error: 'user_id_invalid' }, 400);
     }
 
     const authHeader = req.headers.get('Authorization') ?? '';

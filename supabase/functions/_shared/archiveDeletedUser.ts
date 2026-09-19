@@ -70,23 +70,20 @@ export async function archiveDeletedUser(
     ) ?? [],
   }));
 
-  // Idempotent: purge retries / a second hard-delete must not duplicate history.
-  const { data: existing } = await admin
-    .from('account_deletion_history')
-    .select('id')
-    .eq('former_user_id', userId)
-    .limit(1);
-  if (existing?.length) return;
-
-  const { error: iErr } = await admin.from('account_deletion_history').insert({
-    former_user_id: userId,
-    email: profile.email,
-    full_name: profile.full_name,
-    username: profile.username ?? null,
-    role: profile.role,
-    profile_snapshot: profile,
-    orders_snapshot,
-    deleted_by: deletedBy,
-  });
+  // Idempotent: purge retries / concurrent archivers must not duplicate or
+  // false-fail — the unique index on former_user_id decides, not a racy SELECT.
+  const { error: iErr } = await admin.from('account_deletion_history').upsert(
+    {
+      former_user_id: userId,
+      email: profile.email,
+      full_name: profile.full_name,
+      username: profile.username ?? null,
+      role: profile.role,
+      profile_snapshot: profile,
+      orders_snapshot,
+      deleted_by: deletedBy,
+    },
+    { onConflict: 'former_user_id', ignoreDuplicates: true },
+  );
   if (iErr) throw iErr;
 }

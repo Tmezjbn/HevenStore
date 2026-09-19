@@ -130,16 +130,25 @@ Deno.serve(async (req) => {
 
     const checkout = await res.json();
 
-    // Link Polar checkout to our order for webhook correlation. Status guard:
-    // the order may have finalized between the check above and this write.
-    const { error: stampErr } = await admin
+    // Link Polar checkout to our order for webhook correlation. Guards:
+    // status pending (order may finalize mid-request) AND polar_checkout_id
+    // still null — a concurrent invoke winning the race makes this stamp a
+    // no-op, and we must not hand out a second payable URL for one order.
+    const { data: stamped, error: stampErr } = await admin
       .from('orders')
       .update({ polar_checkout_id: checkout.id })
       .eq('id', order.id)
-      .eq('status', 'pending');
+      .eq('status', 'pending')
+      .is('polar_checkout_id', null)
+      .select('id');
     if (stampErr) {
       // Non-fatal: the webhook still correlates via metadata.order_id.
       console.error('polar_checkout_id stamp failed:', order.id, stampErr);
+    }
+    if (!stampErr && !stamped?.length) {
+      // Lost the race — the winning session's URL is the only one buyers get;
+      // this orphaned Polar checkout expires unpaid.
+      return json(req, { error: 'checkout_exists' }, 409);
     }
 
     return json(req, { url: checkout.url });
