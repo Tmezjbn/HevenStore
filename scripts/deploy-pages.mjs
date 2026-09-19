@@ -31,7 +31,7 @@ if (!existsSync(join(root, 'dist', 'index.html'))) {
   process.exit(1);
 }
 
-const r = spawnSync('npx', ['-y', 'wrangler', 'pages', 'deploy', 'dist', '--project-name', project], {
+const r = spawnSync('npx', ['-y', 'wrangler', 'pages', 'deploy', 'dist', '--project-name', project, '--commit-dirty=true'], {
   stdio: 'inherit',
   shell: process.platform === 'win32',
   env: { ...process.env, CLOUDFLARE_API_TOKEN: token, CLOUDFLARE_ACCOUNT_ID: accountId },
