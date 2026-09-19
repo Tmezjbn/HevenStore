@@ -131,7 +131,7 @@ assert.doesNotMatch(
 );
 
 const ads = read('src/components/home/ProductAdsBanner.tsx');
-assert.match(ads, /aria-roledescription="carousel"/, 'ads banner needs carousel role description');
+assert.match(ads, /aria-roledescription=\{t\('عرض شرائح', 'carousel'\)\}/, 'ads banner needs localized carousel role description');
 assert.match(
   ads,
   /aria-live=\{userNav \? 'polite' : 'off'\}/,

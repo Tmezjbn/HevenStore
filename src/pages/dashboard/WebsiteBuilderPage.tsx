@@ -607,7 +607,8 @@ export default function WebsiteBuilderPage() {
     };
   }, [t, productsTick]);
 
-  const sectionsDirty =
+  // ~40 JSON parse+stringify per render otherwise — memoize on inputs.
+  const sectionsDirty = useMemo(() =>
     JSON.stringify(homeSections) !== JSON.stringify(parseSections(settings.home_sections, DEFAULT_HOME_SECTIONS)) ||
     JSON.stringify(storeSections) !== JSON.stringify(parseSections(settings.store_sections, DEFAULT_STORE_SECTIONS)) ||
     JSON.stringify(homeFeaturedIds) !==
@@ -640,12 +641,22 @@ export default function WebsiteBuilderPage() {
       JSON.stringify(parseProductFindMoreProductIds(settings.product_find_more_product_ids)) ||
     privacyBanner !== parsePrivacyConsentBanner(settings.privacy_consent_banner) ||
     drawerCatsEnabled !== parseDrawerCategoriesEnabled(settings.drawer_categories_enabled) ||
-    storeCatTreeExpand !== parseStoreCategoryTreeExpand(settings.store_category_tree_expand);
+    storeCatTreeExpand !== parseStoreCategoryTreeExpand(settings.store_category_tree_expand),
+    [
+      homeSections, storeSections, homeFeaturedIds, storeFeaturedIds,
+      storeFeaturedMirror, adsProductIds, adsAura, adsIntervalSec, adsSize,
+      adsBladeEnabled, adsBladeTextEn, adsBladeTextAr, adsBladeSize,
+      adsBladeColor, adsBladeOpacity, adsGlareHover, merchMotionMode,
+      hoverCount, hoverMode, hoverProductIds, findMoreEnabled, findMoreMode,
+      findMoreSlots, findMoreIntervalSec, findMoreProductIds, privacyBanner,
+      drawerCatsEnabled, storeCatTreeExpand, settings,
+    ]);
 
-  const footerDirty =
-    JSON.stringify(footerNav) !== JSON.stringify(parseFooterNav(settings.footer_nav));
+  const footerDirty = useMemo(() =>
+    JSON.stringify(footerNav) !== JSON.stringify(parseFooterNav(settings.footer_nav)),
+    [footerNav, settings]);
 
-  const heroDirty =
+  const heroDirty = useMemo(() =>
     JSON.stringify(heroMedia) !== JSON.stringify(parseHeroMedia(settings.hero_media)) ||
     heroBlur !== parseHeroMediaBlur(settings.hero_media_blur) ||
     heroSoftness !== parseHeroMediaSoftness(settings.hero_media_softness) ||
@@ -656,14 +667,21 @@ export default function WebsiteBuilderPage() {
     heroLogoPlacement !== parseHeroLogoPlacement(settings.hero_logo_placement) ||
     heroLogoUrl !== parseHeroLogoUrl(settings.hero_logo_url) ||
     heroEnabled !== parseHeroEnabled(settings.hero_enabled) ||
-    heroBackdropEnabled !== parseHeroBackdropEnabled(settings.hero_backdrop_enabled);
+    heroBackdropEnabled !== parseHeroBackdropEnabled(settings.hero_backdrop_enabled),
+    [
+      heroMedia, heroBlur, heroSoftness, heroCardOpacity, heroCardAura,
+      heroBottomFade, heroBottomFadeAnimate, heroLogoPlacement, heroLogoUrl,
+      heroEnabled, heroBackdropEnabled, settings,
+    ]);
 
-  const plyrDirty =
-    JSON.stringify(plyrConfig) !== JSON.stringify(parsePlyrConfig(settings.plyr_json));
+  const plyrDirty = useMemo(() =>
+    JSON.stringify(plyrConfig) !== JSON.stringify(parsePlyrConfig(settings.plyr_json)),
+    [plyrConfig, settings]);
 
-  const detailFxDirty =
+  const detailFxDirty = useMemo(() =>
     JSON.stringify(detailFx) !==
-    JSON.stringify(parseProductDetailFx(settings.product_detail_fx_json, ATMOSPHERE_LOGO_IDS));
+    JSON.stringify(parseProductDetailFx(settings.product_detail_fx_json, ATMOSPHERE_LOGO_IDS)),
+    [detailFx, settings]);
 
   const builderDirty =
     sectionsDirty ||

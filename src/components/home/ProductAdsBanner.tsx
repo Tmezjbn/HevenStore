@@ -166,7 +166,7 @@ export default function ProductAdsBanner({
           auraWrap ? '' : ' border border-base-300'
         }${showBlade ? ' has-ads-blade' : ''}${glareHover ? ' ads-banner-glare' : ''}`}
         role="region"
-        aria-roledescription="carousel"
+        aria-roledescription={t('عرض شرائح', 'carousel')}
         aria-label={t('إعلانات المنتجات', 'Product ads')}
         onMouseEnter={() => setHoverPaused(true)}
         onMouseLeave={() => setHoverPaused(false)}

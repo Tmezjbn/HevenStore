@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { memo, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { ShoppingCart, PackageOpen, Heart, Check } from 'lucide-react';
 import { useI18n } from '../../lib/i18n';
 import { useCartStore } from '../../stores/cartStore';
@@ -33,7 +33,7 @@ interface ProductCardProps {
   mediaOnly?: boolean;
 }
 
-export default function ProductCard({
+function ProductCard({
   product,
   showAddToCart = true,
   mediaOnly = false,
@@ -312,3 +312,6 @@ export default function ProductCard({
     </AuraFrame>
   );
 }
+
+// Grids re-render on every keystroke of the store search — skip unchanged cards.
+export default memo(ProductCard);
