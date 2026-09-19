@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "test": "node scripts/run-checks.mjs",
     "sitemap": "node scripts/generate-sitemap.mjs",
+    "db:push": "node scripts/db-push.mjs",
+    "deploy": "npm run build && node scripts/deploy-pages.mjs",
     "prerender": "node scripts/prerender.mjs"
   },
   "dependencies": {

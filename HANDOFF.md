@@ -106,10 +106,10 @@ npx eslint <files-you-touched>
 | Role guard | `src/layouts/DashboardLayout.tsx` |
 | Invariant self-checks | `scripts/check-*.mjs` (**80** files; `npm test`) |
 | Edge functions | `polar-checkout`, `polar-webhook`, `client-error`, `databuddy-analytics`, `purge-deleted-accounts`, `hard-delete-user` (+ `_shared`) |
-| Migrations on disk | **135** SQL files under `supabase/migrations/` |
+| Migrations on disk | **143** SQL files under `supabase/migrations/` |
 | Dashboard pages | **24** under `src/pages/dashboard/` |
 
-Deploy: migrations MUST be applied to the live Supabase project (`supabase db push` or SQL editor) — the SPA assumes RPCs/policies exist. Edge functions deploy separately. Live apply state is **not** verifiable from git — see `OPS.md`.
+Deploy: migrations MUST be applied to the live Supabase project — **`npm run db:push`** (Supabase CLI linked; reads `SUPABASE_DB_PASSWORD` from `.env` + `SUPABASE_ACCESS_TOKEN` from `.devin/mcp_config.local.json`; applies only unrecorded files and writes `schema_migrations` rows itself — prefer it over SQL-editor pastes). Edge functions deploy separately. Site deploy: **`npm run deploy`** (build + `wrangler pages deploy` to the `heven` Pages project; needs `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` in `.env`).
 
 ## Current truth
 
