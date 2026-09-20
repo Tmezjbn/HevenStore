@@ -4,6 +4,13 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    watch: {
+      // Impeccable live sessions snapshot to .impeccable/live/ on every event —
+      // watching them loops page reloads forever during live mode.
+      ignored: ['**/.impeccable/**'],
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
