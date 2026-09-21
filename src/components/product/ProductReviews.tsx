@@ -233,7 +233,7 @@ export default function ProductReviews({
   };
 
   return (
-    <section className="pe-reviews" aria-labelledby="product-reviews-heading">
+    <section className="pe-reviews rounded-xl border border-base-300 bg-base-200/50 p-5" aria-labelledby="product-reviews-heading">
       <header className="pe-reviews__head">
         <div className="pe-reviews__head-main">
           <h2 id="product-reviews-heading" className="pe-reviews__title">

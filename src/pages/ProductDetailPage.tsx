@@ -286,7 +286,8 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pb-8">
+      <div className="relative z-10 max-w-[92rem] mx-auto px-4 sm:px-6 pb-8">
+
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-8 lg:gap-12">
           <div className="space-y-3 pdp-media-col">
             <figure className="product-showcase-stage relative rounded-2xl overflow-hidden border border-base-300 bg-base-200 aspect-[4/3]">
@@ -326,7 +327,7 @@ export default function ProductDetailPage() {
             </figure>
 
             {(hasVideo || strip.length > 0) && (
-              <div
+                                                                                                  <div
                 className="product-showcase-thumbs"
                 role="listbox"
                 aria-label={t('وسائط المنتج', 'Product media')}
@@ -396,7 +397,7 @@ export default function ProductDetailPage() {
                   );
                 })}
               </div>
-            )}
+                                                                                                            )}
 
             {stageIsVideo && showVariantToggle ? (
               <div
@@ -482,7 +483,7 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="min-w-0 space-y-6 text-start pdp-info-col">
-            <div className="mx-auto w-full max-w-prose space-y-6 lg:mx-0 lg:max-w-none">
+            <div className="mx-auto w-full max-w-prose lg:mx-0 lg:max-w-none rounded-2xl border border-base-300 bg-base-200/50 p-5 space-y-6">
               <div className="space-y-3">
                 <div className="space-y-2">
                   <h1 className="font-sans text-[clamp(1.875rem,4vw,2.25rem)] font-bold leading-[1.2] tracking-[-0.02em] text-balance break-words [overflow-wrap:anywhere]">
@@ -572,7 +573,7 @@ export default function ProductDetailPage() {
                 {productOosLabel(t, product)}
               </button>
             ) : (
-              <div className="space-y-2">
+                            <div className="space-y-3">
                 <button type="button" onClick={handleAdd} className="btn btn-primary w-full gap-2">
                   {added ? <Check size={16} /> : <ShoppingCart size={16} />}
                   {added ? t('تمت الإضافة', 'Added') : t('أضف للسلة', 'Add to Cart')}
@@ -587,17 +588,17 @@ export default function ProductDetailPage() {
                     <span>{t('فقط', 'left')}</span>
                   </p>
                 ) : null}
-                <ul className="text-xs text-base-content/70 space-y-1.5">
-                  <li className="flex items-start gap-2">
-                    <Zap size={14} className="text-success shrink-0 mt-0.5" aria-hidden />
+                <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[0.7rem] text-base-content/60">
+                  <li className="flex items-center gap-1.5">
+                    <Zap size={14} className="text-success shrink-0" aria-hidden />
                     <span>
                       {deliveryInstant
                         ? t('تسليم فوري بعد الدفع', 'Instant delivery after payment')
                         : t(`التسليم: ${deliveryLabel}`, `Delivery: ${deliveryLabel}`)}
                     </span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <Shield size={14} className="text-success shrink-0 mt-0.5" aria-hidden />
+                  <li className="flex items-center gap-1.5">
+                    <Shield size={14} className="text-success shrink-0" aria-hidden />
                     <span>{t('دفع آمن عبر Polar', 'Secure payment via Polar')}</span>
                   </li>
                   <li>
@@ -610,12 +611,13 @@ export default function ProductDetailPage() {
                   </li>
                 </ul>
               </div>
-            )}
+                            )}
           </div>
         </div>
+
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pb-8">
+      <div className="relative z-10 max-w-[92rem] mx-auto px-4 sm:px-6 pb-8">
         <Suspense fallback={null}>
           <FindMoreProducts excludeProductId={product.id} />
         </Suspense>

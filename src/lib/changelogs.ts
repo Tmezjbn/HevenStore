@@ -105,6 +105,22 @@ export function lessonHasContent(lesson: OwnerChangelogLesson, ar: boolean): boo
 
 /** Seeded teaching copy (used until DB lesson_json is filled / after migration). */
 export const OWNER_LESSON_SEEDS: Record<string, OwnerChangelogLesson> = {
+  'Storefront polish pass': {
+    what_ar:
+      'تحسينات شكل على واجهة المتجر: روابط التنقل داخل كبسولة تبدأ بجانب الشعار وتنزلق بسلاسة للمنتصف عند التمرير، الصورة المصغّرة النشطة في صفحة المنتج عليها إطار ضوئي يدور بهدوء، صفحة المنتج أوسع (92rem) مع بطاقات للمعلومات والتقييمات، قسم المزيد بعنوان تحريري، وسطر ثقة مختصر وموسّط تحت زر السلة.',
+    what_en:
+      'Visual polish across the storefront: nav links live in a pill that docks beside the logo and glides to center on scroll, the active product thumbnail carries a slowly orbiting neon rim, the product page is wider (92rem) with carded info and reviews, the More! section got an editorial title treatment, and a compact centered trust row sits under Add to Cart.',
+    why_ar:
+      'التفاصيل الصغيرة تبيع الثقة: حركة هادئة ومقصودة تشعر الزائر أن المتجر مبني بعناية، والبطاقات تفصل المعلومات بدل كتلة واحدة.',
+    why_en:
+      'Small details sell trust: calm, purposeful motion makes the store feel carefully built, and cards separate information instead of one flat block.',
+    how_ar:
+      'تلقائي — مرّر الصفحة الرئيسية وشاهد الكبسولة تنزلق للوسط، وافتح أي منتج وشاهد الإطار الضوئي على المصغّرة النشطة.',
+    how_en:
+      'Automatic — scroll the home page and watch the pill glide to center; open any product and see the neon rim orbit the active thumbnail.',
+    benefits_ar: 'متجر أشيك وأهدأ بالحركة، وقراءة أسهل لمعلومات المنتج.',
+    benefits_en: 'A sharper, calmer-moving store and easier scanning of product info.',
+  },
   'Readable order numbers for shoppers and staff': {
     what_ar:
       'أضفنا رقم طلب واضح يظهر في صفحة نجاح الدفع وطلبات المشتري والبائع ولوحة الفريق. يمكن البحث بهذا الرقم. المعرّف التقني الطويل يبقى للنظام والدعم عند الحاجة.',

@@ -66,7 +66,7 @@ assert.ok(
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const fm = readFileSync(join(root, 'src/components/product/FindMoreProducts.tsx'), 'utf8');
-assert.ok(fm.includes('className="find-more"'), 'find-more section class');
+assert.ok(fm.includes('className="find-more find-more--editorial"'), 'find-more section class');
 assert.ok(fm.includes('id="find-more-products-heading"'), 'heading id for aria-labelledby');
 assert.ok(fm.includes("t('المزيد!', 'More!')"), 'heading copy AR+EN');
 assert.ok(fm.includes('step(-1)'), 'prev control');

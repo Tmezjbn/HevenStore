@@ -1173,6 +1173,28 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
 .find-more-tile:hover .find-more-tile__name {
   color: color-mix(in oklch, var(--color-warning) 55%, var(--color-base-content));
 }
+/* PDP find-more strip — editorial variant (oversized italic title, softer lede, rounder tiles). */
+.find-more--editorial .find-more__title {
+  font-style: italic;
+  font-size: 2.6rem;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+.find-more--editorial .find-more__lede {
+  font-size: 1rem;
+  opacity: 0.55;
+}
+.find-more--editorial .find-more-tile {
+  border-radius: 18px;
+  transition: transform 0.3s ease-out;
+}
+.find-more--editorial .find-more-tile:hover {
+  transform: scale(1.02);
+}
+.find-more--editorial .find-more-tile__name {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
 /* Find More rail keeps progress + tile hover under reduced-motion (Cursor often forces flag). */
 
 /* Cart coupon field — logical join (DaisyUI .join physical radius + disabled
@@ -3285,7 +3307,7 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
   flex-shrink: 0;
   width: 6rem;
   height: 4.5rem;
-  border-radius: 0.5rem;
+  border-radius: 0.875rem;
   overflow: hidden;
   border: 2px solid color-mix(in oklch, var(--color-base-content) 14%, transparent);
   background: var(--color-base-300);
@@ -3294,6 +3316,7 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
     border-color 180ms ease,
     box-shadow 180ms ease,
     transform 180ms ease,
+    filter 180ms ease,
     background-color 180ms ease;
 }
 .product-showcase-thumb:hover {
@@ -3306,10 +3329,46 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
   transition-duration: 90ms;
 }
 .product-showcase-thumb.is-on {
-  border-color: var(--color-primary);
-  box-shadow:
-    0 0 0 1px color-mix(in oklch, var(--color-primary) 40%, transparent),
-    0 0 18px color-mix(in oklch, var(--color-primary) 22%, transparent);
+  overflow: visible;
+  z-index: 0;
+  border-color: transparent;
+  box-shadow: none;
+}
+@property --rim-angle {
+  syntax: "<angle>";
+  initial-value: 210deg;
+  inherits: false;
+}
+@keyframes rim-spin {
+  to {
+    --rim-angle: 570deg;
+  }
+}
+.product-showcase-thumb.is-on::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 1rem;
+  padding: 2.5px;
+  background: conic-gradient(
+    from var(--rim-angle),
+    var(--color-primary),
+    color-mix(in oklch, var(--color-primary) 15%, transparent) 35%,
+    var(--color-primary) 55%,
+    color-mix(in oklch, var(--color-primary) 15%, transparent) 85%,
+    var(--color-primary)
+  );
+  animation: rim-spin 6s linear infinite;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: 1;
+  pointer-events: none;
+}
+.product-showcase-thumb.is-on .product-showcase-thumb__img {
+  border-radius: 0.875rem;
 }
 .product-showcase-thumb.is-on:hover {
   transform: translateY(-1px);
@@ -3397,6 +3456,9 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
   opacity: 1;
   transform: scale(1.08);
 }
+.product-showcase-thumb--video.is-on .product-showcase-thumb__play {
+  color: var(--color-primary);
+}
 .product-showcase-thumb__img {
   display: block;
   transition: transform 220ms ease, opacity 180ms ease;
@@ -3410,6 +3472,8 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
 @media (prefers-reduced-motion: reduce) {
   .product-showcase-stage__media,
   .product-showcase-thumb,
+  .product-showcase-thumb::before,
+  .product-showcase-thumb::after,
   .product-showcase-thumb__play,
   .product-showcase-thumb__img {
     animation: none !important;
@@ -4255,6 +4319,14 @@ html[data-ui-scale-scope='storefront'] #main-content {
   pointer-events: none;
   /* Invisible = unfocusable + out of the a11y tree (aria-hidden mirror). */
   visibility: hidden;
+}
+/* Links pill docks beside the brand at rest (px-2 = expanded chrome),
+   glides to center and expands when the navbar compacts on scroll. */
+.storefront-navbar:not(.storefront-navbar--scrolled) .menu.px-2 {
+  transform: translateX(min(0px, calc(240px + 50% - 50vw))) scale(0.94);
+}
+[dir="rtl"] .storefront-navbar:not(.storefront-navbar--scrolled) .menu.px-2 {
+  transform: translateX(max(0px, calc(50vw - 240px - 50%))) scale(0.94);
 }
 /* Tablet squeeze: search moves to catalog/drawer before nav controls can overlap links. */
 @media (max-width: 52rem) {

@@ -286,7 +286,7 @@ export default function Navbar() {
           >
             <Filter size={16} strokeWidth={2.25} />
           </button>
-          <ul
+                          <ul
             tabIndex={0}
             role="menu"
             aria-label={t('ترتيب حسب', 'Sort by')}
@@ -309,7 +309,7 @@ export default function Navbar() {
               );
             })}
           </ul>
-        </div>
+                          </div>
       </SearchFxShell>
     </form>
   );
@@ -386,25 +386,25 @@ export default function Navbar() {
                   </div>
                 </div>
 
-                <ul
-                  className="menu menu-horizontal px-1 hidden md:flex items-center justify-self-center gap-2.5 px-2 z-10 min-w-0"
+                                <ul
+                  className={`menu menu-horizontal hidden md:flex items-center justify-self-center z-10 min-w-0 rounded-full border border-base-300 bg-base-200/80 backdrop-blur-md transition-all duration-300 ease-out ${
+                    compact ? 'px-1 gap-0.5' : 'px-2 gap-1.5'
+                  }`}
                 >
                   {barLinks.map((link) => (
                     <li key={link.href}>
                       <Link
                         to={link.href}
-                        className={`rounded-md whitespace-nowrap !min-h-0 ${
+                        className={`rounded-full whitespace-nowrap !min-h-0 transition-all duration-300 ease-out ${
                           centerLinks
-                            ? hideNavSearch
-                              ? 'text-lg lg:text-xl px-4 py-2.5 tracking-tight'
-                              : 'text-base lg:text-lg px-3.5 py-2 tracking-tight'
-                            : 'text-sm lg:text-base px-2.5 py-1'
+                            ? 'text-xl lg:text-2xl tracking-tight'
+                            : 'text-lg lg:text-xl'
+                        } ${
+                          compact ? 'px-3.5 py-2' : 'px-5 py-2.5'
                         } ${
                           location.pathname === link.href
                             ? 'active font-semibold text-primary bg-primary/10'
-                            : centerLinks
-                              ? 'font-semibold'
-                              : 'font-medium'
+                            : 'font-medium'
                         }`}
                       >
                         {t(link.label, link.labelEn)}
@@ -412,7 +412,7 @@ export default function Navbar() {
                     </li>
                   ))}
                 </ul>
-
+                  
                 <div
                   className="flex flex-1 items-center gap-1 sm:gap-2 min-w-0 justify-end z-10"
                 >
@@ -755,4 +755,4 @@ function DrawerCategoryLinks({
       })}
     </>
   );
-}
+}

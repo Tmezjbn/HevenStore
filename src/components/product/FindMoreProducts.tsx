@@ -146,94 +146,98 @@ export default function FindMoreProducts({ excludeProductId }: FindMoreProductsP
 
   return (
     <section
-      className="find-more"
-      aria-labelledby="find-more-products-heading"
-      onMouseEnter={() => setHoverPaused(true)}
-      onMouseLeave={() => setHoverPaused(false)}
-      onFocusCapture={() => setHoverPaused(true)}
-      onBlurCapture={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHoverPaused(false);
-      }}
-    >
-      <header className="find-more__head">
-        <div className="find-more__titles">
-          <h2 id="find-more-products-heading" className="find-more__title">
-            {t('المزيد!', 'More!')}
-          </h2>
-          <p className="find-more__lede text-pretty">
-            {t('عروض أخرى قد تعجبك قبل ما تكمّل.', 'Other deals worth a look before you go.')}
-          </p>
-        </div>
-
-        {canRotate ? (
-          <div className="find-more__controls">
-            <button
-              type="button"
-              className="find-more__nav"
-              aria-label={t('السابق', 'Previous')}
-              onClick={() => step(-1)}
-            >
-              <PrevIcon size={18} strokeWidth={2.25} aria-hidden />
-            </button>
-            <div
-              className="find-more-progress"
-              aria-hidden
-              title={paused ? t('متوقف مؤقتاً', 'Paused') : undefined}
-            >
-              <div
-                key={offset}
-                className={`find-more-progress__bar${paused ? ' is-paused' : ''}`}
-                style={{ animationDuration: `${intervalMs}ms` }}
-              />
+      className="find-more find-more--editorial"
+          aria-labelledby="find-more-products-heading"
+          onMouseEnter={() => setHoverPaused(true)}
+          onMouseLeave={() => setHoverPaused(false)}
+          onFocusCapture={() => setHoverPaused(true)}
+          onBlurCapture={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHoverPaused(false);
+          }}
+        >
+          <header className="find-more__head">
+            <div className="find-more__titles">
+              <h2 id="find-more-products-heading" className="find-more__title">
+                {t('المزيد!', 'More!')}
+              </h2>
+              <p className="find-more__lede text-pretty">
+                {t('عروض أخرى قد تعجبك قبل ما تكمّل.', 'Other deals worth a look before you go.')}
+              </p>
             </div>
-            <button
-              type="button"
-              className="find-more__nav"
-              aria-label={t('التالي', 'Next')}
-              onClick={() => step(1)}
-            >
-              <NextIcon size={18} strokeWidth={2.25} aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="find-more__pause"
-              aria-label={userPaused ? t('تشغيل', 'Play') : t('إيقاف مؤقت', 'Pause')}
-              aria-pressed={userPaused}
-              onClick={() => setUserPaused((p) => !p)}
-            >
-              {userPaused ? <Play size={14} aria-hidden /> : <Pause size={14} aria-hidden />}
-              <span>{userPaused ? t('تشغيل', 'Play') : t('إيقاف', 'Pause')}</span>
-            </button>
-          </div>
-        ) : null}
-      </header>
 
-      <div className="find-more__stage">
-        <AnimatePresence initial={false} custom={dir} mode="popLayout">
-          <motion.div
-            key={visible.map((p) => p.id).join('-')}
-            custom={dir}
-            variants={listVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            className={`find-more__grid ${slotsGridClass(Math.min(slots, visible.length))}`}
-          >
-            {visible.map((p, i) => (
+            {canRotate ? (
+              <div className="find-more__controls">
+                <button
+                  type="button"
+                  className="find-more__nav"
+                  aria-label={t('السابق', 'Previous')}
+                  onClick={() => step(-1)}
+                >
+                  <PrevIcon size={18} strokeWidth={2.25} aria-hidden />
+                </button>
+                <div
+                  className="find-more-progress"
+                  aria-hidden
+                  title={paused ? t('متوقف مؤقتاً', 'Paused') : undefined}
+                >
+                  <div
+                    key={offset}
+                    className={`find-more-progress__bar${paused ? ' is-paused' : ''}`}
+                    style={{ animationDuration: `${intervalMs}ms` }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="find-more__nav"
+                  aria-label={t('التالي', 'Next')}
+                  onClick={() => step(1)}
+                >
+                  <NextIcon size={18} strokeWidth={2.25} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  className="find-more__pause"
+                  aria-label={userPaused ? t('تشغيل', 'Play') : t('إيقاف مؤقت', 'Pause')}
+                  aria-pressed={userPaused}
+                  onClick={() => setUserPaused((p) => !p)}
+                >
+                  {userPaused ? <Play size={14} aria-hidden /> : <Pause size={14} aria-hidden />}
+                  <span>{userPaused ? t('تشغيل', 'Play') : t('إيقاف', 'Pause')}</span>
+                </button>
+              </div>
+            ) : null}
+          </header>
+
+
+
+          <div className="find-more__stage">
+            <AnimatePresence initial={false} custom={dir} mode="popLayout">
               <motion.div
-                key={p.id}
+                key={visible.map((p) => p.id).join('-')}
                 custom={dir}
-                variants={cardVariants}
-                transition={{ duration: 0.26, ease: EASE }}
-                className="find-more__slot"
-                style={{ ['--i' as string]: i }}
+                variants={listVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className={`find-more__grid ${slotsGridClass(Math.min(slots, visible.length))}`}
               >
-                <ProductCard product={p} mediaOnly />
+                {visible.map((p, i) => (
+                  <motion.div
+                    key={p.id}
+                    custom={dir}
+                    variants={cardVariants}
+                    transition={{ duration: 0.26, ease: EASE }}
+                    className="find-more__slot"
+                    style={{ ['--i' as string]: i }}
+                  >
+                    <ProductCard product={p} mediaOnly />
+                  </motion.div>
+                ))}
               </motion.div>
-            ))}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    </section>
+            </AnimatePresence>
+          </div>
+
+
+        </section>
   );
 }
