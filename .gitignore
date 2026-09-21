@@ -52,3 +52,5 @@ desktop.ini
 .DS_Store
 
 .devin/mcp_config.local.json
+
+.playwright-mcp/

@@ -94,8 +94,7 @@ export default function Navbar() {
   const [userCatsHidden, setUserCatsHidden] = useState(readDrawerCatsHidden);
   const [menuOpen, setMenuOpen] = useState(false);
   const drawerPanelRef = useRef<HTMLElement | null>(null);
-  const barLinksRef = useRef<HTMLUListElement | null>(null);
-  const barLinksRectRef = useRef<DOMRect | null>(null);
+
   // Panel node swaps between menu <ul> and prefs <div> — state, not just a
   // ref, so the focus trap re-runs on the new element.
   const [drawerPanelEl, setDrawerPanelEl] = useState<HTMLElement | null>(null);
@@ -226,35 +225,7 @@ export default function Navbar() {
   // No nav search (store / catalog) → center + enlarge links like scrolled chrome.
   const centerLinks = compact || hideNavSearch;
 
-  // FLIP the links across relative/centered layouts; changing position itself cannot transition.
-  useLayoutEffect(() => {
-    const links = barLinksRef.current;
-    if (!links) return;
-    const next = links.getBoundingClientRect();
-    const prev = barLinksRectRef.current;
-    barLinksRectRef.current = next;
-    if (!prev || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    // Hidden links measure 0×0 → scale would be NaN/Infinity (invalid keyframe).
-    if (!next.width || !next.height || !prev.width || !prev.height) return;
-    const x = prev.left + prev.width / 2 - (next.left + next.width / 2);
-    const y = prev.top + prev.height / 2 - (next.top + next.height / 2);
-    const scaleX = prev.width / next.width;
-    const scaleY = prev.height / next.height;
-    if (
-      Math.abs(x) < 1 &&
-      Math.abs(y) < 1 &&
-      Math.abs(scaleX - 1) < 0.01 &&
-      Math.abs(scaleY - 1) < 0.01
-    ) return;
-    const animation = links.animate(
-      {
-        translate: [`${x}px ${y}px`, '0 0'],
-        scale: [`${scaleX} ${scaleY}`, '1 1'],
-      },
-      { duration: 400, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
-    );
-    return () => animation.cancel();
-  }, [centerLinks, location.pathname]);
+
 
   const navClass = `storefront-navbar fixed top-0 z-50 w-full ${
     scrolled ? 'storefront-navbar--scrolled' : ''
@@ -396,7 +367,7 @@ export default function Navbar() {
         <div className="drawer-content">
           <div className={navClass}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
-              <div className="navbar relative min-h-20 py-1 gap-2">
+              <div className="navbar relative min-h-20 py-1 gap-2 md:grid md:grid-cols-[1fr_auto_1fr]">
                 <div className="flex items-center gap-2 shrink-0 z-10">
                   <label
                     htmlFor={MENU_ID}
@@ -416,12 +387,7 @@ export default function Navbar() {
                 </div>
 
                 <ul
-                  ref={barLinksRef}
-                  className={`menu menu-horizontal px-1 hidden md:flex items-center ${
-                    centerLinks
-                      ? 'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 gap-2.5 px-2 z-20'
-                      : 'relative shrink-0 gap-1 z-10'
-                  }`}
+                  className="menu menu-horizontal px-1 hidden md:flex items-center justify-self-center gap-2.5 px-2 z-10 min-w-0"
                 >
                   {barLinks.map((link) => (
                     <li key={link.href}>
