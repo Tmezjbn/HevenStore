@@ -94,31 +94,84 @@ function runLangBlackVeil(update: () => void): Promise<void> {
   })();
 }
 
-function applyThemeRevealOrigin(origin: ViewTransitionOrigin): () => void {
-  const root = document.documentElement;
-  const x = origin.x;
-  const y = origin.y;
-  const r = Math.hypot(
-    Math.max(x, window.innerWidth - x),
-    Math.max(y, window.innerHeight - y),
-  );
-  root.style.setProperty('--theme-vt-x', `${x}px`);
-  root.style.setProperty('--theme-vt-y', `${y}px`);
-  root.style.setProperty('--theme-vt-r', `${Math.ceil(r)}px`);
-  root.classList.add('theme-reveal');
-  return () => {
-    root.classList.remove('theme-reveal');
-    root.style.removeProperty('--theme-vt-x');
-    root.style.removeProperty('--theme-vt-y');
-    root.style.removeProperty('--theme-vt-r');
-  };
+/** Read a theme's base color without applying it (themes are [data-theme] var blocks). */
+function probeThemeColor(theme: string): string | null {
+  const probe = document.createElement('div');
+  probe.setAttribute('data-theme', theme);
+  probe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;';
+  document.documentElement.appendChild(probe);
+  const color = getComputedStyle(probe).getPropertyValue('--color-base-100').trim();
+  probe.remove();
+  return color || null;
 }
 
-/** Shared Document.startViewTransition wrapper (theme + language). */
+/**
+ * Theme switch: a circle of the NEW theme's base color expands from the toggle,
+ * covers the screen, the theme flips underneath, then the veil fades out.
+ * Full-document View Transitions snapshot the whole page — janky on Chromium
+ * under this page's paint load (which is why Firefox felt smoother: it skipped
+ * them entirely). A single composited scale() layer is cheap on every engine.
+ */
+async function runThemeCircleVeil(
+  update: () => void,
+  opts?: { origin?: ViewTransitionOrigin; theme?: string },
+): Promise<void> {
+  const root = document.documentElement;
+  root.classList.add('theme-switching');
+
+  const color = opts?.theme ? probeThemeColor(opts.theme) : null;
+  if (!color) {
+    update();
+    requestAnimationFrame(() => root.classList.remove('theme-switching'));
+    return;
+  }
+
+  const x = opts?.origin?.x ?? window.innerWidth / 2;
+  const y = opts?.origin?.y ?? window.innerHeight / 2;
+  const r = Math.ceil(
+    Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)),
+  );
+
+  const veil = document.createElement('div');
+  veil.className = 'theme-circle-veil';
+  veil.setAttribute('aria-hidden', 'true');
+  veil.style.width = veil.style.height = `${r * 2}px`;
+  veil.style.left = `${x - r}px`;
+  veil.style.top = `${y - r}px`;
+  veil.style.background = color;
+  root.appendChild(veil);
+  // Force style flush so Blink doesn't skip the first keyframe (snap).
+  void veil.offsetWidth;
+
+  try {
+    const grow = veil.animate(
+      [{ transform: 'scale(0)' }, { transform: 'scale(1)' }],
+      { duration: 460, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' },
+    );
+    await grow.finished;
+    veil.style.transform = 'scale(1)';
+    flushSync(update);
+    // Let the new theme paint once under the opaque veil before fading.
+    await waitForPaint();
+    const fade = veil.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: 240,
+      easing: 'ease-out',
+      fill: 'forwards',
+    });
+    await fade.finished;
+  } catch {
+    flushSync(update);
+  } finally {
+    veil.remove();
+    root.classList.remove('theme-switching');
+  }
+}
+
+/** Shared transition wrapper (theme circle + language veil). */
 export function withViewTransition(
   update: () => void,
   className = 'theme-switching',
-  opts?: { origin?: ViewTransitionOrigin },
+  opts?: { origin?: ViewTransitionOrigin; theme?: string },
 ): Promise<void> {
   if (typeof document === 'undefined') {
     update();
@@ -135,50 +188,5 @@ export function withViewTransition(
   // Chromium SPAs and left setLang's busy lock stuck ("button sometimes dead").
   if (className === 'lang-switching') return runLangBlackVeil(update);
 
-  const root = document.documentElement;
-  const clearReveal =
-    opts?.origin && Number.isFinite(opts.origin.x) && Number.isFinite(opts.origin.y)
-      ? applyThemeRevealOrigin(opts.origin)
-      : null;
-
-  const startVt = (
-    document as Document & {
-      startViewTransition?: (update: () => void) => { finished: Promise<void> };
-    }
-  ).startViewTransition;
-
-  if (typeof startVt !== 'function') {
-    root.classList.add(className);
-    update();
-    requestAnimationFrame(() => {
-      root.classList.remove(className);
-      clearReveal?.();
-    });
-    return Promise.resolve();
-  }
-
-  root.classList.add(className);
-  // Blink can drop the VT update callback entirely (headless, occluded tab) —
-  // without a fallback the toggle is dead and theme-switching never clears.
-  let ran = false;
-  const runUpdate = () => {
-    if (ran) return;
-    ran = true;
-    flushSync(update);
-  };
-  const fallback = window.setTimeout(() => {
-    runUpdate();
-    root.classList.remove(className);
-    clearReveal?.();
-  }, 700);
-  const transition = startVt(runUpdate);
-  return transition.finished
-    .catch(() => undefined)
-    .finally(() => {
-      window.clearTimeout(fallback);
-      runUpdate();
-      root.classList.remove(className);
-      clearReveal?.();
-    })
-    .then(() => undefined);
+  return runThemeCircleVeil(update, opts);
 }
