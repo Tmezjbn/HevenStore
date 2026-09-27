@@ -50,7 +50,14 @@ assert.match(vt, /settleAfterLangUpdate|document\.fonts/, 'lang veil waits fonts
 assert.match(vt, /visibility\s*=\s*['"]hidden['"]/, 'lang veil hides shell during AR/EN reflow (Blink)');
 assert.match(vt, /veil\.style\.opacity\s*=\s*['"]1['"]/, 'lang veil locks solid black after fade-in');
 assert.match(vt, /originFromElement/, 'theme reveal needs button-origin helper');
-assert.match(vt, /theme-reveal/, 'theme circle reveal marks html.theme-reveal');
+assert.match(vt, /runThemeCircleReveal/, 'theme switch reveals via expanding circle');
+assert.match(vt, /getElementById\(['"]root['"]\)/, 'circle clip applies to #root');
+assert.match(vt, /clipPath:\s*`circle\(/, 'circle reveal animates clip-path');
+assert.doesNotMatch(
+  vt,
+  /startViewTransition/,
+  'theme/lang must not use Document.startViewTransition (page snapshot janks Chromium)',
+);
 assert.match(i18n, /3_000|3000/, 'lang busy lock needs failsafe unlock');
 assert.match(i18n, /document\.documentElement\.lang\s*=\s*l/, 'setLang writes html.lang under veil');
 
@@ -61,8 +68,13 @@ assert.match(
   /html\.lang-switching\s+\.storefront-navbar::before[\s\S]{0,200}backdrop-filter:\s*none/,
   'lang switch must disable navbar blur (Blink jank)',
 );
-assert.match(css, /@keyframes theme-circle-in/, 'theme circle reveal keyframes');
-assert.match(css, /clip-path:\s*circle\(var\(--theme-vt-r\)/, 'theme reveal expands to --theme-vt-r');
+assert.match(
+  css,
+  /html\.theme-switching[\s\S]{0,300}transition/,
+  'theme switch keeps a soft wash on html while the circle reveals',
+);
+assert.doesNotMatch(css, /::view-transition/, 'no dead View Transition pseudo rules');
+assert.doesNotMatch(css, /theme-circle-veil/, 'no overlay veil — circle is under content');
 
 const nav = read('src/components/layout/Navbar.tsx');
 assert.match(nav, /nav-lang-btn/, 'Navbar lang control needs nav-lang-btn');
@@ -75,8 +87,7 @@ assert.doesNotMatch(
   'skin radios must not kill focus-visible outline in className',
 );
 
-assert.match(css, /lang-vt-out/, 'lang VT out keyframes exist');
-assert.match(css, /brightness\(0\)/, 'lang VT fades through black');
+assert.match(vt, /runLangBlackVeil/, 'lang black veil runner exists');
 assert.match(
   css,
   /\.heven-skin-join > \.btn:focus-visible[\s\S]{0,120}outline:\s*2px solid/,

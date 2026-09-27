@@ -94,27 +94,59 @@ function runLangBlackVeil(update: () => void): Promise<void> {
   })();
 }
 
-function applyThemeRevealOrigin(origin: ViewTransitionOrigin): () => void {
+/**
+ * Theme switch: flip the theme, then reveal the new page through an expanding
+ * clip-path circle rooted at the toggle — the circle is BEHIND/UNDER the
+ * content (the void outside keeps the old base color painted on <html>).
+ * Full-document View Transitions snapshot the whole page — janky on Chromium
+ * under this page's paint load (why Firefox felt smoother: it skipped them).
+ * A single clip-path animation is cheap on every engine.
+ */
+async function runThemeCircleReveal(
+  update: () => void,
+  origin?: ViewTransitionOrigin,
+): Promise<void> {
   const root = document.documentElement;
-  const x = origin.x;
-  const y = origin.y;
-  const r = Math.hypot(
-    Math.max(x, window.innerWidth - x),
-    Math.max(y, window.innerHeight - y),
+  const rootEl = document.getElementById('root');
+  if (!rootEl) {
+    update();
+    return;
+  }
+
+  // Freeze the old base color so the area outside the circle keeps it.
+  const oldColor = getComputedStyle(root).getPropertyValue('--color-base-100').trim();
+  if (oldColor) root.style.backgroundColor = oldColor;
+  root.classList.add('theme-switching');
+  flushSync(update);
+  await waitForPaint();
+
+  const x = origin?.x ?? window.innerWidth / 2;
+  const y = origin?.y ?? window.innerHeight / 2;
+  const r = Math.ceil(
+    Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)),
   );
-  root.style.setProperty('--theme-vt-x', `${x}px`);
-  root.style.setProperty('--theme-vt-y', `${y}px`);
-  root.style.setProperty('--theme-vt-r', `${Math.ceil(r)}px`);
-  root.classList.add('theme-reveal');
-  return () => {
-    root.classList.remove('theme-reveal');
-    root.style.removeProperty('--theme-vt-x');
-    root.style.removeProperty('--theme-vt-y');
-    root.style.removeProperty('--theme-vt-r');
-  };
+
+  let anim: Animation | null = null;
+  try {
+    anim = rootEl.animate(
+      [
+        { clipPath: `circle(0px at ${x}px ${y}px)` },
+        { clipPath: `circle(${r}px at ${x}px ${y}px)` },
+      ],
+      { duration: 520, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' },
+    );
+    await anim.finished;
+  } catch {
+    /* clip unsupported / interrupted — theme already applied */
+  } finally {
+    anim?.cancel();
+    rootEl.style.clipPath = 'none';
+    root.style.removeProperty('background-color');
+    root.classList.remove('theme-switching');
+  }
 }
 
-/** Shared Document.startViewTransition wrapper (theme + language). */
+/** Shared transition wrapper (theme circle + language veil). */
 export function withViewTransition(
   update: () => void,
   className = 'theme-switching',
@@ -135,50 +167,5 @@ export function withViewTransition(
   // Chromium SPAs and left setLang's busy lock stuck ("button sometimes dead").
   if (className === 'lang-switching') return runLangBlackVeil(update);
 
-  const root = document.documentElement;
-  const clearReveal =
-    opts?.origin && Number.isFinite(opts.origin.x) && Number.isFinite(opts.origin.y)
-      ? applyThemeRevealOrigin(opts.origin)
-      : null;
-
-  const startVt = (
-    document as Document & {
-      startViewTransition?: (update: () => void) => { finished: Promise<void> };
-    }
-  ).startViewTransition;
-
-  if (typeof startVt !== 'function') {
-    root.classList.add(className);
-    update();
-    requestAnimationFrame(() => {
-      root.classList.remove(className);
-      clearReveal?.();
-    });
-    return Promise.resolve();
-  }
-
-  root.classList.add(className);
-  // Blink can drop the VT update callback entirely (headless, occluded tab) —
-  // without a fallback the toggle is dead and theme-switching never clears.
-  let ran = false;
-  const runUpdate = () => {
-    if (ran) return;
-    ran = true;
-    flushSync(update);
-  };
-  const fallback = window.setTimeout(() => {
-    runUpdate();
-    root.classList.remove(className);
-    clearReveal?.();
-  }, 700);
-  const transition = startVt(runUpdate);
-  return transition.finished
-    .catch(() => undefined)
-    .finally(() => {
-      window.clearTimeout(fallback);
-      runUpdate();
-      root.classList.remove(className);
-      clearReveal?.();
-    })
-    .then(() => undefined);
+  return runThemeCircleReveal(update, opts?.origin);
 }
