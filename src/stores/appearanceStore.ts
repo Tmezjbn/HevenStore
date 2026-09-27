@@ -4,6 +4,7 @@ import {
   DEFAULT_MODE,
   DEFAULT_SKIN,
   normalizeSkinId,
+  resolveTheme,
   type Mode,
   type SkinId,
 } from '../lib/appearance';
@@ -12,8 +13,8 @@ import {
   type ViewTransitionOrigin,
 } from '../lib/viewTransition';
 
-function withThemeTransition(update: () => void, origin?: ViewTransitionOrigin) {
-  void withViewTransition(update, 'theme-switching', origin ? { origin } : undefined);
+function withThemeTransition(update: () => void, origin?: ViewTransitionOrigin, theme?: string) {
+  void withViewTransition(update, 'theme-switching', { origin, theme });
 }
 
 interface AppearanceStore {
@@ -39,10 +40,14 @@ export const useAppearanceStore = create<AppearanceStore>()(
       mode: DEFAULT_MODE,
       hasUserPickedSkin: false,
       hasUserPickedMode: false,
-      setSkin: (skin) =>
-        withThemeTransition(() =>
-          set({ skin: normalizeSkinId(skin), hasUserPickedSkin: true })
-        ),
+      setSkin: (skin) => {
+        const next = normalizeSkinId(skin);
+        withThemeTransition(
+          () => set({ skin: next, hasUserPickedSkin: true }),
+          undefined,
+          resolveTheme(next, get().mode),
+        );
+      },
       syncSiteDefault: (skin) => {
         const next = normalizeSkinId(skin);
         if (get().skin === next) return;
@@ -61,12 +66,19 @@ export const useAppearanceStore = create<AppearanceStore>()(
         if (Object.keys(patch).length) set(patch);
       },
       setMode: (mode, origin) =>
-        withThemeTransition(() => set({ mode, hasUserPickedMode: true }), origin),
-      toggleMode: (origin) =>
         withThemeTransition(
-          () => set({ mode: get().mode === 'dark' ? 'light' : 'dark', hasUserPickedMode: true }),
+          () => set({ mode, hasUserPickedMode: true }),
           origin,
+          resolveTheme(get().skin, mode),
         ),
+      toggleMode: (origin) => {
+        const next: Mode = get().mode === 'dark' ? 'light' : 'dark';
+        withThemeTransition(
+          () => set({ mode: next, hasUserPickedMode: true }),
+          origin,
+          resolveTheme(get().skin, next),
+        );
+      },
     }),
     {
       name: 'heven-appearance',
