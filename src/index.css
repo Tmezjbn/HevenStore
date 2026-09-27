@@ -4607,13 +4607,29 @@ html[data-ui-scale-scope='storefront'] #main-content {
   }
 }
 
-/* Theme switch: <html> is pinned to the OLD base color inline while #root
-   reveals the new theme through an expanding clip-path circle (the circle is
-   under the content — no overlay covers the page). */
+/* Theme switch: <html> keeps the OLD base color outside the circle while body
+   and full-screen shells go transparent so the expanding circle (z -1 under
+   content) shows through the gaps. Content is never covered. */
 html.theme-switching {
   transition:
     background-color 280ms cubic-bezier(0.22, 1, 0.36, 1),
     color 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+html.theme-switching body,
+html.theme-switching .min-h-screen {
+  background-color: transparent;
+  background-image: none;
+}
+
+/* Theme reveal circle — one composited scale() layer tinted with the NEW
+   theme's base color; sits behind all content (paints above <html> bg only). */
+.theme-circle-veil {
+  position: fixed;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: scale(0);
+  will-change: transform;
 }
 
 /* Lang veil — own compositor layer (Blink janks if opacity shares paint w/ navbar blur / RTL reflow) */
