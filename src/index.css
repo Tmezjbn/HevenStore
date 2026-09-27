@@ -4607,21 +4607,13 @@ html[data-ui-scale-scope='storefront'] #main-content {
   }
 }
 
-/* Soft wash under the circle veil + no-theme fallback path */
+/* Theme switch: <html> is pinned to the OLD base color inline while #root
+   reveals the new theme through an expanding clip-path circle (the circle is
+   under the content — no overlay covers the page). */
 html.theme-switching {
   transition:
     background-color 280ms cubic-bezier(0.22, 1, 0.36, 1),
     color 280ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* Theme reveal — single composited scale() layer tinted with the new theme */
-.theme-circle-veil {
-  position: fixed;
-  z-index: 2147483646;
-  border-radius: 50%;
-  pointer-events: none;
-  transform: scale(0);
-  will-change: transform;
 }
 
 /* Lang veil — own compositor layer (Blink janks if opacity shares paint w/ navbar blur / RTL reflow) */

@@ -50,8 +50,9 @@ assert.match(vt, /settleAfterLangUpdate|document\.fonts/, 'lang veil waits fonts
 assert.match(vt, /visibility\s*=\s*['"]hidden['"]/, 'lang veil hides shell during AR/EN reflow (Blink)');
 assert.match(vt, /veil\.style\.opacity\s*=\s*['"]1['"]/, 'lang veil locks solid black after fade-in');
 assert.match(vt, /originFromElement/, 'theme reveal needs button-origin helper');
-assert.match(vt, /theme-circle-veil/, 'theme switch reveals via expanding circle veil');
-assert.match(vt, /probeThemeColor/, 'circle veil tinted with next theme base color');
+assert.match(vt, /runThemeCircleReveal/, 'theme switch reveals via expanding circle');
+assert.match(vt, /getElementById\(['"]root['"]\)/, 'circle clip applies to #root');
+assert.match(vt, /clipPath:\s*`circle\(/, 'circle reveal animates clip-path');
 assert.doesNotMatch(
   vt,
   /startViewTransition/,
@@ -69,10 +70,11 @@ assert.match(
 );
 assert.match(
   css,
-  /\.theme-circle-veil[\s\S]{0,300}border-radius:\s*50%/,
-  'theme reveal element is a circle veil',
+  /html\.theme-switching[\s\S]{0,300}transition/,
+  'theme switch keeps a soft wash on html while the circle reveals',
 );
 assert.doesNotMatch(css, /::view-transition/, 'no dead View Transition pseudo rules');
+assert.doesNotMatch(css, /theme-circle-veil/, 'no overlay veil — circle is under content');
 
 const nav = read('src/components/layout/Navbar.tsx');
 assert.match(nav, /nav-lang-btn/, 'Navbar lang control needs nav-lang-btn');

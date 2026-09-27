@@ -94,75 +94,54 @@ function runLangBlackVeil(update: () => void): Promise<void> {
   })();
 }
 
-/** Read a theme's base color without applying it (themes are [data-theme] var blocks). */
-function probeThemeColor(theme: string): string | null {
-  const probe = document.createElement('div');
-  probe.setAttribute('data-theme', theme);
-  probe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;';
-  document.documentElement.appendChild(probe);
-  const color = getComputedStyle(probe).getPropertyValue('--color-base-100').trim();
-  probe.remove();
-  return color || null;
-}
-
 /**
- * Theme switch: a circle of the NEW theme's base color expands from the toggle,
- * covers the screen, the theme flips underneath, then the veil fades out.
+ * Theme switch: flip the theme, then reveal the new page through an expanding
+ * clip-path circle rooted at the toggle — the circle is BEHIND/UNDER the
+ * content (the void outside keeps the old base color painted on <html>).
  * Full-document View Transitions snapshot the whole page — janky on Chromium
- * under this page's paint load (which is why Firefox felt smoother: it skipped
- * them entirely). A single composited scale() layer is cheap on every engine.
+ * under this page's paint load (why Firefox felt smoother: it skipped them).
+ * A single clip-path animation is cheap on every engine.
  */
-async function runThemeCircleVeil(
+async function runThemeCircleReveal(
   update: () => void,
-  opts?: { origin?: ViewTransitionOrigin; theme?: string },
+  origin?: ViewTransitionOrigin,
 ): Promise<void> {
   const root = document.documentElement;
-  root.classList.add('theme-switching');
-
-  const color = opts?.theme ? probeThemeColor(opts.theme) : null;
-  if (!color) {
+  const rootEl = document.getElementById('root');
+  if (!rootEl) {
     update();
-    requestAnimationFrame(() => root.classList.remove('theme-switching'));
     return;
   }
 
-  const x = opts?.origin?.x ?? window.innerWidth / 2;
-  const y = opts?.origin?.y ?? window.innerHeight / 2;
+  // Freeze the old base color so the area outside the circle keeps it.
+  const oldColor = getComputedStyle(root).getPropertyValue('--color-base-100').trim();
+  if (oldColor) root.style.backgroundColor = oldColor;
+  root.classList.add('theme-switching');
+  flushSync(update);
+  await waitForPaint();
+
+  const x = origin?.x ?? window.innerWidth / 2;
+  const y = origin?.y ?? window.innerHeight / 2;
   const r = Math.ceil(
     Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)),
   );
 
-  const veil = document.createElement('div');
-  veil.className = 'theme-circle-veil';
-  veil.setAttribute('aria-hidden', 'true');
-  veil.style.width = veil.style.height = `${r * 2}px`;
-  veil.style.left = `${x - r}px`;
-  veil.style.top = `${y - r}px`;
-  veil.style.background = color;
-  root.appendChild(veil);
-  // Force style flush so Blink doesn't skip the first keyframe (snap).
-  void veil.offsetWidth;
-
+  let anim: Animation | null = null;
   try {
-    const grow = veil.animate(
-      [{ transform: 'scale(0)' }, { transform: 'scale(1)' }],
-      { duration: 460, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' },
+    anim = rootEl.animate(
+      [
+        { clipPath: `circle(0px at ${x}px ${y}px)` },
+        { clipPath: `circle(${r}px at ${x}px ${y}px)` },
+      ],
+      { duration: 520, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' },
     );
-    await grow.finished;
-    veil.style.transform = 'scale(1)';
-    flushSync(update);
-    // Let the new theme paint once under the opaque veil before fading.
-    await waitForPaint();
-    const fade = veil.animate([{ opacity: 1 }, { opacity: 0 }], {
-      duration: 240,
-      easing: 'ease-out',
-      fill: 'forwards',
-    });
-    await fade.finished;
+    await anim.finished;
   } catch {
-    flushSync(update);
+    /* clip unsupported / interrupted — theme already applied */
   } finally {
-    veil.remove();
+    anim?.cancel();
+    rootEl.style.clipPath = 'none';
+    root.style.removeProperty('background-color');
     root.classList.remove('theme-switching');
   }
 }
@@ -171,7 +150,7 @@ async function runThemeCircleVeil(
 export function withViewTransition(
   update: () => void,
   className = 'theme-switching',
-  opts?: { origin?: ViewTransitionOrigin; theme?: string },
+  opts?: { origin?: ViewTransitionOrigin },
 ): Promise<void> {
   if (typeof document === 'undefined') {
     update();
@@ -188,5 +167,5 @@ export function withViewTransition(
   // Chromium SPAs and left setLang's busy lock stuck ("button sometimes dead").
   if (className === 'lang-switching') return runLangBlackVeil(update);
 
-  return runThemeCircleVeil(update, opts);
+  return runThemeCircleReveal(update, opts?.origin);
 }
