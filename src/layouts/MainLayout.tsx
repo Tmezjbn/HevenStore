@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
@@ -7,12 +6,9 @@ import PrivacyConsentBanner from '../components/privacy/PrivacyConsentBanner';
 import SiteAtmosphere from '../components/layout/SiteAtmosphere';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useI18n } from '../lib/i18n';
-import { installStorefrontWheelSmooth } from '../lib/smoothScroll';
 
 export default function MainLayout() {
   const { t } = useI18n();
-  // Blink: CSS scroll-behavior skips wheel — light document lerp (Firefox keeps native).
-  useEffect(() => installStorefrontWheelSmooth(), []);
   // No overflow-x on shell — Blink flattens perspective/3D under non-visible overflow.
   return (
     <div className="relative min-h-screen bg-base-100 flex flex-col">

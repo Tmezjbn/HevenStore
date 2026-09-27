@@ -1,6 +1,8 @@
 /**
- * Storefront Chromium scroll polish: Blink wheel lerp + rAF back-to-top,
- * reduced-motion instant, nested overflow left alone.
+ * Storefront scroll: wheel/trackpad scrolling must stay native — a JS lerp
+ * (preventDefault'd wheel + per-frame scrollTo) loses to compositor scrolling
+ * under heavy paint. Back-to-top keeps a short rAF ease (Blink animates CSS
+ * behavior:'smooth' unevenly under load); reduced-motion → instant.
  */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -11,6 +13,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const lib = readFileSync(join(root, 'src/lib/smoothScroll.ts'), 'utf8');
 const back = readFileSync(join(root, 'src/components/ui/BackToTop.tsx'), 'utf8');
 const layout = readFileSync(join(root, 'src/layouts/MainLayout.tsx'), 'utf8');
+const dash = readFileSync(join(root, 'src/layouts/DashboardLayout.tsx'), 'utf8');
 
 const fails = [];
 
@@ -28,17 +31,11 @@ try {
   fails.push(`easeInOutCubic math broken: ${e.message}`);
 }
 
-if (!lib.includes('needsWheelSmoothPatch') || !lib.includes("'chrome' in window")) {
-  fails.push('smoothScroll.ts must gate wheel lerp on Blink (window.chrome)');
+if (lib.includes("addEventListener('wheel'") || lib.includes('addEventListener("wheel"')) {
+  fails.push('smoothScroll.ts must not intercept wheel events (native scrolling only)');
 }
 if (!lib.includes('prefers-reduced-motion: reduce')) {
   fails.push('smoothScroll.ts must honor prefers-reduced-motion');
-}
-if (!lib.includes('wheelTargetsNestedScroller') || !lib.includes('overflowCanScroll')) {
-  fails.push('smoothScroll.ts must skip nested overflow scrollers');
-}
-if (!lib.includes('documentScrollLocked') || !lib.includes('documentScrollLocked()')) {
-  fails.push('smoothScroll.ts must skip wheel lerp while modal/drawer locks scroll');
 }
 if (!lib.includes('smoothScrollWindowTo') || !lib.includes('easeInOutCubic')) {
   fails.push('smoothScroll.ts must expose rAF eased window scroll');
@@ -46,13 +43,8 @@ if (!lib.includes('smoothScrollWindowTo') || !lib.includes('easeInOutCubic')) {
 if (!back.includes('smoothScrollWindowTo') || back.includes("behavior: 'smooth'")) {
   fails.push('BackToTop must use smoothScrollWindowTo (not native behavior:smooth)');
 }
-if (!layout.includes('installStorefrontWheelSmooth')) {
-  fails.push('MainLayout must install storefront wheel smooth');
-}
-
-const dash = readFileSync(join(root, 'src/layouts/DashboardLayout.tsx'), 'utf8');
-if (dash.includes('installStorefrontWheelSmooth')) {
-  fails.push('DashboardLayout must not install storefront wheel smooth');
+if (layout.includes('installStorefrontWheelSmooth') || dash.includes('installStorefrontWheelSmooth')) {
+  fails.push('Layouts must not install a wheel-scroll interceptor');
 }
 
 if (fails.length) {

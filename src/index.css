@@ -1884,11 +1884,16 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
 /*
  * Soft L↔R wash for non-matrix FX only. Matrix uses per-glyph color wave
  * (cheap `color` anim) — full-card blend wash was CPU-heavy and not the intent.
+ * Layer is 220% wide and slides via transform — animating background-position
+ * repaints the gradient + soft-light blend every frame instead of compositing.
  */
 .product-card__fx.is-gradient.is-shift:not(.product-card__fx--matrix)::before {
   content: '';
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 220%;
   z-index: 1;
   background: linear-gradient(
     90deg,
@@ -1896,8 +1901,6 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
     color-mix(in oklch, var(--card-fx-color-2, #06b6d4) 28%, transparent) 45%,
     color-mix(in oklch, var(--card-fx-color, #22c55e) 32%, transparent) 100%
   );
-  background-size: 220% 100%;
-  background-position: 0% 50%;
   mix-blend-mode: soft-light;
   opacity: 0.9;
   animation: product-card-fx-shift 7.5s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
@@ -1907,10 +1910,12 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
 }
 @keyframes product-card-fx-shift {
   from {
-    background-position: 0% 50%;
+    transform: translateX(0);
   }
   to {
-    background-position: 100% 50%;
+    /* 220%-wide layer slides its own 54.5% = 120% of card width: same sweep
+       range the old 220%-size background-position 0→100% produced. */
+    transform: translateX(-54.5455%);
   }
 }
 /* Type 1 — canvas matrix (light). */
@@ -3911,11 +3916,11 @@ html.atm-chrome-drawer .drawer-side {
 @keyframes hero-bottom-fade-breathe-light {
   from {
     opacity: 0.48;
-    height: min(8rem, 14vh);
+    transform: scaleY(0.78);
   }
   to {
     opacity: 0.72;
-    height: min(10rem, 18vh);
+    transform: scaleY(1);
   }
 }
 
@@ -4970,7 +4975,8 @@ label.input:focus-within {
   inset-inline: 0;
   bottom: 0;
   z-index: 2;
-  height: min(9rem, 16vh);
+  height: min(10rem, 18vh);
+  transform-origin: bottom;
   pointer-events: none;
   background: linear-gradient(
     to top,
@@ -4982,14 +4988,16 @@ label.input:focus-within {
 .hero-bottom-fade--animate {
   animation: hero-bottom-fade-breathe 5s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
 }
+/* scaleY ≈ the old height sweep (gradient scales with the element either way)
+   but stays on the compositor — animating height forced layout+paint every frame. */
 @keyframes hero-bottom-fade-breathe {
   from {
     opacity: 0.78;
-    height: min(8rem, 14vh);
+    transform: scaleY(0.78);
   }
   to {
     opacity: 1;
-    height: min(10rem, 18vh);
+    transform: scaleY(1);
   }
 }
 @media (prefers-reduced-motion: reduce) {

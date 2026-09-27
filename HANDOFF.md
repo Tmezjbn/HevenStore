@@ -86,7 +86,7 @@ npx eslint <files-you-touched>
 - **Keyed products have derived stock.** Editor disables stock input when `product_keys` exist. Don't re-enable.
 - **Coupon usage rows outlive orders:** `coupon_usages.order_id` is `ON DELETE SET NULL` by design.
 - **DaisyUI custom themes MUST set `:root { --noise: 0 }`** (see `src/index.css`). Missing `--noise` → `--fx-noise` film grain flashes on `:active` / menu press.
-- **Chromium ignores CSS `scroll-behavior` for wheel.** Storefront installs Blink-only wheel lerp (`src/lib/smoothScroll.ts` via `MainLayout`). Firefox uses native. Check: `scripts/check-storefront-scroll.mjs`.
+- **Storefront wheel/trackpad scrolling is always native.** No JS interception anywhere — an earlier Blink-only wheel lerp lost to compositor scrolling under heavy paint (why Firefox felt smoother). Back-to-top keeps a short rAF ease (`smoothScrollWindowTo` in `src/lib/smoothScroll.ts`). Check: `scripts/check-storefront-scroll.mjs`.
 
 ## Project map
 
