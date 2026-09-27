@@ -121,6 +121,22 @@ export const OWNER_LESSON_SEEDS: Record<string, OwnerChangelogLesson> = {
     benefits_ar: 'متجر أشيك وأهدأ بالحركة، وقراءة أسهل لمعلومات المنتج.',
     benefits_en: 'A sharper, calmer-moving store and easier scanning of product info.',
   },
+  'Smoother scrolling on Chrome and Brave': {
+    what_ar:
+      'تمرير الصفحة بالعجلة على كروم وبريف صار يشتغل مباشرة عبر المتصفح بدل سكربت مخصوص، ولمعة البطاقات وحركة أسفل الواجهة صاروا يرسموا بطريقة أرخص للمتصفح.',
+    what_en:
+      'Wheel scrolling on Chrome and Brave now runs through the browser directly instead of a custom script, and the card shimmer plus homepage hero fade were switched to a cheaper way of animating.',
+    why_ar: 'السكربت المخصوص كان يبطئ التمرير على كروم ويخلي الموقع ثقيل مقارنة بفايرفوكس.',
+    why_en:
+      'The custom script made Chrome-based browsers scroll worse than Firefox and made the site feel heavy.',
+    how_ar:
+      'تلقائي — افتح الموقع على كروم أو بريف ومرّر الصفحة؛ المفروض تحس بنفس نعومة فايرفوكس.',
+    how_en:
+      'Automatic — open the site in Chrome or Brave and scroll; it should now feel as smooth as Firefox.',
+    benefits_ar: 'تجربة أسلس لكل الزوار أياً كان المتصفح، وبطارية وحرارة أقل على الأجهزة.',
+    benefits_en:
+      'A smoother visit for everyone on any browser, plus less battery and heat on devices.',
+  },
   'Readable order numbers for shoppers and staff': {
     what_ar:
       'أضفنا رقم طلب واضح يظهر في صفحة نجاح الدفع وطلبات المشتري والبائع ولوحة الفريق. يمكن البحث بهذا الرقم. المعرّف التقني الطويل يبقى للنظام والدعم عند الحاجة.',
