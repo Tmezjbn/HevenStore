@@ -28,7 +28,7 @@ npm run build
 
 ## Owner internal log
 
-After shipping **user-visible** storefront/dashboard behavior (not docs-only / pure refactor), append an entry — see `.cursor/rules/owner-changelog.mdc`.
+**PAUSED by owner 2026-09-27** — skip changelog entries until the owner resumes them. Details: `.cursor/rules/owner-changelog.mdc`.
 
 ## Style
 
