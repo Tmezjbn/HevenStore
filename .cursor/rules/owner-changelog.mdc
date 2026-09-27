@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Owner internal log
 
+**PAUSED by owner 2026-09-27 — do NOT add `owner_changelog_entries` migrations or `OWNER_LESSON_SEEDS` entries until the owner says to resume.**
+
 After shipping a **user-visible** storefront or dashboard behavior change (not typo-only / pure refactor / docs-only), add an **Internal log (owner only)** entry.
 
 Skip when: private refactors, dependency bumps with no owner-facing effect, documentation-only work, or the user says skip the log.
