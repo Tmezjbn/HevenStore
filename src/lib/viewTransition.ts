@@ -106,13 +106,13 @@ function probeThemeColor(theme: string): string | null {
 }
 
 /**
- * Theme switch: a circle of the NEW theme's base color expands from the toggle
- * UNDER the page content — html keeps the old base color outside the circle,
- * body/app-shell backgrounds go transparent so the circle shows in the gaps,
- * content stays visible the whole time, theme flips at full coverage.
- * Full-document View Transitions snapshot the whole page — janky on Chromium
- * under this page's paint load (why Firefox felt smoother: it skipped them).
- * A single composited scale() layer is cheap on every engine.
+ * Theme switch — clip-path reveal.
+ * 1. Pin the OLD base-100 on <html> (visible outside the clip).
+ * 2. Flip to the NEW theme via flushSync — new colors apply instantly.
+ * 3. Clip <body> to a zero-radius circle, then animate it to full radius.
+ *    Inside the circle = new theme (real content, patterns, everything).
+ *    Outside the circle = old color (html background).
+ * No overlay divs, no z-index tricks, no flash, no overflow.
  */
 async function runThemeCircleReveal(
   update: () => void,
@@ -120,19 +120,14 @@ async function runThemeCircleReveal(
   origin?: ViewTransitionOrigin,
 ): Promise<void> {
   const root = document.documentElement;
-  root.classList.add('theme-switching');
+  const body = document.body;
 
-  const color = theme ? probeThemeColor(theme) : null;
-  if (!color) {
+  const oldColor = getComputedStyle(root).getPropertyValue('--color-base-100').trim();
+  const newColor = theme ? probeThemeColor(theme) : null;
+  if (!newColor) {
     update();
-    requestAnimationFrame(() => root.classList.remove('theme-switching'));
     return;
   }
-
-  // Pin the OLD base color on <html> so the area outside the circle matches
-  // the pre-flip theme while body/app backgrounds are transparent.
-  const oldColor = getComputedStyle(root).getPropertyValue('--color-base-100').trim();
-  if (oldColor) root.style.backgroundColor = oldColor;
 
   const x = origin?.x ?? window.innerWidth / 2;
   const y = origin?.y ?? window.innerHeight / 2;
@@ -140,74 +135,31 @@ async function runThemeCircleReveal(
     Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)),
   );
 
-  const veil = document.createElement('div');
-  veil.className = 'theme-circle-veil';
-  veil.setAttribute('aria-hidden', 'true');
-  veil.style.width = veil.style.height = `${r * 2}px`;
-  veil.style.left = `${x - r}px`;
-  veil.style.top = `${y - r}px`;
-  veil.style.background = color;
-  // z-index -1 inside body: under the content, above the <html> canvas bg.
-  document.body.appendChild(veil);
-  // Force style flush so Blink doesn't skip the first keyframe (snap).
-  void veil.offsetWidth;
+  root.classList.add('theme-switching');
+  if (oldColor) root.style.backgroundColor = `oklch(${oldColor})`;
 
-  // Expanding ring element (real DOM, not pseudo — works on all browsers).
-  const ring = document.createElement('div');
-  ring.className = 'theme-circle-ring';
-  ring.setAttribute('aria-hidden', 'true');
-  ring.style.width = ring.style.height = `${r * 2}px`;
-  ring.style.left = `${x - r}px`;
-  ring.style.top = `${y - r}px`;
-  ring.style.borderColor = color;
-  document.body.appendChild(ring);
-  void ring.offsetWidth;
+  // Clip body to zero before flipping so the new theme is invisible initially.
+  body.style.clipPath = `circle(0px at ${x}px ${y}px)`;
+  void body.offsetWidth;
+
+  // Flip to the new theme — content updates instantly but is hidden behind clip.
+  flushSync(update);
+  await waitOneFrame();
 
   try {
-    const dur = 640;
-    const spring = 'cubic-bezier(0.22, 1, 0.36, 1)';
-
-    // Ring scales slightly ahead of fill, then fades.
-    ring.animate(
+    const anim = body.animate(
       [
-        { transform: 'scale(0)', opacity: 0 },
-        { transform: 'scale(0.12)', opacity: 0.5, offset: 0.06 },
-        { transform: 'scale(0.75)', opacity: 0.35, offset: 0.5 },
-        { transform: 'scale(1.06)', opacity: 0 },
+        { clipPath: `circle(0px at ${x}px ${y}px)` },
+        { clipPath: `circle(${r}px at ${x}px ${y}px)` },
       ],
-      { duration: dur * 1.15, easing: spring, fill: 'forwards' },
+      { duration: 580, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
     );
-
-    // Fill circle: fade in quickly, scale to full coverage.
-    const grow = veil.animate(
-      [
-        { transform: 'scale(0)', opacity: 0 },
-        { transform: 'scale(0.08)', opacity: 1, offset: 0.06 },
-        { transform: 'scale(1)', opacity: 1 },
-      ],
-      { duration: dur, easing: spring, fill: 'forwards' },
-    );
-    await grow.finished;
-
-    // Lock at full size, flip the theme underneath.
-    veil.style.transform = 'scale(1)';
-    veil.style.opacity = '1';
-    flushSync(update);
-    // New theme is now painted; the veil is the same color as the new base.
-    // Fade the veil out so there is no hard cut.
-    await waitForPaint();
-    root.style.removeProperty('background-color');
-
-    const fadeOut = veil.animate(
-      [{ opacity: 1 }, { opacity: 0 }],
-      { duration: 320, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' },
-    );
-    await fadeOut.finished;
+    await anim.finished;
+    anim.cancel();
   } catch {
-    flushSync(update);
+    /* animation interrupted */
   } finally {
-    veil.remove();
-    ring.remove();
+    body.style.removeProperty('clip-path');
     root.style.removeProperty('background-color');
     root.classList.remove('theme-switching');
   }

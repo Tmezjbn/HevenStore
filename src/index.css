@@ -46,9 +46,9 @@
   --color-accent-content: oklch(0.96 0.01 255);
   --color-neutral: oklch(0.40 0.024 255);
   --color-neutral-content: oklch(0.96 0.01 255);
-  --color-base-100: oklch(0.935 0.022 255);
-  --color-base-200: oklch(0.895 0.028 255);
-  --color-base-300: oklch(0.835 0.034 255);
+  --color-base-100: oklch(0.915 0.022 255);
+  --color-base-200: oklch(0.878 0.028 255);
+  --color-base-300: oklch(0.822 0.034 255);
   --color-base-content: oklch(0.23 0.028 255);
   --color-info: oklch(0.48 0.05 250);
   --color-success: oklch(0.55 0.14 145);
@@ -95,9 +95,9 @@
   --color-accent-content: #fdf4ff;
   --color-neutral: #312e81;
   --color-neutral-content: #eef2ff;
-  --color-base-100: oklch(0.935 0.04 280);
-  --color-base-200: oklch(0.895 0.052 280);
-  --color-base-300: oklch(0.835 0.065 280);
+  --color-base-100: oklch(0.915 0.04 280);
+  --color-base-200: oklch(0.878 0.052 280);
+  --color-base-300: oklch(0.822 0.065 280);
   --color-base-content: #1e1b4b;
   --color-info: #2563eb;
   --color-success: #059669;
@@ -246,9 +246,9 @@
   name: "dim-light";
   color-scheme: light;
   /* Lime-tinted daylight from dark primary (~140°) */
-  --color-base-100: oklch(0.935 0.032 140);
-  --color-base-200: oklch(0.895 0.04 140);
-  --color-base-300: oklch(0.835 0.048 140);
+  --color-base-100: oklch(0.915 0.032 140);
+  --color-base-200: oklch(0.878 0.04 140);
+  --color-base-300: oklch(0.822 0.048 140);
   --color-base-content: oklch(0.28 0.03 145);
   --color-primary: oklch(0.55 0.14 140);
   --color-primary-content: oklch(0.97 0.025 140);
