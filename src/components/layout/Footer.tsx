@@ -76,10 +76,10 @@ export default function Footer() {
             const title =
               lang === 'ar' ? col.title_ar || col.title_en : col.title_en || col.title_ar;
             return (
-              <nav key={col.id} className="flex flex-col gap-3 items-center text-center">
-                <h6 className="footer-title !normal-case !text-2xl md:!text-3xl !font-black !text-base-content !opacity-100 tracking-tight leading-none mb-1.5 text-balance">
+              <nav key={col.id} aria-label={title} className="flex flex-col gap-3 items-center text-center">
+                <span className="footer-title !normal-case !text-2xl md:!text-3xl !font-black !text-base-content !opacity-100 tracking-tight leading-none mb-1.5 text-balance">
                   {title}
-                </h6>
+                </span>
                 {col.links.map((link, i) => {
                   const safe = safeHref(link.href);
                   if (safe && user && AUTH_HREFS.has(safe.replace(/\/$/, '') || '/')) return null;
@@ -114,7 +114,7 @@ export default function Footer() {
           </p>
         </aside>
         {socials.length > 0 && (
-          <nav className="md:place-self-center md:justify-self-end">
+          <nav aria-label="Social media" className="md:place-self-center md:justify-self-end">
             <div className="grid grid-flow-col gap-5">
               {socials.map(({ key, href, icon: Icon, label }) => (
                 <a

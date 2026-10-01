@@ -279,13 +279,13 @@ function ProductCard({
       color={product.aura_color}
       electric={electricTune}
     >
-      <article className={cardClass}>
+      <article aria-label={name} className={cardClass}>
         {figure}
         {body}
       </article>
     </AuraFrame>
   ) : (
-    <article ref={cardRef} className={cardClass}>
+    <article ref={cardRef} aria-label={name} className={cardClass}>
       {use3d ? (
         <div ref={tiltFaceRef} className="product-card__tilt-face" style={tiltStyle}>
           {figure}

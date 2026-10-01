@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PlyrSiteConfig } from '../../lib/siteSettings';
 import {
   DEFAULT_VIDEO_AUTOPLAY,
@@ -197,7 +197,7 @@ export default function ProductVideoPlayer({
   // Fail keyed to src — new URL clears fail sync (no useEffect race).
   const [failKey, setFailKey] = useState<string | null>(null);
   const failed = failKey === src;
-  const markFail = () => setFailKey(src);
+  const markFail = useCallback(() => setFailKey(src), [src]);
   const reducedMotion = usePrefersReducedMotion();
   const playback = resolveShowcasePlayback({ autoplay, volume, reducedMotion });
   const yt = youtubeId(src);
@@ -309,6 +309,7 @@ export default function ProductVideoPlayer({
       void tryAutoplay();
     })();
 
+    const wrapEl = wrapRef.current;
     return () => {
       cancelled = true;
       window.clearTimeout(loadTimer);
@@ -318,8 +319,7 @@ export default function ProductVideoPlayer({
         /* plyr mid-load */
       }
       playerRef.current = null;
-      // YT/Vimeo iframes Plyr injected — blank so the host drops the session.
-      releaseEmbedSubtree(wrapRef.current);
+      releaseEmbedSubtree(wrapEl);
     };
   }, [
     usePlyr,
@@ -333,6 +333,7 @@ export default function ProductVideoPlayer({
     playback.autoplay,
     playback.volume,
     playback.wantSound,
+    markFail,
   ]);
 
   // Drop file media only when leaving this src — not on volume/autoplay tweaks.
@@ -376,7 +377,7 @@ export default function ProductVideoPlayer({
       el.removeEventListener('volumechange', onVol);
       el.removeEventListener('error', onErr);
     };
-  }, [usePlyr, preview, isFile, failed, src, playback.autoplay, playback.volume, playback.wantSound]);
+  }, [usePlyr, preview, isFile, failed, src, playback.autoplay, playback.volume, playback.wantSound, markFail]);
 
   if (!src) return null;
 

@@ -152,7 +152,7 @@ export default function ProductCardBodyFx({ fx }: { fx: ProductCardFx | null | u
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [cfg.style]);
+  }, [cfg]);
 
   if (!cardFxActive(cfg)) return null;
 
