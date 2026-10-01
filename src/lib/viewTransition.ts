@@ -94,25 +94,20 @@ function runLangBlackVeil(update: () => void): Promise<void> {
   })();
 }
 
-/** Read a theme's base color without applying it (themes are [data-theme] var blocks). */
-function probeThemeColor(theme: string): string | null {
-  const probe = document.createElement('div');
-  probe.setAttribute('data-theme', theme);
-  probe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;';
-  document.documentElement.appendChild(probe);
-  const color = getComputedStyle(probe).getPropertyValue('--color-base-100').trim();
-  probe.remove();
-  return color || null;
-}
-
 /**
- * Theme switch — clip-path reveal.
- * 1. Pin the OLD base-100 on <html> (visible outside the clip).
- * 2. Flip to the NEW theme via flushSync — new colors apply instantly.
- * 3. Clip <body> to a zero-radius circle, then animate it to full radius.
- *    Inside the circle = new theme (real content, patterns, everything).
- *    Outside the circle = old color (html background).
- * No overlay divs, no z-index tricks, no flash, no overflow.
+ * Theme switch — inverted clip-path on a lightweight overlay.
+ *
+ * 1. Create a single fixed-position div filled with the OLD base color,
+ *    covering the entire viewport (z-index 2147483647 — above everything).
+ * 2. Flip to the NEW theme via flushSync — the real page updates instantly
+ *    but is hidden behind the overlay.
+ * 3. Animate the overlay's clip-path from full-coverage down to a zero-radius
+ *    circle at the click origin. The shrinking circle *removes* the old color,
+ *    revealing the fully-rendered new theme underneath.
+ *
+ * Why this is fast: clip-path runs on ONE flat div (no children, no repaints
+ * of the DOM tree). The browser composites the overlay as a single
+ * GPU texture, so clip changes are nearly free.
  */
 async function runThemeCircleReveal(
   update: () => void,
@@ -120,11 +115,9 @@ async function runThemeCircleReveal(
   origin?: ViewTransitionOrigin,
 ): Promise<void> {
   const root = document.documentElement;
-  const body = document.body;
 
   const oldColor = getComputedStyle(root).getPropertyValue('--color-base-100').trim();
-  const newColor = theme ? probeThemeColor(theme) : null;
-  if (!newColor) {
+  if (!oldColor && !theme) {
     update();
     return;
   }
@@ -135,32 +128,34 @@ async function runThemeCircleReveal(
     Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)),
   );
 
+  // Overlay: one flat div, old-theme color, covers everything.
+  const overlay = document.createElement('div');
+  overlay.setAttribute('aria-hidden', 'true');
+  overlay.style.cssText =
+    `position:fixed;inset:0;z-index:2147483647;pointer-events:none;` +
+    `background:oklch(${oldColor});will-change:clip-path;`;
+  document.body.appendChild(overlay);
+  void overlay.offsetWidth;
+
   root.classList.add('theme-switching');
-  if (oldColor) root.style.backgroundColor = `oklch(${oldColor})`;
 
-  // Clip body to zero before flipping so the new theme is invisible initially.
-  body.style.clipPath = `circle(0px at ${x}px ${y}px)`;
-  void body.offsetWidth;
-
-  // Flip to the new theme — content updates instantly but is hidden behind clip.
+  // Flip theme — page updates under the overlay, invisible to the user.
   flushSync(update);
-  await waitOneFrame();
 
   try {
-    const anim = body.animate(
+    // Shrink overlay clip from full circle → zero, revealing new theme.
+    const anim = overlay.animate(
       [
-        { clipPath: `circle(0px at ${x}px ${y}px)` },
         { clipPath: `circle(${r}px at ${x}px ${y}px)` },
+        { clipPath: `circle(0px at ${x}px ${y}px)` },
       ],
-      { duration: 580, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
+      { duration: 520, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
     );
     await anim.finished;
-    anim.cancel();
   } catch {
     /* animation interrupted */
   } finally {
-    body.style.removeProperty('clip-path');
-    root.style.removeProperty('background-color');
+    overlay.remove();
     root.classList.remove('theme-switching');
   }
 }

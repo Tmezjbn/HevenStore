@@ -4673,16 +4673,8 @@ html[data-ui-scale-scope='storefront'] #main-content {
 /* Theme switch: <html> keeps the OLD base color outside the circle while body
    and full-screen shells go transparent so the expanding circle (z -1 under
    content) shows through the gaps. Content is never covered. */
-html.theme-switching {
-  transition:
-    background-color 280ms cubic-bezier(0.22, 1, 0.36, 1),
-    color 280ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-html.theme-switching body,
-html.theme-switching .min-h-screen {
-  background-color: transparent;
-  background-image: none;
-}
+html.theme-switching {}
+
 
 /* Theme reveal circle — one composited scale() layer tinted with the NEW
    theme's base color; sits behind all content (paints above <html> bg only). */
