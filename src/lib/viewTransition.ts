@@ -152,70 +152,62 @@ async function runThemeCircleReveal(
   // Force style flush so Blink doesn't skip the first keyframe (snap).
   void veil.offsetWidth;
 
+  // Expanding ring element (real DOM, not pseudo — works on all browsers).
+  const ring = document.createElement('div');
+  ring.className = 'theme-circle-ring';
+  ring.setAttribute('aria-hidden', 'true');
+  ring.style.width = ring.style.height = `${r * 2}px`;
+  ring.style.left = `${x - r}px`;
+  ring.style.top = `${y - r}px`;
+  ring.style.borderColor = color;
+  document.body.appendChild(ring);
+  void ring.offsetWidth;
+
   try {
-    const dur = 680;
-    const spring = 'cubic-bezier(0.175, 0.885, 0.32, 1.04)';
+    const dur = 640;
+    const spring = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
-    // Trailing ring: expands slightly ahead of the fill circle with a fade.
-    const ring = veil.querySelector('::before') ? null : veil;
-    ring?.animate?.call(
-      veil,
+    // Ring scales slightly ahead of fill, then fades.
+    ring.animate(
       [
-        { opacity: 0 },
-        { opacity: 0 },
+        { transform: 'scale(0)', opacity: 0 },
+        { transform: 'scale(0.12)', opacity: 0.5, offset: 0.06 },
+        { transform: 'scale(0.75)', opacity: 0.35, offset: 0.5 },
+        { transform: 'scale(1.06)', opacity: 0 },
       ],
-      { duration: 1 },
+      { duration: dur * 1.15, easing: spring, fill: 'forwards' },
     );
-    // Animate the ::before ring via class toggle — WAAPI can't target pseudos
-    // prior to Chrome 130, so we drive it with a CSS keyframe instead.
-    veil.style.setProperty('--reveal-dur', `${dur}ms`);
-    veil.classList.add('is-expanding');
 
+    // Fill circle: fade in quickly, scale to full coverage.
     const grow = veil.animate(
       [
-        { transform: 'scale(0)', opacity: 0.7 },
-        { transform: 'scale(0.15)', opacity: 1, offset: 0.08 },
+        { transform: 'scale(0)', opacity: 0 },
+        { transform: 'scale(0.08)', opacity: 1, offset: 0.06 },
         { transform: 'scale(1)', opacity: 1 },
       ],
       { duration: dur, easing: spring, fill: 'forwards' },
     );
-
-    // Edge glow: the ::after pseudo fades in then out as the circle expands.
-    const afterGlow = veil.animate(
-      [
-        { opacity: 0 },
-        { opacity: 0.55, offset: 0.15 },
-        { opacity: 0.7, offset: 0.4 },
-        { opacity: 0 },
-      ],
-      { duration: dur, easing: 'ease-out', pseudoElement: '::after' },
-    ).finished.catch(() => {});
-
-    // Ring pulse: a border ring scales out slightly ahead of the fill.
-    const ringPulse = veil.animate(
-      [
-        { opacity: 0, transform: 'scale(0)' },
-        { opacity: 0.45, transform: 'scale(0.2)', offset: 0.1 },
-        { opacity: 0.3, transform: 'scale(0.7)', offset: 0.5 },
-        { opacity: 0, transform: 'scale(1.08)' },
-      ],
-      { duration: dur * 1.1, easing: spring, pseudoElement: '::before' },
-    ).finished.catch(() => {});
-
-    void afterGlow;
-    void ringPulse;
     await grow.finished;
 
+    // Lock at full size, flip the theme underneath.
     veil.style.transform = 'scale(1)';
     veil.style.opacity = '1';
     flushSync(update);
+    // New theme is now painted; the veil is the same color as the new base.
+    // Fade the veil out so there is no hard cut.
     await waitForPaint();
-    veil.remove();
-    await waitOneFrame();
+    root.style.removeProperty('background-color');
+
+    const fadeOut = veil.animate(
+      [{ opacity: 1 }, { opacity: 0 }],
+      { duration: 320, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' },
+    );
+    await fadeOut.finished;
   } catch {
     flushSync(update);
   } finally {
     veil.remove();
+    ring.remove();
     root.style.removeProperty('background-color');
     root.classList.remove('theme-switching');
   }
