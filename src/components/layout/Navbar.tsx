@@ -387,30 +387,33 @@ export default function Navbar() {
                 </div>
 
                                 <ul
-                  className={`menu menu-horizontal hidden md:flex items-center justify-self-center z-10 min-w-0 rounded-full border border-base-300 bg-base-200/80 backdrop-blur-md transition-all duration-300 ease-out ${
+                  className={`nav-pill-bar menu menu-horizontal hidden md:flex items-center justify-self-center z-10 min-w-0 rounded-full transition-all duration-300 ease-out ${
                     compact ? 'px-1 gap-0.5' : 'px-2 gap-1.5'
                   }`}
                 >
-                  {barLinks.map((link) => (
-                    <li key={link.href}>
-                      <Link
-                        to={link.href}
-                        className={`rounded-full whitespace-nowrap !min-h-0 transition-all duration-300 ease-out ${
-                          centerLinks
-                            ? 'text-xl lg:text-2xl tracking-tight'
-                            : 'text-lg lg:text-xl'
-                        } ${
-                          compact ? 'px-3.5 py-2' : 'px-5 py-2.5'
-                        } ${
-                          location.pathname === link.href
-                            ? 'active font-semibold text-primary bg-primary/10'
-                            : 'font-medium'
-                        }`}
-                      >
-                        {t(link.label, link.labelEn)}
-                      </Link>
-                    </li>
-                  ))}
+                  {barLinks.map((link) => {
+                    const active = location.pathname === link.href;
+                    return (
+                      <li key={link.href}>
+                        <Link
+                          to={link.href}
+                          className={`nav-pill-bar__link rounded-full whitespace-nowrap !min-h-0 transition-all duration-300 ease-out ${
+                            centerLinks
+                              ? 'text-xl lg:text-2xl tracking-tight'
+                              : 'text-lg lg:text-xl'
+                          } ${
+                            compact ? 'px-3.5 py-2' : 'px-5 py-2.5'
+                          } ${
+                            active
+                              ? 'active font-semibold nav-pill-bar__link--active'
+                              : 'font-medium'
+                          }`}
+                        >
+                          {t(link.label, link.labelEn)}
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
                   
                 <div
