@@ -4670,22 +4670,10 @@ html[data-ui-scale-scope='storefront'] #main-content {
   }
 }
 
-/* Theme switch: <html> keeps the OLD base color outside the circle while body
-   and full-screen shells go transparent so the expanding circle (z -1 under
-   content) shows through the gaps. Content is never covered. */
+/* Theme switch: overlay painted with OLD base color shrinks via clip-path,
+   revealing the fully-rendered new theme underneath. Overlay is inline-styled
+   in viewTransition.ts — this class just disables expensive paints. */
 html.theme-switching {}
-
-
-/* Theme reveal circle — one composited scale() layer tinted with the NEW
-   theme's base color; sits behind all content (paints above <html> bg only). */
-.theme-circle-veil {
-  position: fixed;
-  z-index: -1;
-  border-radius: 50%;
-  pointer-events: none;
-  transform: scale(0);
-  will-change: transform;
-}
 
 /* Lang veil — own compositor layer (Blink janks if opacity shares paint w/ navbar blur / RTL reflow) */
 .lang-black-veil {

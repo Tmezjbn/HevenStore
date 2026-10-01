@@ -51,8 +51,8 @@ assert.match(vt, /visibility\s*=\s*['"]hidden['"]/, 'lang veil hides shell durin
 assert.match(vt, /veil\.style\.opacity\s*=\s*['"]1['"]/, 'lang veil locks solid black after fade-in');
 assert.match(vt, /originFromElement/, 'theme reveal needs button-origin helper');
 assert.match(vt, /runThemeCircleReveal/, 'theme switch reveals via expanding circle');
-assert.match(vt, /theme-circle-veil/, 'theme circle is a veil element under content');
-assert.match(vt, /probeThemeColor/, 'circle tinted with next theme base color');
+assert.match(vt, /clip-path/, 'theme reveal uses clip-path on overlay');
+assert.match(vt, /--color-base-100/, 'circle tinted with current theme base color');
 assert.doesNotMatch(
   vt,
   /startViewTransition/,
@@ -69,14 +69,14 @@ assert.match(
   'lang switch must disable navbar blur (Blink jank)',
 );
 assert.match(
-  css,
-  /\.theme-circle-veil[\s\S]{0,300}z-index:\s*-1/,
-  'theme circle must sit UNDER content (z-index -1)',
+  vt,
+  /z-index:\s*2147483647/,
+  'theme overlay must sit ABOVE all content (max z-index)',
 );
 assert.match(
-  css,
-  /html\.theme-switching body[\s\S]{0,200}background-color:\s*transparent/,
-  'body must go transparent during theme switch so circle shows through',
+  vt,
+  /circle\(0px/,
+  'overlay clip-path shrinks to zero revealing new theme',
 );
 assert.doesNotMatch(css, /::view-transition/, 'no dead View Transition pseudo rules');
 
