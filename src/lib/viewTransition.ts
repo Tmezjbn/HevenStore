@@ -153,15 +153,62 @@ async function runThemeCircleReveal(
   void veil.offsetWidth;
 
   try {
-    const grow = veil.animate(
-      [{ transform: 'scale(0)' }, { transform: 'scale(1)' }],
-      { duration: 720, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
+    const dur = 680;
+    const spring = 'cubic-bezier(0.175, 0.885, 0.32, 1.04)';
+
+    // Trailing ring: expands slightly ahead of the fill circle with a fade.
+    const ring = veil.querySelector('::before') ? null : veil;
+    ring?.animate?.call(
+      veil,
+      [
+        { opacity: 0 },
+        { opacity: 0 },
+      ],
+      { duration: 1 },
     );
+    // Animate the ::before ring via class toggle — WAAPI can't target pseudos
+    // prior to Chrome 130, so we drive it with a CSS keyframe instead.
+    veil.style.setProperty('--reveal-dur', `${dur}ms`);
+    veil.classList.add('is-expanding');
+
+    const grow = veil.animate(
+      [
+        { transform: 'scale(0)', opacity: 0.7 },
+        { transform: 'scale(0.15)', opacity: 1, offset: 0.08 },
+        { transform: 'scale(1)', opacity: 1 },
+      ],
+      { duration: dur, easing: spring, fill: 'forwards' },
+    );
+
+    // Edge glow: the ::after pseudo fades in then out as the circle expands.
+    const afterGlow = veil.animate(
+      [
+        { opacity: 0 },
+        { opacity: 0.55, offset: 0.15 },
+        { opacity: 0.7, offset: 0.4 },
+        { opacity: 0 },
+      ],
+      { duration: dur, easing: 'ease-out', pseudoElement: '::after' },
+    ).finished.catch(() => {});
+
+    // Ring pulse: a border ring scales out slightly ahead of the fill.
+    const ringPulse = veil.animate(
+      [
+        { opacity: 0, transform: 'scale(0)' },
+        { opacity: 0.45, transform: 'scale(0.2)', offset: 0.1 },
+        { opacity: 0.3, transform: 'scale(0.7)', offset: 0.5 },
+        { opacity: 0, transform: 'scale(1.08)' },
+      ],
+      { duration: dur * 1.1, easing: spring, pseudoElement: '::before' },
+    ).finished.catch(() => {});
+
+    void afterGlow;
+    void ringPulse;
     await grow.finished;
+
     veil.style.transform = 'scale(1)';
+    veil.style.opacity = '1';
     flushSync(update);
-    // New theme paints under the opaque circle; drop the veil (same color) —
-    // seamless, then restore the body/app backgrounds a frame later.
     await waitForPaint();
     veil.remove();
     await waitOneFrame();
