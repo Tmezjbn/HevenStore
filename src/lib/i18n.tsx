@@ -34,7 +34,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
     // Storage can throw (privacy mode / denied) — fall back to the default.
     try {
-      return (localStorage.getItem('heven-lang') as Lang) || 'ar';
+      const saved = localStorage.getItem('heven-lang');
+      return saved === 'en' || saved === 'ar' ? saved : 'ar';
     } catch {
       return 'ar';
     }
@@ -53,7 +54,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       const failSafe = window.setTimeout(unlock, 3_000);
       void withViewTransition(() => {
         setLangState(l);
-        localStorage.setItem('heven-lang', l);
+        try {
+          localStorage.setItem('heven-lang', l);
+        } catch {
+          /* storage denied — language still switches for this session */
+        }
         // Sync document lang inside the veiled update — avoid post-fade useEffect layout.
         document.documentElement.lang = l;
         document.documentElement.dir = 'ltr';

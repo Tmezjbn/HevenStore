@@ -226,6 +226,7 @@ export default function DeletionRequestsPage() {
   }, []);
 
   const review = async (id: string, approve: boolean) => {
+    if (busyId) return;
     setBusyId(id);
     setError('');
     const { error: err } = await supabase.rpc('review_account_deletion', {
@@ -241,6 +242,7 @@ export default function DeletionRequestsPage() {
   };
 
   const restore = async (userId: string) => {
+    if (busyId) return;
     setBusyId(userId);
     setError('');
     const { error: err } = await supabase.rpc('restore_account', { p_user_id: userId });
@@ -253,7 +255,7 @@ export default function DeletionRequestsPage() {
   };
 
   const purgeNow = async () => {
-    if (!purgeTarget) return;
+    if (!purgeTarget || busyId) return;
     const handle = purgeTarget.username?.trim();
     if (!handle) {
       setPurgeError(t('لا يوجد اسم مستخدم لهذا الحساب', 'This account has no username'));

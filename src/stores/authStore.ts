@@ -133,11 +133,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (next) dropParkIfSameUser(next.id);
     };
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select(PROFILE_COLS)
       .eq('id', userId)
       .maybeSingle();
+
+    // A failed read is not a missing row — never fall through to the
+    // ensureOwnProfile upsert (it would blank full_name). DashboardLayout
+    // shows a retry panel when the profile never arrives.
+    if (error) {
+      console.warn('[auth] profile fetch failed', error.message);
+      return;
+    }
 
     if (data) {
       await commit(data as unknown as Profile);

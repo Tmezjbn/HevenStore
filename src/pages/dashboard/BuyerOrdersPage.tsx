@@ -50,7 +50,7 @@ const focusRing =
   'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
 function formatDate(iso: string, lang: 'ar' | 'en') {
-  return new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+  return new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-u-ca-gregory' : 'en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -118,9 +118,9 @@ export default function BuyerOrdersPage() {
       setLoadError(false);
 
       const [{ count: paid }, { count: pending }, { data: paidRows }] = await Promise.all([
-        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'paid'),
-        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('orders').select('total').eq('status', 'paid'),
+        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'paid').eq('user_id', user.id),
+        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending').eq('user_id', user.id),
+        supabase.from('orders').select('total').eq('status', 'paid').eq('user_id', user.id).limit(5000),
       ]);
       if (cancelled) return;
       setPaidCount(paid ?? 0);
@@ -145,6 +145,7 @@ export default function BuyerOrdersPage() {
           { count: 'exact' },
         )
         .in('status', showPending ? ['paid', 'pending'] : ['paid'])
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       const term = searchQuery.trim().replace(/[%_,]/g, '');
@@ -233,7 +234,7 @@ export default function BuyerOrdersPage() {
   };
 
   const runCancel = async () => {
-    if (!confirmOrder) return;
+    if (!confirmOrder || actionBusy) return;
     if (!confirmMatches(confirmId, confirmOrder)) {
       setConfirmError(t('رقم الطلب غير مطابق.', 'Order number does not match.'));
       return;

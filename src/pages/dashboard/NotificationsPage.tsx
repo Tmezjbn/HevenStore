@@ -154,13 +154,19 @@ export default function NotificationsPage() {
   }, [isOwner, audience, pickerQ, view]);
 
   const markRead = async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    if (error) return;
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
   };
 
   const markAllRead = async () => {
     if (!user) return;
-    await supabase.from('notifications').update({ is_read: true }).eq('user_id', user.id);
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', user.id)
+      .eq('is_read', false);
+    if (error) return;
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
@@ -177,7 +183,7 @@ export default function NotificationsPage() {
   };
 
   const send = async () => {
-    if (!isOwner) return;
+    if (!isOwner || sending) return;
     const trimmed = title.trim();
     if (!trimmed) {
       setSendErr(t('العنوان مطلوب (EN)', 'English title is required'));

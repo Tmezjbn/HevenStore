@@ -106,6 +106,13 @@ export type SiteSettingsMap = Record<SiteSettingKey, string>;
 export const UI_SCALE_DEFAULT = 90;
 export const UI_SCALE_VALUES = [75, 80, 85, 90, 95, 100, 105, 110] as const;
 
+/** Number(raw) that treats blank/whitespace and non-finite values as NaN (Number('') is 0). */
+function numOrNaN(raw: unknown): number {
+  if (typeof raw === 'string' && !raw.trim()) return Number.NaN;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : Number.NaN;
+}
+
 export function parseUiScale(raw: string): number {
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed)) return UI_SCALE_DEFAULT;
@@ -205,7 +212,7 @@ export function parseHomeAdsAura(raw: string): string {
 
 /** Seconds between ad banner slides. */
 export function parseHomeAdsIntervalSec(raw: string): number {
-  const n = Number(raw);
+  const n = numOrNaN(raw);
   if (Number.isNaN(n)) return HOME_ADS_INTERVAL_DEFAULT;
   return Math.min(HOME_ADS_INTERVAL_MAX, Math.max(HOME_ADS_INTERVAL_MIN, Math.round(n)));
 }
@@ -305,7 +312,7 @@ export function parseHomeAdsBladeColor(raw: string): string {
 
 /** 20–100 (%). */
 export function parseHomeAdsBladeOpacity(raw: string): number {
-  const n = Number(raw);
+  const n = numOrNaN(raw);
   if (Number.isNaN(n)) return HOME_ADS_BLADE_OPACITY_DEFAULT;
   return Math.min(100, Math.max(20, Math.round(n)));
 }
@@ -323,7 +330,7 @@ export function homeAdsBladeSizePx(size: HomeAdsBladeSize): number {
 }
 
 export function parseHomeHoverCardsCount(raw: string): number {
-  const n = Number(raw);
+  const n = numOrNaN(raw);
   if (Number.isNaN(n)) return 3;
   return Math.min(HOME_HOVER_CARDS_MAX, Math.max(1, Math.round(n)));
 }
@@ -366,13 +373,13 @@ export function parseProductFindMoreMode(raw: string): ProductFindMoreMode {
 }
 
 export function parseProductFindMoreSlots(raw: string): number {
-  const n = Number(raw);
+  const n = numOrNaN(raw);
   if (Number.isNaN(n)) return PRODUCT_FIND_MORE_SLOTS_DEFAULT;
   return Math.min(PRODUCT_FIND_MORE_MAX, Math.max(1, Math.round(n)));
 }
 
 export function parseProductFindMoreIntervalSec(raw: string): number {
-  const n = Number(raw);
+  const n = numOrNaN(raw);
   if (Number.isNaN(n)) return PRODUCT_FIND_MORE_INTERVAL_DEFAULT;
   return Math.min(
     PRODUCT_FIND_MORE_INTERVAL_MAX,
@@ -1006,7 +1013,7 @@ export function parseHeroMedia(raw: string): HeroMediaItem[] {
 }
 
 export function parseHeroMediaBlur(raw: string): number {
-  const n = Number(raw);
+  const n = numOrNaN(raw);
   if (Number.isNaN(n)) return 0;
   return Math.min(100, Math.max(0, Math.round(n)));
 }
@@ -1017,7 +1024,7 @@ export function parseHeroMediaSoftness(raw: string): number {
   // Legacy boolean from older builds
   if (raw === 'false' || raw === '0') return 0;
   if (raw === 'true') return 18;
-  const n = Number(raw);
+  const n = numOrNaN(raw);
   if (Number.isNaN(n)) return 18;
   return Math.min(100, Math.max(0, Math.round(n)));
 }
@@ -1041,7 +1048,7 @@ export function preloadHeroMedia(items: HeroMediaItem[]): void {
 /** Hero welcome card opacity 0–100. Default 100. */
 export function parseHeroCardOpacity(raw: string): number {
   if (!raw.trim()) return 100;
-  const n = Number(raw);
+  const n = numOrNaN(raw);
   if (Number.isNaN(n)) return 100;
   return Math.min(100, Math.max(0, Math.round(n)));
 }

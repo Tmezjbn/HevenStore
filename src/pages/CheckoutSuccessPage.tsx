@@ -86,9 +86,13 @@ export default function CheckoutSuccessPage() {
       if (data?.status === 'paid') {
         setState('paid');
         // Drop only lines from this order — never wipe a later cart on revisit.
-        const { data: fulfillment } = await supabase.rpc('get_order_fulfillment', {
-          p_order_id: orderId,
-        });
+        let fulfillment: unknown = null;
+        try {
+          const res = await supabase.rpc('get_order_fulfillment', { p_order_id: orderId });
+          fulfillment = res.data;
+        } catch {
+          /* paid is confirmed; details stay available via "Check again" / orders */
+        }
         if (!cancelled && Array.isArray(fulfillment)) {
           const rows = fulfillment as FulfillmentItem[];
           setItems(rows);
@@ -278,6 +282,9 @@ export default function CheckoutSuccessPage() {
                     'Payment confirmed — delivery details appear here when ready, or on your orders.',
                   )}
                 </p>
+                <button type="button" onClick={checkAgain} className="btn btn-ghost btn-sm">
+                  {t('تحديث', 'Refresh')}
+                </button>
               </div>
             )}
 

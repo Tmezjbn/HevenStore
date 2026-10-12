@@ -198,7 +198,7 @@ function productSummary(order: Order, lang: 'ar' | 'en'): string {
 }
 
 function formatOrderDate(iso: string, lang: 'ar' | 'en') {
-  return new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+  return new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-u-ca-gregory' : 'en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -225,9 +225,10 @@ const ROLE_RANK: Record<string, number> = {
   owner: 0,
   admin: 1,
   moderator: 2,
-  seller: 3,
-  buyer: 4,
-  member: 5,
+  support: 3,
+  seller: 4,
+  buyer: 5,
+  member: 6,
 };
 
 function FulfillmentPanel({
@@ -408,7 +409,7 @@ function StaffBuyerOrdersPage() {
 
   useEffect(() => {
     setPage(0);
-  }, [filterUserId, roleFilter, sortMode, attentionOnly, showPending, statusFilter]);
+  }, [filterUserId, roleFilter, sortMode, attentionOnly, showPending, statusFilter, searchQuery]);
 
   useEffect(() => {
     if (!user || !canAccessOrders) return;
@@ -453,9 +454,9 @@ function StaffBuyerOrdersPage() {
       // Buyer header counts + spend (own rows via RLS — small).
       if (isBuyer) {
         const [{ count: paid }, { count: pending }, { data: paidRows }] = await Promise.all([
-          supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'paid'),
-          supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-          supabase.from('orders').select('total').eq('status', 'paid'),
+          supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'paid').eq('user_id', user.id),
+          supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending').eq('user_id', user.id),
+          supabase.from('orders').select('total').eq('status', 'paid').eq('user_id', user.id).limit(5000),
         ]);
         if (cancelled) return;
         setPaidCount(paid ?? 0);
@@ -499,7 +500,7 @@ function StaffBuyerOrdersPage() {
         );
 
       if (isBuyer) {
-        q = q.in('status', showPending ? ['paid', 'pending'] : ['paid']);
+        q = q.eq('user_id', user.id).in('status', showPending ? ['paid', 'pending'] : ['paid']);
       }
       if (isStaff && filterUserId) q = q.eq('user_id', filterUserId);
       if (isStaff && attentionOnly) q = q.or(attentionOr);
@@ -520,7 +521,7 @@ function StaffBuyerOrdersPage() {
         q = q.in('user_id', ids);
       }
 
-      const term = searchQuery.trim().replace(/[%_,]/g, '');
+      const term = searchQuery.trim().replace(/[%_,()\\]/g, '');
       if (term) {
         if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(term)) {
           q = q.eq('id', term);
@@ -573,7 +574,7 @@ function StaffBuyerOrdersPage() {
         });
       } else {
         rows = await attachBuyers(rows);
-        if (isStaff && !attentionOnly) {
+        if (isStaff && !attentionOnly && sortMode === 'recent') {
           rows = [...rows].sort((a, b) => {
             const aa = orderNeedsAttention(a.notes) ? 0 : 1;
             const bb = orderNeedsAttention(b.notes) ? 0 : 1;
@@ -664,7 +665,7 @@ function StaffBuyerOrdersPage() {
   };
 
   const runConfirm = async () => {
-    if (!confirmAction) return;
+    if (!confirmAction || actionBusy) return;
     const { kind, order } = confirmAction;
     if (!idMatches(confirmId, order)) {
       setConfirmError(t('رقم الطلب غير مطابق.', 'Order number does not match.'));

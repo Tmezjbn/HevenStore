@@ -211,7 +211,7 @@ export default function ProductEffectsSection({ active = true, embedded = false 
 
   const saveOne = async (id: string) => {
     const d = draft[id];
-    if (!d) return;
+    if (!d || savingId || bulkSaving) return;
     setSavingId(id);
     setError('');
     const electric = serializeElectricAuraTune(d.aura_electric);
@@ -251,7 +251,7 @@ export default function ProductEffectsSection({ active = true, embedded = false 
   };
 
   const saveAllDirty = async () => {
-    if (dirtyIds.length === 0) return;
+    if (dirtyIds.length === 0 || bulkSaving || savingId) return;
     setBulkSaving(true);
     setError('');
     try {

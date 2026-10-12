@@ -62,6 +62,11 @@ Deno.serve(async (req) => {
   const ip = clientIp(req);
   if (!rateOk(ip)) return json(req, { error: 'rate' }, 429);
 
+  // Oversized bodies are junk — don't buffer/parse them.
+  if (Number(req.headers.get('content-length') ?? 0) > 16_384) {
+    return json(req, { error: 'too_large' }, 413);
+  }
+
   let body: Record<string, unknown>;
   try {
     body = await req.json();

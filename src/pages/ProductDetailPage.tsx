@@ -249,7 +249,8 @@ export default function ProductDetailPage() {
   const canWithoutAds = Boolean(activeSlotData.withoutAds);
   const showVariantToggle = canWithAds && canWithoutAds;
 
-  const gallery = product.images?.map((i) => i.url).filter(Boolean) ?? [];
+  // Dedupe: duplicate urls collide as React keys and double-highlight.
+  const gallery = [...new Set(product.images?.map((i) => i.url).filter(Boolean) ?? [])];
   const strip: string[] = [];
   if (product.thumbnail_url && !gallery.includes(product.thumbnail_url)) {
     strip.push(product.thumbnail_url);

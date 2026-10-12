@@ -41,6 +41,16 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      await submitRegistration();
+    } catch (ex) {
+      // Network failure must not leave the form stuck in loading.
+      setLoading(false);
+      setError(mapAuthError(ex as Error, t));
+    }
+  };
+
+  const submitRegistration = async () => {
     setError('');
     const handle = normalizeUsername(username);
     if (!isValidUsername(handle)) {

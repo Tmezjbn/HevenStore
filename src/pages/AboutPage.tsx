@@ -46,9 +46,9 @@ export default function AboutPage() {
                   <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center text-primary mb-2">
                     <Icon size={20} />
                   </div>
-                  <h3 className="card-title text-base">
+                  <h2 className="card-title text-base">
                     {lang === 'ar' ? item.title_ar : item.title_en}
-                  </h3>
+                  </h2>
                   <p className="text-sm text-base-content/70">
                     {lang === 'ar' ? item.desc_ar : item.desc_en}
                   </p>

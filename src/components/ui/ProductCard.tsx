@@ -239,6 +239,10 @@ function ProductCard({
           <button
             type="button"
             onClick={() => {
+              // addItem clamps at stock — a no-op must not flash "Added".
+              const inCart =
+                useCartStore.getState().items.find((i) => i.product.id === product.id)?.quantity ?? 0;
+              if (inCart >= product.stock) return;
               addItem(product);
               setJustAdded(true);
             }}

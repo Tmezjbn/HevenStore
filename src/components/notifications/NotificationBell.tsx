@@ -18,7 +18,11 @@ export default function NotificationBell() {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   useEffect(() => {
+    // Sign-out / account switch must not leave the previous user's inbox visible.
+    setNotifications([]);
+    setOpen(false);
     if (!user) return;
+    let cancelled = false;
     supabase
       .from('notifications')
       .select(NOTIFICATION_COLS)
@@ -26,10 +30,13 @@ export default function NotificationBell() {
       .order('created_at', { ascending: false })
       .limit(20)
       .then(
-        ({ data }) => { if (data) setNotifications(data as unknown as Notification[]); },
+        ({ data }) => { if (!cancelled && data) setNotifications(data as unknown as Notification[]); },
         () => {},
       );
-  }, [user]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps -- refetch per account, not per token refresh
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {

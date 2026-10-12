@@ -23,6 +23,12 @@ export function useDrawerDrag(
     const toggle = document.getElementById(toggleId) as HTMLInputElement | null;
     if (!toggle) return;
 
+    // Programmatic checked changes fire no 'change' event; listeners (focus trap) need it.
+    const setToggle = (checked: boolean) => {
+      toggle.checked = checked;
+      toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
     let startX = 0;
     let startY = 0;
     let locked: 'h' | 'v' | null = null;
@@ -62,7 +68,7 @@ export function useDrawerDrag(
       const out = dx * outSign;
 
       if (mode === 'open') {
-        if (out <= -OPEN_PX && !toggle.checked) toggle.checked = true;
+        if (out <= -OPEN_PX && !toggle.checked) setToggle(true);
         return;
       }
 
@@ -85,7 +91,7 @@ export function useDrawerDrag(
 
       if (mode === 'close' && panel && dragging) {
         const out = (e.clientX - startX) * outSign;
-        if (out > CLOSE_PX) toggle.checked = false;
+        if (out > CLOSE_PX) setToggle(false);
       }
 
       clearDrag();

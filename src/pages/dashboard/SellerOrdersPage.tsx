@@ -41,7 +41,7 @@ const focusRing =
   'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
 function formatDate(iso: string, lang: 'ar' | 'en') {
-  return new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+  return new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-u-ca-gregory' : 'en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

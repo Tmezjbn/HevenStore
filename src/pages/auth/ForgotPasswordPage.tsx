@@ -17,12 +17,17 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
-    });
-    setLoading(false);
-    if (err) setError(mapAuthError(err, t));
-    else setSent(true);
+    try {
+      const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      if (err) setError(mapAuthError(err, t));
+      else setSent(true);
+    } catch (ex) {
+      setError(mapAuthError(ex as Error, t));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

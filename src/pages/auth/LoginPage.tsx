@@ -55,27 +55,32 @@ export default function LoginPage() {
     setNeedsConfirm(false);
     setResent(false);
     setLoading(true);
-    const email = await resolveEmail(login);
-    if (email === 'RATE_LIMITED') {
-      setLoading(false);
-      setError(rateLimitedMsg());
-      return;
-    }
-    if (!email) {
-      setLoading(false);
-      setError(invalidLoginMsg());
-      return;
-    }
-    setResolvedEmail(email);
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (err) {
-      setError(mapAuthError(err, t));
-      const code = (err as { code?: string }).code ?? '';
-      if (code === 'email_not_confirmed' || err.message.toLowerCase().includes('email not confirmed')) {
-        setNeedsConfirm(true);
+    try {
+      const email = await resolveEmail(login);
+      if (email === 'RATE_LIMITED') {
+        setError(rateLimitedMsg());
+        return;
       }
+      if (!email) {
+        setError(invalidLoginMsg());
+        return;
+      }
+      setResolvedEmail(email);
+      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) {
+        setError(mapAuthError(err, t));
+        const code = (err as { code?: string }).code ?? '';
+        if (code === 'email_not_confirmed' || err.message.toLowerCase().includes('email not confirmed')) {
+          setNeedsConfirm(true);
+        }
+        return;
+      }
+    } catch (ex) {
+      // Network failure must not leave the form stuck in loading.
+      setError(mapAuthError(ex as Error, t));
       return;
+    } finally {
+      setLoading(false);
     }
     navigate(afterAuth);
   };

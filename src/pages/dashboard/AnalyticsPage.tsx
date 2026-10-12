@@ -213,7 +213,9 @@ function prettyOs(name: string): string {
 }
 
 function formatDay(raw: string, lang: 'ar' | 'en'): string {
-  const d = new Date(raw);
+  // Date-only strings parse as UTC and can render a day early in western timezones.
+  const ymd = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.trim());
+  const d = ymd ? new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3])) : new Date(raw);
   if (Number.isNaN(d.getTime())) return raw.slice(5, 10) || raw;
   return d.toLocaleDateString(lang === 'ar' ? 'ar' : 'en', { month: 'short', day: 'numeric' });
 }
@@ -852,18 +854,35 @@ export default function AnalyticsPage() {
         if (cancelled) return;
         const resetAt = parseDashboardStatsResetAt(resetRow?.value ?? '');
         const since = dashboardStatsSinceIso(resetAt, rangeIso)!;
-        const { data: paid, error: paidErr } = await supabase
-          .from('orders')
-          .select('total, created_at')
-          .eq('status', 'paid')
-          .gte('created_at', since);
-        if (cancelled) return;
+        // PostgREST caps a single response (~1000 rows) — page through so
+        // busy ranges don't silently under-count orders / revenue.
+        const PAGE = 1000;
+        let count = 0;
+        let sum = 0;
+        let paidErr: unknown = null;
+        for (let from = 0; ; from += PAGE) {
+          const { data: page, error: pageErr } = await supabase
+            .from('orders')
+            .select('total, created_at')
+            .eq('status', 'paid')
+            .gte('created_at', since)
+            .order('created_at', { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (cancelled) return;
+          if (pageErr) {
+            paidErr = pageErr;
+            break;
+          }
+          const rows = page ?? [];
+          count += rows.length;
+          sum += rows.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+          if (rows.length < PAGE) break;
+        }
         // A failed query must not render as a real $0 / 0-orders range.
         setSalesErr(paidErr != null);
         if (!paidErr) {
-          const rows = paid ?? [];
-          setPaidCount(rows.length);
-          setRevenue(rows.reduce((s, o) => s + (Number(o.total) || 0), 0));
+          setPaidCount(count);
+          setRevenue(sum);
         }
       } catch {
         if (!cancelled) setSalesErr(true);
@@ -876,9 +895,19 @@ export default function AnalyticsPage() {
     };
   }, [preset, refreshKey]);
 
+  const trafficPresetRef = useRef<Preset>(preset);
   useEffect(() => {
-    void loadTraffic(preset).finally(() => setRefreshing(false));
-  }, [preset, loadTraffic, refreshKey]);
+    // Range changed: drop the previous range's payload instead of showing it under the new label.
+    if (trafficPresetRef.current !== preset) {
+      trafficPresetRef.current = preset;
+      setTraffic({ status: 'loading' });
+    }
+    loadTraffic(preset)
+      .catch(() => {
+        setTraffic({ status: 'error', message: t('تعذر تحميل الزيارات', 'Could not load traffic') });
+      })
+      .finally(() => setRefreshing(false));
+  }, [preset, loadTraffic, refreshKey, t]);
 
   useEffect(() => {
     if (tab !== 'live') return;

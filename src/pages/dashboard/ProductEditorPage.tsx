@@ -673,6 +673,9 @@ export default function ProductEditorPage() {
       : EMPTY_FORM,
   );
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  // Id of a row inserted by a save that failed later — retry must update, not re-insert.
+  const createdIdRef = useRef<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [formError, setFormError] = useState('');
   const [clearKeysOpen, setClearKeysOpen] = useState(false);
@@ -1327,22 +1330,31 @@ export default function ProductEditorPage() {
   };
 
   const save = async () => {
+    if (savingRef.current) return;
     setFormError('');
     if (!form.name.trim() || !form.slug.trim() || !form.price.trim()) {
       setFormError(t('الاسم والمعرّف والسعر مطلوبة', 'Name, slug, and price are required'));
       return;
     }
     const price = Number(form.price);
-    if (Number.isNaN(price) || price < 0) {
+    if (!Number.isFinite(price) || price < 0) {
       setFormError(t('السعر غير صالح', 'Invalid price'));
+      return;
+    }
+    const originalPrice = form.original_price.trim() ? Number(form.original_price) : null;
+    if (originalPrice !== null && (!Number.isFinite(originalPrice) || originalPrice < 0)) {
+      setFormError(t('السعر قبل الخصم غير صالح', 'Invalid original price'));
       return;
     }
     const pendingLines = pendingStock.filter((p) => p.content.trim());
     const hasKeys = keyCounts.available + keyCounts.claimed + pendingLines.length > 0;
     // Keyed products: stock is derived from unclaimed keys (DB trigger),
     // so the manual field is ignored to avoid overwriting the real count.
-    const stock = hasKeys ? keyCounts.available + pendingLines.length : Number(form.stock) || 0;
+    const stock = hasKeys
+      ? keyCounts.available + pendingLines.length
+      : Math.max(0, Math.floor(Number(form.stock) || 0));
 
+    savingRef.current = true;
     setSaving(true);
     const sellerId = isSeller ? (user?.id ?? null) : form.seller_id || null;
     const showSeller = isSeller ? true : form.show_seller_name && Boolean(sellerId);
@@ -1364,7 +1376,7 @@ export default function ProductEditorPage() {
       description: form.description.trim() || null,
       description_ar: form.description_ar.trim() || null,
       price,
-      original_price: form.original_price ? Number(form.original_price) : null,
+      original_price: originalPrice,
       category_id: form.category_id || null,
       stock,
       status: form.status,
@@ -1405,16 +1417,17 @@ export default function ProductEditorPage() {
 
     try {
       let savedId: string;
-      if (editing) {
+      const targetId = editing?.id ?? createdIdRef.current;
+      if (targetId) {
         const { data, error } = await supabase
           .from('products')
           .update(payload)
-          .eq('id', editing.id)
+          .eq('id', targetId)
           .select()
           .single();
         if (error) throw error;
-        savedId = editing.id;
-        if (data) {
+        savedId = targetId;
+        if (data && editing) {
           setEditing((prev) =>
             prev
               ? {
@@ -1440,6 +1453,7 @@ export default function ProductEditorPage() {
           .single();
         if (error) throw error;
         savedId = data.id;
+        createdIdRef.current = savedId;
       }
 
       // One-time keys: append pending stock units. Trigger re-syncs products.stock.
@@ -1480,7 +1494,11 @@ export default function ProductEditorPage() {
           .upsert({ product_id: savedId, content: secretText, updated_at: new Date().toISOString() });
         if (secErr) throw secErr;
       } else {
-        await supabase.from('product_secrets').delete().eq('product_id', savedId);
+        const { error: secDelErr } = await supabase
+          .from('product_secrets')
+          .delete()
+          .eq('product_id', savedId);
+        if (secDelErr) throw secDelErr;
       }
 
       // Gallery: replace-all
@@ -1521,6 +1539,7 @@ export default function ProductEditorPage() {
           : msg || t('فشل الحفظ. تحقق من الصلاحيات.', 'Save failed. Check your permissions.')
       );
     }
+    savingRef.current = false;
     setSaving(false);
   };
 

@@ -73,7 +73,10 @@ const cartCountPill =
 
 function closeMenu() {
   const el = document.getElementById(MENU_ID) as HTMLInputElement | null;
-  if (el) el.checked = false;
+  if (!el || !el.checked) return;
+  el.checked = false;
+  // Programmatic changes don't fire 'change' — notify listeners so the focus trap / scroll lock release.
+  el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 export default function Navbar() {
@@ -205,6 +208,11 @@ export default function Navbar() {
     el.addEventListener('change', onToggle);
     return () => el.removeEventListener('change', onToggle);
   }, []);
+
+  // Close the drawer on any navigation (Back button, links) so scroll lock never lingers.
+  useEffect(() => {
+    closeMenu();
+  }, [location.pathname]);
 
   // Keep bar query/sort in sync when browsing the store.
   useEffect(() => {
@@ -397,6 +405,7 @@ export default function Navbar() {
                       <li key={link.href}>
                         <Link
                           to={link.href}
+                          aria-current={active ? 'page' : undefined}
                           className={`nav-pill-bar__link rounded-full whitespace-nowrap !min-h-0 transition-all duration-300 ease-out ${
                             centerLinks
                               ? 'text-xl lg:text-2xl tracking-tight'
@@ -432,7 +441,11 @@ export default function Navbar() {
                   <Link
                     to="/cart"
                     className="btn btn-ghost btn-md btn-square min-h-11 min-w-11 indicator"
-                    aria-label={t('سلة التسوق', 'Cart')}
+                    aria-label={
+                      itemCount > 0
+                        ? `${t('سلة التسوق', 'Cart')} (${itemCount})`
+                        : t('سلة التسوق', 'Cart')
+                    }
                   >
                     {itemCount > 0 && (
                       <span className={`indicator-item top-1.5 end-1.5 ${cartCountPill} border-0 outline-none ring-0 shadow-none`}>

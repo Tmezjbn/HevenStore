@@ -114,7 +114,7 @@ export default function Footer() {
           </p>
         </aside>
         {socials.length > 0 && (
-          <nav aria-label="Social media" className="md:place-self-center md:justify-self-end">
+          <nav aria-label={t('التواصل الاجتماعي', 'Social media')} className="md:place-self-center md:justify-self-end">
             <div className="grid grid-flow-col gap-5">
               {socials.map(({ key, href, icon: Icon, label }) => (
                 <a

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Tag, Users, BarChart3, Bell, Settings,
@@ -27,9 +28,22 @@ export default function DashboardLayout() {
   const profile = useAuthStore((s) => s.profile);
   const loading = useAuthStore((s) => s.loading);
   const signOut = useAuthStore((s) => s.signOut);
+  const fetchProfile = useAuthStore((s) => s.fetchProfile);
+  const [profileStuck, setProfileStuck] = useState(false);
   const { t, lang } = useI18n();
   const location = useLocation();
   usePageMeta({ title: t('لوحة التحكم', 'Dashboard'), noindex: true });
+
+  // Signed in but the profile row never arrives (network/RLS error) — don't spin forever.
+  const waitingProfile = !loading && !!user && !profile;
+  useEffect(() => {
+    if (!waitingProfile) {
+      setProfileStuck(false);
+      return;
+    }
+    const id = window.setTimeout(() => setProfileStuck(true), 10000);
+    return () => window.clearTimeout(id);
+  }, [waitingProfile]);
 
   // Wait for the session to restore before deciding — otherwise a page
   // refresh kicks logged-in users back to the login screen.
@@ -49,6 +63,30 @@ export default function DashboardLayout() {
   // Role is unknown until the profile row loads — hold the screen instead
   // of guessing, so staff aren't bounced off admin pages on refresh.
   if (!profile) {
+    if (profileStuck) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-3 p-6 text-center">
+          <p className="text-sm text-error" role="alert">
+            {t('تعذر تحميل حسابك.', 'Could not load your account.')}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                setProfileStuck(false);
+                void fetchProfile(user.id).catch(() => setProfileStuck(true));
+              }}
+            >
+              {t('إعادة المحاولة', 'Retry')}
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => void signOut()}>
+              {t('تسجيل الخروج', 'Sign out')}
+            </button>
+          </div>
+        </div>
+      );
+    }
     return <RouteLoadingScreen label={holdLabel} />;
   }
 

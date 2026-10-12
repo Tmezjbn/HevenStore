@@ -433,7 +433,7 @@ export default function ProductVideoPlayer({
         rel="noopener noreferrer"
         className={`btn btn-outline btn-sm ${className ?? ''}`}
       >
-        Watch video
+        {t('شاهد الفيديو', 'Watch video')}
       </a>
     );
   }

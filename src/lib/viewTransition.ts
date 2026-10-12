@@ -109,6 +109,8 @@ function runLangBlackVeil(update: () => void): Promise<void> {
  * of the DOM tree). The browser composites the overlay as a single
  * GPU texture, so clip changes are nearly free.
  */
+let activeThemeRun: { overlay: HTMLElement; anim?: Animation } | null = null;
+
 async function runThemeCircleReveal(
   update: () => void,
   theme?: string,
@@ -120,6 +122,14 @@ async function runThemeCircleReveal(
   if (!oldColor && !theme) {
     update();
     return;
+  }
+
+  // Rapid toggles: drop the previous overlay so layers never stack or leave
+  // the flag class behind.
+  if (activeThemeRun) {
+    activeThemeRun.anim?.cancel();
+    activeThemeRun.overlay.remove();
+    activeThemeRun = null;
   }
 
   const x = origin?.x ?? window.innerWidth / 2;
@@ -136,13 +146,15 @@ async function runThemeCircleReveal(
     `background:oklch(${oldColor});will-change:clip-path;`;
   document.body.appendChild(overlay);
   void overlay.offsetWidth;
+  const run: { overlay: HTMLElement; anim?: Animation } = { overlay };
+  activeThemeRun = run;
 
   root.classList.add('theme-switching');
 
-  // Flip theme — page updates under the overlay, invisible to the user.
-  flushSync(update);
-
   try {
+    // Flip theme — page updates under the overlay, invisible to the user.
+    flushSync(update);
+
     // Shrink overlay clip from full circle → zero, revealing new theme.
     const anim = overlay.animate(
       [
@@ -151,12 +163,16 @@ async function runThemeCircleReveal(
       ],
       { duration: 520, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
     );
+    run.anim = anim;
     await anim.finished;
   } catch {
     /* animation interrupted */
   } finally {
     overlay.remove();
-    root.classList.remove('theme-switching');
+    if (activeThemeRun === run) {
+      activeThemeRun = null;
+      root.classList.remove('theme-switching');
+    }
   }
 }
 
@@ -171,7 +187,7 @@ export function withViewTransition(
     return Promise.resolve();
   }
 
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   if (reduced) {
     update();
     return Promise.resolve();

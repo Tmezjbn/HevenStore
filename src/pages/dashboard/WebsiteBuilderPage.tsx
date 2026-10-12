@@ -29,6 +29,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useSiteSettings, useSaveSiteSettings } from '../../hooks/useSiteSettings';
 import { CATEGORY_COLS } from '../../lib/dbCols';
 import { formatMoney } from '../../lib/formatMoney';
+import { isSafeHref } from '../../lib/safeHref';
 import HeroMediaBackdrop from '../../components/home/HeroMediaBackdrop';
 import ConfirmDialog from '../../components/dashboard/ConfirmDialog';
 import {
@@ -847,7 +848,8 @@ export default function WebsiteBuilderPage() {
   };
 
   const saveSections = async () => {
-    if (!user || !sectionsDirty) return;
+    if (!user || !sectionsDirty || saveMutation.isPending) return;
+    setError('');
     try {
       await saveMutation.mutateAsync({
         updates: {
@@ -883,14 +885,25 @@ export default function WebsiteBuilderPage() {
         userId: user.id,
       });
       setSectionsSaved(true);
-    } catch {
+    } catch (e) {
       setSectionsSaved(false);
+      setError(e instanceof Error ? e.message : t('فشل الحفظ', 'Save failed'));
     }
   };
 
   const saveFooterNav = async () => {
-    if (!user || !footerDirty) return;
+    if (!user || !footerDirty || saveMutation.isPending) return;
     setError('');
+    const badLink = footerNav.some((c) => c.links.some((l) => !isSafeHref(l.href)));
+    if (badLink) {
+      setError(
+        t(
+          'رابط غير صالح في التذييل — استخدم مسارًا يبدأ بـ / أو https:// أو mailto:',
+          'Invalid footer link — use a path starting with /, https://, or mailto:',
+        ),
+      );
+      return;
+    }
     try {
       await saveMutation.mutateAsync({
         updates: { footer_nav: JSON.stringify(footerNav) },
@@ -979,7 +992,7 @@ export default function WebsiteBuilderPage() {
   };
 
   const saveHeroMedia = async () => {
-    if (!user || !heroDirty) return;
+    if (!user || !heroDirty || saveMutation.isPending) return;
     setError('');
     try {
       await saveMutation.mutateAsync({
@@ -1011,7 +1024,7 @@ export default function WebsiteBuilderPage() {
   };
 
   const savePlyr = async () => {
-    if (!user || !plyrDirty) return;
+    if (!user || !plyrDirty || saveMutation.isPending) return;
     setError('');
     try {
       await saveMutation.mutateAsync({
@@ -1029,7 +1042,7 @@ export default function WebsiteBuilderPage() {
   };
 
   const saveDetailFx = async () => {
-    if (!user || !detailFxDirty) return;
+    if (!user || !detailFxDirty || saveMutation.isPending) return;
     setError('');
     try {
       await saveMutation.mutateAsync({

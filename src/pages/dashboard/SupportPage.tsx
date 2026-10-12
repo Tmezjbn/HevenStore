@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -111,6 +111,8 @@ export default function SupportPage() {
   const [myStanding, setMyStanding] = useState(profile?.support_standing ?? 100);
 
   const orderId = params.get('orderId');
+  const activeTicketRef = useRef<string | null>(selectedId);
+  activeTicketRef.current = selectedId;
 
   const bins = useMemo(() => {
     const list: { id: Bin; ar: string; en: string }[] = [];
@@ -220,6 +222,8 @@ export default function SupportPage() {
       .eq('ticket_id', ticketId)
       .order('created_at', { ascending: true })
       .limit(500);
+    // Drop stale replies from a ticket the user already switched away from.
+    if (activeTicketRef.current !== ticketId) return;
     const rows = (data ?? []) as SupportMessage[];
     setMessages(rows);
     await loadProfiles(rows.map((m) => m.sender_id));
@@ -328,6 +332,13 @@ export default function SupportPage() {
     (selectedFallback?.id === selectedId ? selectedFallback : null);
 
   const selectTicket = (id: string) => {
+    if (id !== selectedId) {
+      // Never carry a half-typed reply / reason over to a different ticket.
+      setDraft('');
+      setEscalateReason('');
+      setRejectReason('');
+      setMessages([]);
+    }
     setSelectedId(id);
     const next = new URLSearchParams(params);
     next.set('ticket', id);
@@ -336,12 +347,17 @@ export default function SupportPage() {
 
   const openTicket = async () => {
     if (!user || msgBusy) return;
+    const sellerId = newSellerId.trim();
+    if (sellerId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sellerId)) {
+      setError(t('معرّف البائع غير صالح', 'Invalid seller id'));
+      return;
+    }
     setMsgBusy(true);
     setError(null);
     const { data, error: err } = await supabase.rpc('open_support_ticket', {
-      p_subject: newSubject,
-      p_body: newBody,
-      p_seller_id: newSellerId.trim() || null,
+      p_subject: newSubject.trim(),
+      p_body: newBody.trim(),
+      p_seller_id: sellerId || null,
       p_order_id: orderId || null,
     });
     setMsgBusy(false);
@@ -359,7 +375,7 @@ export default function SupportPage() {
   };
 
   const claim = async () => {
-    if (!selectedId) return;
+    if (!selectedId || msgBusy) return;
     setMsgBusy(true);
     const { error: err } = await supabase.rpc('claim_support_ticket', { p_ticket_id: selectedId });
     setMsgBusy(false);
@@ -371,11 +387,11 @@ export default function SupportPage() {
   };
 
   const escalate = async () => {
-    if (!selectedId) return;
+    if (!selectedId || msgBusy) return;
     setMsgBusy(true);
     const { error: err } = await supabase.rpc('escalate_support_ticket', {
       p_ticket_id: selectedId,
-      p_reason: escalateReason || null,
+      p_reason: escalateReason.trim() || null,
     });
     setMsgBusy(false);
     if (err) setError(err.message);
@@ -386,14 +402,15 @@ export default function SupportPage() {
   };
 
   const rejectEsc = async () => {
-    if (!selectedId || rejectReason.trim().length < 2) {
+    if (!selectedId || msgBusy) return;
+    if (rejectReason.trim().length < 2) {
       setError(t('اكتب سبب الرفض', 'Write a reject reason'));
       return;
     }
     setMsgBusy(true);
     const { error: err } = await supabase.rpc('reject_support_escalation', {
       p_ticket_id: selectedId,
-      p_reason: rejectReason,
+      p_reason: rejectReason.trim(),
     });
     setMsgBusy(false);
     if (err) setError(err.message);
@@ -404,7 +421,7 @@ export default function SupportPage() {
   };
 
   const setStatus = async (status: string) => {
-    if (!selectedId) return;
+    if (!selectedId || msgBusy) return;
     setMsgBusy(true);
     const { error: err } = await supabase.rpc('set_support_ticket_status', {
       p_ticket_id: selectedId,
@@ -416,11 +433,12 @@ export default function SupportPage() {
   };
 
   const send = async () => {
-    if (!selectedId || !draft.trim()) return;
+    if (!selectedId || msgBusy || !draft.trim()) return;
     setMsgBusy(true);
+    setError(null);
     const { error: err } = await supabase.rpc('post_support_message', {
       p_ticket_id: selectedId,
-      p_body: draft,
+      p_body: draft.trim(),
     });
     setMsgBusy(false);
     if (err) setError(err.message);
@@ -604,6 +622,7 @@ export default function SupportPage() {
                         active ? 'bg-base-300/50' : ''
                       }`}
                       onClick={() => selectTicket(tk.id)}
+                      aria-current={active ? 'true' : undefined}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium line-clamp-1">{tk.subject}</span>

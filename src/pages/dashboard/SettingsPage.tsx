@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import type { LucideIcon } from 'lucide-react';
 // PERF-2: defer site-settings CSS off storefront main chunk (loads with this lazy route).
 void import('../../styles/settings-page.css');
@@ -132,18 +132,31 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
 
+  const dirtyRef = useRef(false);
+  dirtyRef.current = dirty;
+
   useEffect(() => {
-    if (!isLoading) {
+    // A background refetch must not wipe unsaved edits.
+    if (!isLoading && !dirtyRef.current) {
       setForm(settings);
       setAboutItems(parseAboutItems(settings.about_items));
       setPrivacyDoc(parsePolicyDoc(settings.privacy_policy_json, DEFAULT_PRIVACY_POLICY));
       setTermsDoc(parsePolicyDoc(settings.terms_policy_json, DEFAULT_TERMS_POLICY));
       setHomeSections(parseSections(settings.home_sections, DEFAULT_HOME_SECTIONS));
       setStoreSections(parseSections(settings.store_sections, DEFAULT_STORE_SECTIONS));
-      setDirty(false);
       setSaved(false);
     }
   }, [settings, isLoading]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
 
   const markDirty = () => {
     setDirty(true);

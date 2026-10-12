@@ -2489,10 +2489,11 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
 .nav-search-fx__input-mask {
   pointer-events: none;
   position: absolute;
-  inset-inline-start: 2.4rem;
+  /* Fade the overflow tail before the go button — at the start it hid words mid-placeholder. */
+  inset-inline-end: 2.75rem;
   top: 50%;
   translate: 0 -50%;
-  width: 4.5rem;
+  width: 2rem;
   height: 1rem;
   background: linear-gradient(
     to right,
@@ -3066,6 +3067,12 @@ html[data-ui-scale-scope='storefront'] .nav-search-fx {
   justify-content: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
+}
+/* Column toolbar: `.nav-search-fx--plain { flex: 1 1 12rem }` would become a 12rem HEIGHT. */
+@media (max-width: 639.98px) {
+  .catalog-toolbar > .nav-search-fx {
+    flex: 0 0 auto;
+  }
 }
 @media (min-width: 640px) {
   .catalog-toolbar {
@@ -4328,10 +4335,10 @@ html[data-ui-scale-scope='storefront'] #main-content {
 /* Links pill docks beside the brand at rest (px-2 = expanded chrome),
    glides to center and expands when the navbar compacts on scroll. */
 .storefront-navbar:not(.storefront-navbar--scrolled) .menu.px-2 {
-  transform: translateX(min(0px, calc(240px + 50% - 50vw))) scale(0.94);
+  transform: translateX(min(0px, calc(50% + 16rem - min(50vw, 40rem)))) scale(0.94);
 }
 [dir="rtl"] .storefront-navbar:not(.storefront-navbar--scrolled) .menu.px-2 {
-  transform: translateX(max(0px, calc(50vw - 240px - 50%))) scale(0.94);
+  transform: translateX(max(0px, calc(min(50vw, 40rem) - 16rem - 50%))) scale(0.94);
 }
 
 /* ── Nav pill bar — premium glassmorphic capsule ──────────────── */

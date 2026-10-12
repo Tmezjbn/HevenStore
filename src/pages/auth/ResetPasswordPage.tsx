@@ -69,12 +69,17 @@ export default function ResetPasswordPage() {
       return;
     }
     setLoading(true);
-    const { error: err } = await supabase.auth.updateUser({ password });
-    setLoading(false);
-    if (err) setError(mapAuthError(err, t));
-    else {
-      setDone(true);
-      setTimeout(() => navigate('/auth/login'), 2000);
+    try {
+      const { error: err } = await supabase.auth.updateUser({ password });
+      if (err) setError(mapAuthError(err, t));
+      else {
+        setDone(true);
+        setTimeout(() => navigate('/auth/login'), 2000);
+      }
+    } catch (ex) {
+      setError(mapAuthError(ex as Error, t));
+    } finally {
+      setLoading(false);
     }
   };
 

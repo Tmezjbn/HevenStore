@@ -182,7 +182,7 @@ export default function CategoriesPage() {
           slug,
           parent_id,
           level,
-          sort_order: categories.length,
+          sort_order: categories.reduce((m, c) => Math.max(m, c.sort_order ?? 0), -1) + 1,
           is_active: true,
         })
         .select(CATEGORY_COLS)
@@ -228,7 +228,11 @@ export default function CategoriesPage() {
       setError('');
       invalidate();
     },
-    onError: (e: Error) => setError(friendlyDbError(e.message, t)),
+    onError: (e: Error) => {
+      setError(friendlyDbError(e.message, t));
+      // Cascade may have partially applied; resync.
+      invalidate();
+    },
   });
 
   const deleteMutation = useMutation({
@@ -306,7 +310,19 @@ export default function CategoriesPage() {
 
   const deleteTargetMsg = deleteTarget
     ? (() => {
-        const kids = categories.filter((x) => x.parent_id === deleteTarget.id).length;
+        // Count the whole subtree, not just direct children.
+        const doomed = new Set([deleteTarget.id]);
+        let grew = true;
+        while (grew) {
+          grew = false;
+          for (const x of categories) {
+            if (x.parent_id && doomed.has(x.parent_id) && !doomed.has(x.id)) {
+              doomed.add(x.id);
+              grew = true;
+            }
+          }
+        }
+        const kids = doomed.size - 1;
         return kids > 0
           ? t(
               `حذف «${deleteTarget.name}» و ${kids} ابن؟ لا يمكن التراجع.`,

@@ -56,7 +56,8 @@ export default function BadgesPage() {
       .from('badges')
       .select(BADGE_COLS)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(100)
+      .then((r) => r, () => ({ data: null, error: new Error('network') }));
     if (err) setError(t('تعذر تحميل الشارات', 'Could not load badges'));
     setBadges((data as Badge[] | null) ?? []);
     setLoading(false);
@@ -96,6 +97,7 @@ export default function BadgesPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
 
   const save = async () => {
+    if (saving) return;
     setFormError('');
     const slug = form.slug.trim().toLowerCase().replace(/\s+/g, '-');
     const icon = form.icon.trim();
@@ -148,8 +150,9 @@ export default function BadgesPage() {
   const confirmRemove = async () => {
     if (!deleteId || deleteBusy) return;
     setDeleteBusy(true);
-    const { error: err } = await supabase.from('badges').delete().eq('id', deleteId);
-    if (err) {
+    const { data: del, error: err } = await supabase.from('badges').delete().eq('id', deleteId).select('id');
+    // 0 rows without error = RLS filtered it; don't drop the card locally.
+    if (err || !del?.length) {
       setError(t('فشل الحذف — قد تكون الشارة مربوطة بكوبون أو مستخدمين', 'Delete failed — badge may be in use'));
     } else {
       setBadges((prev) => prev.filter((b) => b.id !== deleteId));
@@ -159,6 +162,7 @@ export default function BadgesPage() {
   };
 
   const award = async () => {
+    if (awardBusy) return;
     setAwardMsg('');
     const raw = awardUser.trim().replace(/^@+/, '');
     if (!raw || !awardBadgeId) {
@@ -218,7 +222,7 @@ export default function BadgesPage() {
       {error && (
         <div className="alert alert-error mb-4 text-sm py-2">
           <span>{error}</span>
-          <button type="button" className="btn btn-ghost btn-xs" onClick={() => setError('')}>
+          <button type="button" className="btn btn-ghost btn-xs" onClick={() => setError('')} aria-label={t('إغلاق', 'Dismiss')}>
             <X size={14} />
           </button>
         </div>
@@ -240,6 +244,7 @@ export default function BadgesPage() {
         <select
           className={`select select-bordered select-sm w-full ${fieldFocus}`}
           value={awardBadgeId}
+          aria-label={t('الشارة', 'Badge')}
           onChange={(e) => setAwardBadgeId(e.target.value)}
         >
           <option value="">{t('اختر شارة…', 'Pick a badge…')}</option>
@@ -249,7 +254,7 @@ export default function BadgesPage() {
             </option>
           ))}
         </select>
-        {awardMsg && <p className="text-sm">{awardMsg}</p>}
+        {awardMsg && <p className="text-sm" role="status">{awardMsg}</p>}
         <button type="button" className="btn btn-primary btn-sm gap-2" disabled={awardBusy} onClick={() => void award()}>
           {awardBusy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
           {t('منح', 'Award')}
@@ -332,6 +337,8 @@ export default function BadgesPage() {
                     key={m.id}
                     type="button"
                     disabled={used}
+                    aria-pressed={selected}
+                    aria-label={lang === 'ar' ? m.labelAr : m.labelEn}
                     title={used ? t('مستخدمة', 'Taken') : lang === 'ar' ? m.labelAr : m.labelEn}
                     onClick={() => setField('icon', m.id)}
                     className={`btn btn-square btn-sm p-0 ${selected ? 'btn-primary' : 'btn-ghost'} ${used ? 'opacity-25 cursor-not-allowed' : ''}`}

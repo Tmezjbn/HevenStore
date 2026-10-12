@@ -18,6 +18,7 @@ void import('../../styles/dashboard-owner-surfaces.css');
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { fetchStockPulse } from '../../lib/stockPulse';
 import { useAuthStore } from '../../stores/authStore';
 import { useI18n } from '../../lib/i18n';
 import ProductMedia from '../../components/ui/ProductMedia';
@@ -121,6 +122,7 @@ export default function OwnerProductsPage() {
   const [rejectNote, setRejectNote] = useState('');
   const [rejectError, setRejectError] = useState<string | null>(null);
 
+  const actionBusy = useRef(false);
   const profileRole = profile?.role;
   const profileId = profile?.id;
 
@@ -138,22 +140,10 @@ export default function OwnerProductsPage() {
   }, [search, listFilter]);
 
   const refreshStockPulse = async () => {
-    const { data, error } = await supabase.from('products').select('stock, status');
-    if (error) {
-      console.error('OwnerProductsPage stock', error);
-      return;
-    }
-    let units = 0;
-    let oos = 0;
-    let pendingReview = 0;
-    for (const row of data ?? []) {
-      const s = Number(row.stock) || 0;
-      units += Math.max(0, s);
-      if (row.status === 'active' && s <= 0) oos += 1;
-      if (row.status === 'pending_review') pendingReview += 1;
-    }
-    setStockPulse({ units, oos, listings: (data ?? []).length });
-    setPendingReviewCount(pendingReview);
+    const pulse = await fetchStockPulse();
+    if (!pulse) return;
+    setStockPulse({ units: pulse.units, oos: pulse.oos, listings: pulse.listings });
+    setPendingReviewCount(pulse.pendingReview);
   };
 
   useEffect(() => {
@@ -165,8 +155,9 @@ export default function OwnerProductsPage() {
         .from('products')
         .select(PRODUCT_EDITOR_COLS, { count: 'exact' })
         .order('created_at', { ascending: false })
+        .order('id')
         .range(from, to);
-      const term = search.trim().replace(/[%_,]/g, '');
+      const term = search.trim().replace(/[%_,()\\]/g, '');
       if (term) query = query.or(`name.ilike.%${term}%,name_ar.ilike.%${term}%`);
       if (listFilter === 'active' || listFilter === 'inactive' || listFilter === 'draft') {
         query = query.eq('status', listFilter);
@@ -249,8 +240,11 @@ export default function OwnerProductsPage() {
   };
 
   const toggleFeatured = async (product: Product) => {
+    if (actionBusy.current) return;
+    actionBusy.current = true;
     const next = !product.is_featured;
     const { error } = await supabase.from('products').update({ is_featured: next }).eq('id', product.id);
+    actionBusy.current = false;
     if (error) {
       setActionError(error.message || t('تعذر تحديث المنتج', 'Could not update the product'));
       setMenuId(null);
@@ -268,17 +262,24 @@ export default function OwnerProductsPage() {
       setPending({ kind: 'hide', product });
       return;
     }
-    const { error } = await supabase
+    if (actionBusy.current) return;
+    actionBusy.current = true;
+    const { data, error } = await supabase
       .from('products')
       .update({ status: 'active' })
-      .eq('id', product.id);
+      .eq('id', product.id)
+      .select('status')
+      .single();
+    actionBusy.current = false;
     if (error) {
       setActionError(error.message || t('تعذر تحديث المنتج', 'Could not update the product'));
       return;
     }
     setActionError(null);
+    // Review gate may coerce 'active' to 'pending_review' — reflect the real status.
+    const nextStatus = (data?.status ?? 'active') as Product['status'];
     setProducts((prev) =>
-      prev.map((p) => (p.id === product.id ? { ...p, status: 'active' as const } : p)),
+      prev.map((p) => (p.id === product.id ? { ...p, status: nextStatus } : p)),
     );
     void refreshStockPulse();
     refreshStorefront();
@@ -312,6 +313,7 @@ export default function OwnerProductsPage() {
       }
       setProducts((prev) => prev.filter((p) => p.id !== pending.id));
       setTotal((n) => Math.max(0, n - 1));
+      if (page > 0 && products.length <= 1) setPage(page - 1);
       void refreshStockPulse();
       refreshStorefront();
     }
@@ -369,6 +371,7 @@ export default function OwnerProductsPage() {
   };
 
   const approveListing = (product: Product) => {
+    if (reviewBusyId) return;
     void reviewListing(product, true, '').then((err) => {
       if (err) setActionError(err);
       else setActionError(null);

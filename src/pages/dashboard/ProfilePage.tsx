@@ -152,6 +152,7 @@ export default function ProfilePage() {
   const unlockAt = usernameUnlockAt(profile.username_changed_at);
 
   const saveName = async () => {
+    if (nameBusy) return;
     setNameMsg(null);
     const next = fullName.trim();
     if (!next) {
@@ -168,11 +169,12 @@ export default function ProfilePage() {
       setNameMsg({ kind: 'err', text: t('تعذر حفظ الاسم', 'Could not save name') });
       return;
     }
-    setProfile({ ...profile, full_name: next });
+    setProfile({ ...(useAuthStore.getState().profile ?? profile), full_name: next });
     setNameMsg({ kind: 'ok', text: t('تم الحفظ', 'Saved') });
   };
 
   const saveUsername = async () => {
+    if (userBusy) return;
     setUserMsg(null);
     const next = normalizeUsername(username);
     if (!isValidUsername(next)) {
@@ -238,7 +240,7 @@ export default function ProfilePage() {
       return;
     }
     setProfile({
-      ...profile,
+      ...(useAuthStore.getState().profile ?? profile),
       username: data?.username ?? next,
       username_changed_at: data?.username_changed_at ?? new Date().toISOString(),
     });
@@ -246,6 +248,7 @@ export default function ProfilePage() {
   };
 
   const toggleShowBadges = async (next: boolean) => {
+    if (badgePrefBusy) return;
     setBadgeMsg(null);
     setShowBadges(next);
     setBadgePrefBusy(true);
@@ -275,6 +278,7 @@ export default function ProfilePage() {
   };
 
   const changePassword = async () => {
+    if (pwBusy) return;
     setPwMsg(null);
     if (newPw !== confirmPw) {
       setPwMsg({ kind: 'err', text: t('كلمتا المرور غير متطابقتين', 'Passwords do not match') });
@@ -315,7 +319,7 @@ export default function ProfilePage() {
 
   const requestDeletion = async () => {
     setDelMsg(null);
-    if (!canRequestDelete || !user.email) return;
+    if (!canRequestDelete || delBusy || !user.email) return;
     setDelBusy(true);
     const { error: authErr } = await supabase.auth.signInWithPassword({
       email: user.email,
@@ -432,6 +436,7 @@ export default function ProfilePage() {
                 setNameMsg(null);
               }}
               autoComplete="name"
+              maxLength={80}
             />
           </label>
           <FlashMsg flash={nameMsg} />

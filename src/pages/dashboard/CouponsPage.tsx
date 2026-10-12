@@ -41,17 +41,29 @@ export default function CouponsPage() {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     Promise.all([
       supabase.from('coupons').select(COUPON_COLS).order('created_at', { ascending: false }).limit(100),
       supabase.from('badges').select(BADGE_COLS).order('name_en').limit(100),
-    ]).then(([cRes, bRes]) => {
-      if (cRes.error) setError(t('تعذر تحميل الكوبونات.', 'Could not load coupons.'));
-      setCoupons((cRes.data as Coupon[] | null) || []);
-      setBadges((bRes.data as Badge[] | null) || []);
-      setLoading(false);
-    });
+    ])
+      .then(([cRes, bRes]) => {
+        if (cancelled) return;
+        if (cRes.error) setError(t('تعذر تحميل الكوبونات.', 'Could not load coupons.'));
+        setCoupons((cRes.data as Coupon[] | null) || []);
+        setBadges((bRes.data as Badge[] | null) || []);
+      })
+      .catch(() => {
+        if (!cancelled) setError(t('تعذر تحميل الكوبونات.', 'Could not load coupons.'));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -63,15 +75,21 @@ export default function CouponsPage() {
   };
 
   const toggleCoupon = async (coupon: Coupon) => {
-    const { error: err } = await supabase
+    if (togglingId) return;
+    setTogglingId(coupon.id);
+    const next = !coupon.is_active;
+    const { data: upd, error: err } = await supabase
       .from('coupons')
-      .update({ is_active: !coupon.is_active })
-      .eq('id', coupon.id);
-    if (err) {
+      .update({ is_active: next })
+      .eq('id', coupon.id)
+      .select('id');
+    setTogglingId(null);
+    // RLS can filter the row silently (0 rows, no error) — don't show a fake success.
+    if (err || !upd?.length) {
       setError(t('فشل التحديث. تحقق من الصلاحيات.', 'Update failed. Check your permissions.'));
       return;
     }
-    setCoupons((prev) => prev.map((c) => c.id === coupon.id ? { ...c, is_active: !c.is_active } : c));
+    setCoupons((prev) => prev.map((c) => c.id === coupon.id ? { ...c, is_active: next } : c));
   };
 
   const deleteCoupon = (id: string) => {
@@ -81,8 +99,8 @@ export default function CouponsPage() {
   const confirmDeleteCoupon = async () => {
     if (!deleteId || deleteBusy) return;
     setDeleteBusy(true);
-    const { error: err } = await supabase.from('coupons').delete().eq('id', deleteId);
-    if (err) {
+    const { data: del, error: err } = await supabase.from('coupons').delete().eq('id', deleteId).select('id');
+    if (err || !del?.length) {
       setError(t('فشل الحذف — قد يكون الكوبون مستخدماً في طلبات.', 'Delete failed — the coupon may be used by orders.'));
     } else {
       setCoupons((prev) => prev.filter((c) => c.id !== deleteId));
@@ -101,6 +119,7 @@ export default function CouponsPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
 
   const saveCoupon = async () => {
+    if (saving) return;
     setFormError('');
     const code = form.code.trim().toUpperCase();
     const value = Number(form.discount_value);
@@ -117,6 +136,11 @@ export default function CouponsPage() {
       return;
     }
 
+    if (form.expires_at && Number.isNaN(new Date(form.expires_at).getTime())) {
+      setFormError(t('تاريخ الانتهاء غير صالح', 'Invalid expiry date'));
+      return;
+    }
+
     setSaving(true);
     const { data, error: err } = await supabase
       .from('coupons')
@@ -125,7 +149,7 @@ export default function CouponsPage() {
         description: form.description.trim() || null,
         discount_type: form.discount_type,
         discount_value: value,
-        min_order_amount: Number(form.min_order_amount) || 0,
+        min_order_amount: Math.max(0, Number(form.min_order_amount) || 0),
         // 0/negative must become null — the server treats uses_count >= max_uses
         // as exhausted, so a stored 0 would make the coupon instantly dead.
         max_uses: Number(form.max_uses) > 0 ? Number(form.max_uses) : null,
@@ -201,7 +225,8 @@ export default function CouponsPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => toggleCoupon(coupon)}
+                    onClick={() => void toggleCoupon(coupon)}
+                    disabled={togglingId === coupon.id}
                     className="btn btn-ghost btn-xs btn-square"
                     aria-label={coupon.is_active ? t('تعطيل', 'Disable') : t('تفعيل', 'Enable')}
                   >
@@ -326,7 +351,7 @@ export default function CouponsPage() {
                 <button type="button" onClick={() => setModalOpen(false)} className="btn btn-ghost btn-sm">
                   {t('إلغاء', 'Cancel')}
                 </button>
-                <button type="button" onClick={saveCoupon} disabled={saving} className="btn btn-primary btn-sm gap-2">
+                <button type="button" onClick={() => void saveCoupon()} disabled={saving} className="btn btn-primary btn-sm gap-2">
                   {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                   {t('إنشاء', 'Create')}
                 </button>

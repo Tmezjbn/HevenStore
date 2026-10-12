@@ -47,6 +47,14 @@ export default function CartPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState('');
+  // Back from Polar via bfcache keeps the old spinner state — reset it.
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setPayLoading(false);
+    };
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
+  }, []);
 
   const subtotal = total();
   const discount = couponDiscount(coupon, subtotal);
@@ -203,6 +211,7 @@ export default function CartPage() {
                           type="button"
                           className="btn btn-sm join-item min-h-12 min-w-12 px-0 text-base"
                           onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                          disabled={item.quantity >= item.product.stock}
                           aria-label={t('زيادة الكمية', 'Increase quantity')}
                         >
                           <Plus size={18} />

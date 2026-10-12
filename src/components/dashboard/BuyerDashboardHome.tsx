@@ -77,6 +77,9 @@ export default function BuyerDashboardHome() {
             )
           `,
             )
+            // Own purchases only — staff RLS would otherwise leak every order into "my" totals.
+            .eq('user_id', user.id)
+            .eq('status', 'paid')
             .order('created_at', { ascending: false })
             .limit(5),
           supabase
@@ -90,6 +93,7 @@ export default function BuyerDashboardHome() {
             supabase
               .from('orders')
               .select('total, status')
+              .eq('user_id', user.id)
               .eq('status', 'paid')
               .range(from, to),
           ),

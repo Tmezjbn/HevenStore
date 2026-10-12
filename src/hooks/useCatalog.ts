@@ -126,6 +126,7 @@ async function fetchActiveProductsPaged(
       .select(PRODUCT_CARD_COLS)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
       .range(from, from + pageSize - 1);
     if (types?.length) q = q.in('product_type', types);
     const { data, error } = await q;

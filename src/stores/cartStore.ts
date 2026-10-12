@@ -24,7 +24,8 @@ export const useCartStore = create<CartStore>()(
       coupon: null,
       setCoupon: (coupon) => set({ coupon }),
       addItem: (product, quantity = 1) => {
-        if (product.stock <= 0) return;
+        if (product.stock <= 0 || !Number.isFinite(quantity)) return;
+        quantity = Math.max(1, Math.floor(quantity));
         set((state) => {
           const existing = state.items.find((i) => i.product.id === product.id);
           if (existing) {
@@ -46,6 +47,8 @@ export const useCartStore = create<CartStore>()(
       removeItem: (productId) =>
         set((state) => ({ items: state.items.filter((i) => i.product.id !== productId) })),
       updateQuantity: (productId, quantity) => {
+        if (!Number.isFinite(quantity)) return;
+        quantity = Math.floor(quantity);
         if (quantity <= 0) {
           get().removeItem(productId);
           return;

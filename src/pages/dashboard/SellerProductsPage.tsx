@@ -9,7 +9,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 // PERF-2: seller-listings styles live in dashboard-role-surfaces.css (shared chunk).
@@ -94,6 +94,7 @@ export default function SellerProductsPage() {
   const [createdToday, setCreatedToday] = useState(0);
   const [needsReview, setNeedsReview] = useState(false);
 
+  const statusBusy = useRef(false);
   const profileId = profile?.id;
   const handle = (profile?.username || '').trim();
   const publicPath = handle ? `/seller/${encodeURIComponent(handle)}` : null;
@@ -158,9 +159,10 @@ export default function SellerProductsPage() {
         .select(PRODUCT_EDITOR_COLS, { count: 'exact' })
         .eq('seller_id', profileId)
         .order('updated_at', { ascending: false })
+        .order('id')
         .range(from, to);
 
-      const term = search.trim().replace(/[%_,]/g, '');
+      const term = search.trim().replace(/[%_,()\\]/g, '');
       if (term) query = query.or(`name.ilike.%${term}%,name_ar.ilike.%${term}%`);
 
       if (listFilter === 'live') query = query.eq('status', 'active').gt('stock', 0);
@@ -208,12 +210,15 @@ export default function SellerProductsPage() {
       setPending({ kind: 'hide', product });
       return;
     }
+    if (statusBusy.current) return;
+    statusBusy.current = true;
     const { data, error } = await supabase
       .from('products')
       .update({ status: 'active' })
       .eq('id', product.id)
       .select('status')
       .single();
+    statusBusy.current = false;
     if (error) {
       setActionError(error.message || t('تعذر تحديث العرض', 'Could not update the listing'));
       return;
@@ -252,6 +257,8 @@ export default function SellerProductsPage() {
       }
       setProducts((prev) => prev.filter((p) => p.id !== pending.id));
       setTotal((n) => Math.max(0, n - 1));
+      // Deleted the last row of a later page — step back instead of an empty page.
+      if (page > 0 && products.length <= 1) setPage(page - 1);
       refreshStorefront();
     }
     setConfirmBusy(false);

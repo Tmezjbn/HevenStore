@@ -180,6 +180,7 @@ export default function ProductReviews({
       setComposeOpen(false);
       await invalidateAll(productSlug);
     } catch {
+      setSubmitLockMs(0); // failed save must not lock out the retry
       setFormError(
         t(
           'تعذر نشر التقييم. تأكد أنك اشتريت هذا المنتج ولم تقيّمه من قبل.',

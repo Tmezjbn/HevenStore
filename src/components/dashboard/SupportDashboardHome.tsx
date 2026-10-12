@@ -18,6 +18,7 @@ export default function SupportDashboardHome() {
   const [sellerOpen, setSellerOpen] = useState(0);
   const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
 
   const standing = profile?.support_standing ?? 100;
   const tier = supportStandingTier(standing);
@@ -29,6 +30,8 @@ export default function SupportDashboardHome() {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
+      setLoadErr(false);
+      try {
       const [openRes, escRes, sellerRes, notifRes] = await Promise.all([
         supabase
           .from('support_tickets')
@@ -51,11 +54,16 @@ export default function SupportDashboardHome() {
           .eq('is_read', false),
       ]);
       if (cancelled) return;
+      if (openRes.error || escRes.error || sellerRes.error || notifRes.error) setLoadErr(true);
       setOpenCount(openRes.count ?? 0);
       setEscalatedCount(escRes.count ?? 0);
       setSellerOpen(sellerRes.count ?? 0);
       setUnread(notifRes.count ?? 0);
-      setLoading(false);
+      } catch {
+        if (!cancelled) setLoadErr(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     void load();
     return () => {
@@ -106,6 +114,12 @@ export default function SupportDashboardHome() {
           {unread > 0 ? <span className="badge badge-sm">{unread}</span> : null}
         </Link>
       </nav>
+
+      {loadErr ? (
+        <p className="text-sm text-error" role="alert">
+          {t('تعذر تحميل بعض البيانات — المعروض قد يكون ناقصاً.', 'Some data failed to load — figures shown may be incomplete.')}
+        </p>
+      ) : null}
 
       <section className="grid gap-3 sm:grid-cols-3" aria-label={t('ملخص الطابور', 'Queue pulse')}>
         <div className="rounded-lg border border-base-300 bg-base-200 p-4">

@@ -66,5 +66,7 @@ export function ticketStatusLabel(
     resolved: { ar: 'محلولة', en: 'Resolved' },
     closed: { ar: 'مغلقة', en: 'Closed' },
   };
-  return lang === 'ar' ? map[status].ar : map[status].en;
+  const entry = map[status];
+  if (!entry) return status;
+  return lang === 'ar' ? entry.ar : entry.en;
 }

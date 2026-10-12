@@ -238,6 +238,7 @@ export default function UsersPage() {
 
   const changeRole = async (userId: string, newRole: string) => {
     setRoleError('');
+    if (userId === profile?.id) return false; // no self-demotion lockout
     const { error: err } = await supabase.rpc('set_user_role', {
       target_user: userId,
       new_role: newRole,
@@ -263,7 +264,7 @@ export default function UsersPage() {
   };
 
   const disableSelected = async (indefinite: boolean) => {
-    if (!selected || !canDanger(selected)) return;
+    if (!selected || busy || !canDanger(selected)) return;
     setBusy(true);
     setError('');
     const { error: err } = await supabase.rpc('admin_disable_user', {
@@ -286,7 +287,7 @@ export default function UsersPage() {
   };
 
   const enableSelected = async () => {
-    if (!selected || !canEnable(selected)) return;
+    if (!selected || busy || !canEnable(selected)) return;
     setBusy(true);
     setError('');
     const { error: err } = await supabase.rpc('admin_enable_user', { p_user_id: selected.id });
@@ -303,7 +304,7 @@ export default function UsersPage() {
   };
 
   const scheduleDelete = async () => {
-    if (!selected || !canDanger(selected) || !isOwner) return;
+    if (!selected || busy || !canDanger(selected) || !isOwner) return;
     const handle = selected.username?.trim();
     if (!handle) {
       setDeleteError(t('لا يوجد اسم مستخدم لهذا الحساب', 'This account has no username'));
@@ -674,7 +675,9 @@ export default function UsersPage() {
                       {new Date(user.created_at).toLocaleDateString(locale)}
                     </time>
                   </div>
-                  <div className={`${prefix}__change`}>{roleSelect(user)}</div>
+                  <div className={`${prefix}__change`}>
+                    {user.id !== profile?.id ? roleSelect(user) : null}
+                  </div>
                 </article>
               </li>
             );
@@ -884,7 +887,8 @@ export default function UsersPage() {
                       void supabase
                         .rpc('set_staff_notes', { p_user_id: selected.id, p_notes: next })
                         .then(({ error: err }) => {
-                          if (!err) patchUser(selected.id, { staff_notes: next || null });
+                          if (err) setError(t('تعذر حفظ الملاحظات', 'Could not save notes'));
+                          else patchUser(selected.id, { staff_notes: next || null });
                         });
                     }}
                     placeholder={t('ملاحظات داخلية للمشرفين…', 'Internal notes for moderators…')}
@@ -900,7 +904,9 @@ export default function UsersPage() {
                       className="btn btn-ghost btn-xs border border-base-300"
                       disabled={busy}
                       onClick={() => {
+                        setBusy(true);
                         void supabase.rpc('reset_support_standing', { p_agent_id: selected.id }).then(({ error: err }) => {
+                          setBusy(false);
                           if (err) {
                             setError(t('تعذر إعادة ضبط التقييم', 'Could not reset standing'));
                             return;

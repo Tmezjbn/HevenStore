@@ -321,7 +321,16 @@ export default function SiteAtmosphere() {
     [settings.product_detail_fx_json],
   );
   const pageKey = atmospherePageFromPath(pathname);
-  const productSlug = pathname.match(/^\/product\/([^/]+)/)?.[1];
+  const productSlug = useMemo(() => {
+    const raw = pathname.match(/^\/product\/([^/]+)/)?.[1];
+    if (!raw) return undefined;
+    // pathname is URL-encoded; the PDP query key uses the decoded param.
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  }, [pathname]);
   const { data: product } = useProductBySlug(pageKey === 'product' ? productSlug : undefined);
 
   const pageOn = config.enabled && config.pages[pageKey];
