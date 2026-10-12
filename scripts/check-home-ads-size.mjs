@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readBuilderSource } from './builder-source.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const settings = readFileSync(join(root, 'src/lib/siteSettings.ts'), 'utf8');
 const banner = readFileSync(join(root, 'src/components/home/ProductAdsBanner.tsx'), 'utf8');
 const home = readFileSync(join(root, 'src/pages/HomePage.tsx'), 'utf8');
-const builder = readFileSync(join(root, 'src/pages/dashboard/WebsiteBuilderPage.tsx'), 'utf8');
+const builder = readBuilderSource(root);
 
 assert.match(settings, /home_ads_size/);
 assert.match(settings, /HOME_ADS_SIZES/);

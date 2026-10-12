@@ -1,0 +1,413 @@
+/* ── Nav pill bar — premium glassmorphic capsule ──────────────── */
+.nav-pill-bar {
+  position: relative;
+  border: 1px solid color-mix(in oklch, var(--color-base-content) 10%, transparent);
+  background: color-mix(in oklch, var(--color-base-200) 72%, transparent);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--color-base-content) 4%, transparent),
+    0 1px 3px color-mix(in oklch, var(--color-base-content) 6%, transparent),
+    inset 0 1px 0 color-mix(in oklch, var(--color-base-100) 40%, transparent);
+}
+.nav-pill-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--color-base-100) 18%, transparent) 0%,
+    transparent 50%
+  );
+  opacity: 0.8;
+}
+
+.nav-pill-bar__link {
+  position: relative;
+  color: color-mix(in oklch, var(--color-base-content) 72%, transparent);
+  letter-spacing: -0.01em;
+}
+.nav-pill-bar__link:hover {
+  color: var(--color-base-content);
+  background: color-mix(in oklch, var(--color-base-content) 6%, transparent);
+}
+.nav-pill-bar__link--active {
+  color: var(--color-primary) !important;
+  background: color-mix(in oklch, var(--color-primary) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--color-primary) 12%, transparent);
+}
+.nav-pill-bar__link--active::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-primary);
+  opacity: 0.7;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .nav-pill-bar__link--active::after {
+    animation: nav-pill-dot-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes nav-pill-dot-in {
+    from { width: 0; opacity: 0; }
+    to   { width: 18px; opacity: 0.7; }
+  }
+}
+
+/* Tablet squeeze: search moves to catalog/drawer before nav controls can overlap links. */
+@media (max-width: 52rem) {
+  .storefront-navbar .nav-chrome-slot--search {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .storefront-navbar,
+  .storefront-navbar::before,
+  .nav-chrome-slot {
+    transition-duration: 360ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .storefront-navbar {
+    transition-property: border-color, box-shadow;
+  }
+  .storefront-navbar::before {
+    transition-property: opacity;
+  }
+  .nav-chrome-slot {
+    /* visibility flips after the fade ends so links leave the tab order late. */
+    transition-property: opacity, transform, visibility;
+  }
+}
+
+/* Navbar language toggle — stacked EN / ع crossfade; optical match to Lucide 20 */
+.nav-lang-btn {
+  font-size: 0;
+}
+.nav-lang-btn__viewport {
+  position: relative;
+  display: grid;
+  place-items: center;
+  /* Taller than Lucide 20 — Ain bowl needs room under baseline */
+  width: 1.375rem;
+  height: 1.375rem;
+  overflow: hidden;
+  line-height: 0;
+}
+.nav-lang-btn__label {
+  grid-area: 1 / 1;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  /* Beat skin `.btn { font-family }` so AR glyph stays body sans */
+  font-family: var(--font-sans, 'Rubik', system-ui, sans-serif);
+  font-size: 0.875rem; /* label / sm — peers sun+bell */
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  font-kerning: normal;
+  opacity: 0;
+  /* translate3d → own layer; Blink smoother than translateY+scale */
+  transform: translate3d(0, 45%, 0) scale(0.92);
+  transition:
+    opacity 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  backface-visibility: hidden;
+}
+.nav-lang-btn__label.is-on {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+/*
+ * Ain ink sits SE of Latin metrics — nudge N/W. Keep size under viewport
+ * so overflow:hidden doesn’t clip the bowl.
+ */
+.nav-lang-btn__label[data-code='ar'] {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.nav-lang-btn__label[data-code='ar'].is-on {
+  transform: translate3d(-0.03em, -0.14em, 0);
+}
+.nav-lang-btn:active .nav-lang-btn__label.is-on {
+  transform: translate3d(0, 0, 0) scale(0.94);
+}
+.nav-lang-btn:active .nav-lang-btn__label[data-code='ar'].is-on {
+  transform: translate3d(-0.03em, -0.14em, 0) scale(0.94);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-lang-btn__label {
+    transition: none;
+    transform: translate3d(0, 0, 0);
+  }
+  .nav-lang-btn__label[data-code='ar'].is-on {
+    transform: translate3d(-0.03em, -0.14em, 0);
+  }
+  .nav-lang-btn__label:not(.is-on) {
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.reveal {
+  /* Visible by default — entrance enhances, never blanks (prefers-reduced / paused tabs) */
+  opacity: 1;
+  transform: none;
+}
+
+.reveal--in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal.reveal--in {
+    animation: reveal-soft 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes reveal-soft {
+  from {
+    opacity: 0.92;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal--in {
+    opacity: 1;
+    transform: none;
+    animation: none;
+    transition: none;
+  }
+}
+
+/* DaisyUI btn colors — registered so outline→fill interpolates instead of snapping */
+@property --btn-bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+@property --btn-border {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+@property --btn-fg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffffff;
+}
+
+/* --- Global interaction motion (opt-in via no-preference) --- */
+@media (prefers-reduced-motion: no-preference) {
+  body,
+  .navbar,
+  .card,
+  .btn,
+  .badge,
+  .input,
+  .select,
+  .textarea,
+  .menu li > * {
+    transition-property: color, background-color, border-color, box-shadow, transform, opacity,
+      --btn-bg, --btn-border, --btn-fg;
+    transition-duration: 220ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .card {
+    transition-duration: 300ms;
+  }
+  a.card:hover,
+  .card.reveal--in:hover {
+    transform: translateY(-3px);
+  }
+
+  .btn:not(:disabled):active {
+    transform: translateY(1px) scale(0.985);
+  }
+
+  .btn:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-square:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  /* Glow-On-Response: rare signal glow only on the primary action, on intent */
+  .btn-primary:not(:disabled):hover,
+  .btn-primary:not(:disabled):focus-visible {
+    box-shadow: 0 0 22px color-mix(in oklch, var(--color-primary) 45%, transparent);
+  }
+
+  /* Product card CTA: smoother outline→fill + glow ramp (Glow-On-Response) */
+  .product-card-cta {
+    transition-property: color, background-color, border-color, box-shadow, transform,
+      --btn-bg, --btn-border, --btn-fg;
+    transition-duration: 240ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .product-card-cta .product-card-cta__icon {
+    transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .product-card-cta:not(:disabled):hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 12px color-mix(in oklch, var(--color-primary) 14%, transparent);
+  }
+
+  .product-card-cta:not(:disabled):active {
+    transform: scale(0.98);
+  }
+
+  .product-card-cta:not(:disabled):hover .product-card-cta__icon {
+    transform: scale(1.05);
+  }
+
+  /* Product card body — motion only */
+  .product-card__title {
+    transition: color 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .product-card__stock {
+    animation: product-price-settle 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .product-card__stock--low .product-card__stock-n {
+    animation: product-stock-pulse 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+  .product-card__price {
+    transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .product-card:hover .product-card__price,
+  .product-card:focus-within .product-card__price {
+    transform: translateY(-1px);
+  }
+  .product-card:hover .product-price-row--oos .product-card__price,
+  .product-card:focus-within .product-price-row--oos .product-card__price {
+    transform: none;
+  }
+  .product-card__star--on {
+    transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .product-card:hover .product-card__star--on {
+    transform: scale(1.08);
+  }
+
+  .menu li > *:hover {
+    transform: translateX(2px);
+  }
+
+  .appearance-skin-picker button {
+    transition:
+      background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .appearance-skin-picker button:active {
+    transform: scale(0.98);
+  }
+
+  .appearance-skin-picker button.active {
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--color-primary) 45%, transparent);
+  }
+
+  .appearance-skin-picker button .skin-check {
+    animation: skin-check-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+/* Theme switch: overlay painted with OLD base color shrinks via clip-path,
+   revealing the fully-rendered new theme underneath. Overlay is inline-styled
+   in viewTransition.ts — this class just disables expensive paints. */
+html.theme-switching {}
+
+/* Lang veil — own compositor layer (Blink janks if opacity shares paint w/ navbar blur / RTL reflow) */
+.lang-black-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  background: #000;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: opacity;
+  contain: paint;
+}
+
+/* Kill expensive paints / micro-motion while veil covers the page (Blink jank) */
+html.lang-switching .storefront-navbar::before {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html.lang-switching .storefront-navbar,
+html.lang-switching .storefront-navbar::before,
+html.lang-switching .nav-chrome-slot,
+html.lang-switching .nav-lang-btn__label {
+  transition: none !important;
+}
+html.lang-switching .lang-transition,
+html.lang-switching .lang-transition * {
+  animation: none !important;
+}
+
+@keyframes skin-check-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Consistent, visible keyboard focus */
+:where(a, button, [tabindex], input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* DaisyUI wraps fields in label.input — ONE ring on the shell.
+   Daisy also sets --input-color to full ink + its own outline on focus-within,
+   which reads as a second ring beside our focus outline. */
+label.input :where(input, textarea, select):focus,
+label.input :where(input, textarea, select):focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+label.input:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  /* Keep rest border quiet — primary outline is the only focus cue */
+  --input-color: color-mix(in oklch, var(--color-base-content) 20%, transparent);
+  box-shadow: none;
+}
+
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+/* Soft, still inner glow — pairs with a moving aura border without extra motion */
+.glow-inset {
+  box-shadow: inset 0 0 44px -18px color-mix(in oklch, var(--color-primary) 38%, transparent);
+}

@@ -184,7 +184,9 @@ assert.match(sellerPage, /pending_review/);
 assert.match(sellerPage, /review_note/);
 
 for (const page of ['OwnerProductsPage.tsx', 'AdminProductsPage.tsx']) {
-  const src = readFileSync(join(root, 'src/pages/dashboard', page), 'utf8');
+  const src =
+    readFileSync(join(root, 'src/pages/dashboard', page), 'utf8') +
+    readFileSync(join(root, 'src/pages/dashboard/StaffProductsList.tsx'), 'utf8');
   assert.match(src, /review_product_listing/, `${page} must call the review RPC`);
   assert.match(src, /'pending_review'/, `${page} must render pending state`);
   assert.match(src, /pendingReviewCount/, `${page} must show a pending count`);

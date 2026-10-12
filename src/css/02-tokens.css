@@ -1,0 +1,477 @@
+/* ============================================================
+   THEME TOKENS (Tailwind v4 @theme). Fonts, radius, shadcn colors,
+   custom animations. daisyUI owns primary/secondary/accent/base/etc.
+   ============================================================ */
+@theme {
+  --font-sans: 'Rubik', system-ui, -apple-system, sans-serif;
+  --font-display: 'Bebas Neue', 'Rubik', system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+
+  /* shadcn design-system tokens (not provided by daisyUI) */
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border-hsl));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+
+  /* aliases so shadcn's *-foreground classes map to daisyUI content colors */
+  --color-primary-foreground: var(--color-primary-content);
+  --color-secondary-foreground: var(--color-secondary-content);
+  --color-accent-foreground: var(--color-accent-content);
+
+  --animate-fade-in-up: fade-in-up 0.6s ease forwards;
+  --animate-fade-in: fade-in 0.4s ease forwards;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Route / auth / boot hold — void + brand hero + rare primary bar (no card) */
+.route-loading {
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  /* Instant void paint — no white flash on enter/exit */
+  background-color: var(--color-base-100);
+  background-image:
+    radial-gradient(
+      ellipse 72% 48% at 50% 46%,
+      color-mix(in oklch, var(--color-base-200) 75%, transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      180deg,
+      var(--color-base-100) 0%,
+      color-mix(in oklch, var(--color-base-200) 40%, var(--color-base-100)) 100%
+    );
+  color: var(--color-base-content);
+}
+.route-loading__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 22rem);
+  text-align: center;
+}
+.route-loading__brand {
+  margin: 0;
+  max-width: 100%;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 8vw, 3.75rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--color-base-content);
+  text-wrap: balance;
+}
+.route-loading__track {
+  margin-top: 1rem;
+  width: min(100%, 11.5rem);
+  height: 0.125rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: color-mix(in oklch, var(--color-base-content) 12%, transparent);
+  contain: paint;
+}
+.route-loading__bar {
+  height: 100%;
+  width: 34%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transform: translate3d(-110%, 0, 0);
+  will-change: transform;
+}
+.route-loading__label {
+  margin: 0.875rem 0 0;
+  /* Reserve one line — AR/EN/custom label swap won’t jump the stack */
+  min-height: 1.25rem;
+  max-width: 16rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.25rem;
+  letter-spacing: 0.01em;
+  color: var(--color-accent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .route-loading__brand {
+    animation: route-loading-brand-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .route-loading__track {
+    animation: route-loading-track-breath 3.2s cubic-bezier(0.45, 0, 0.55, 1) 0.35s infinite;
+  }
+  .route-loading__bar {
+    /* Soft signal glow only while the cue moves (Glow-On-Response) */
+    box-shadow: 0 0 10px color-mix(in oklch, var(--color-primary) 32%, transparent);
+    animation: route-loading-bar 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.12s infinite;
+  }
+}
+@keyframes route-loading-brand-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.4rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes route-loading-track-breath {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes route-loading-bar {
+  0% {
+    transform: translate3d(-110%, 0, 0);
+  }
+  100% {
+    transform: translate3d(300%, 0, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-loading__brand,
+  .route-loading__track,
+  .route-loading__bar {
+    animation: none;
+  }
+  .route-loading__bar {
+    width: 40%;
+    margin-inline: auto;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* Dashboard page enter — short state cue, not page choreography */
+@media (prefers-reduced-motion: no-preference) {
+  .product-editor-enter,
+  .orders-page-enter,
+  .users-page-enter,
+  .deletion-page-enter,
+  .notifications-page-enter,
+  .builder-page-enter {
+    animation: dash-page-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .deletion-card,
+  .notif-row,
+  .builder-section,
+  .hero-panel,
+  .footer-col,
+  .effect-card,
+  .preset-card {
+    animation: deletion-card-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+@keyframes dash-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes deletion-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .product-editor-enter,
+  .orders-page-enter,
+  .users-page-enter,
+  .deletion-page-enter,
+  .notifications-page-enter,
+  .builder-page-enter,
+  .deletion-card,
+  .notif-row,
+  .builder-section,
+  .hero-panel,
+  .footer-col,
+  .effect-card,
+  .preset-card {
+    animation: none;
+  }
+}
+
+/* Static channel vars for the shadcn tokens above */
+:root {
+  --background: 0 0% 4%;
+  --foreground: 0 0% 96%;
+  --card: 0 0% 8%;
+  --card-foreground: 0 0% 96%;
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 96%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 0 0% 90%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 55%;
+  --accent: 0 0% 65%;
+  --accent-foreground: 0 0% 4%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  /* HSL color channel — NOT DaisyUI's --border (which must be a length) */
+  --border-hsl: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: 0 0% 85%;
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
+  --radius: 0.75rem;
+  /* DaisyUI 5: toggle/checkbox/radio size math uses --border as width */
+  --border: 1px;
+}
+
+@layer base {
+  :root {
+    /* Storefront density; route sync restores 100% for dashboard/auth. */
+    --ui-scale: 90%;
+    font-size: var(--ui-scale);
+  }
+
+  /* v4 resets default border to currentColor; restore v3 behavior */
+  *,
+  ::after,
+  ::before {
+    border-color: var(--color-border, currentColor);
+  }
+
+  html {
+    /* Anchors / programmatic only — Chromium ignores this for wheel (see smoothScroll.ts) */
+    scroll-behavior: smooth;
+    /* Fixed storefront navbar (~5rem) — hash / scrollIntoView don't hide under chrome */
+    scroll-padding-top: 5rem;
+  }
+
+  /* Nested scroll panes (dashboard main, drawers) follow the same feel */
+  .overflow-auto,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Centered layout: text stays put when switching AR/EN (no left/right shift) */
+    text-align: center;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Bebas Neue', 'Rubik', system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+  }
+
+  /* Product/dashboard: Rubik title scale — Bebas is storefront display only */
+  .drawer-content h1,
+  .drawer-content h2,
+  .drawer-content h3,
+  .drawer-content h4 {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    text-transform: none;
+  }
+
+  /* Mobile/desktop dashboard chrome title — DESIGN title token, rare-signal rule */
+  .dash-chrome-bar {
+    display: grid;
+    grid-template-columns: 3rem 1fr 3rem;
+    align-items: center;
+    min-height: 4rem;
+    padding-inline: 0.5rem;
+    background: var(--color-base-200);
+    border-bottom: 1px solid var(--color-base-300);
+  }
+  .dash-chrome-bar__rail {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+  }
+  .dash-chrome-bar__center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding-inline: 0.5rem;
+  }
+  .dash-chrome-header {
+    height: 4rem;
+    align-items: center;
+    padding-inline: 1.5rem;
+    background: var(--color-base-200);
+    border-bottom: 1px solid var(--color-base-300);
+  }
+  .dash-chrome-title-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .dash-chrome-title-wrap--start {
+    align-items: flex-start;
+  }
+  .drawer-content .dash-chrome-title {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--color-base-content);
+    text-wrap: balance;
+    max-width: 100%;
+  }
+  .dash-chrome-title-wrap::after {
+    content: '';
+    display: block;
+    width: 1.75rem;
+    height: 2px;
+    margin-top: 0.35rem;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--color-primary) 88%, transparent);
+  }
+  /* DaisyUI 5 menu-active — keep vault sidebar selection readable */
+  .drawer-side .menu li > a.menu-active {
+    background-color: color-mix(in oklch, var(--color-primary) 16%, transparent);
+    color: var(--color-base-content);
+    font-weight: 650;
+  }
+
+  .dash-chrome-menu:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .dash-chrome-title-wrap {
+      animation: dash-chrome-title-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .dash-chrome-title-wrap::after {
+      animation: dash-chrome-rule-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
+    }
+  }
+  @keyframes dash-chrome-title-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.2rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes dash-chrome-rule-in {
+    from {
+      opacity: 0;
+      transform: scaleX(0.4);
+    }
+    to {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dash-chrome-title-wrap,
+    .dash-chrome-title-wrap::after {
+      animation: none;
+    }
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Decorative media: hit parent/link, not “Open image in new tab” */
+  img {
+    pointer-events: none;
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  /* Keep form fields readable: inputs follow the reading direction, not centered */
+  input,
+  textarea,
+  select {
+    text-align: start;
+  }
+}
+
+/* Density must not shrink touch hardware below a usable CSS-pixel target. */
+@media (pointer: coarse), (max-width: 47.999rem) {
+  html[data-ui-scale-scope='storefront'] :is(
+    .btn,
+    .product-card-cta,
+    .product-card__wish,
+    .nav-search-fx__go,
+    .catalog-cat-tree__chip,
+    .catalog-cat-tree__expand,
+    .catalog-cat-tree__clear,
+    .drawer-side .menu li > *,
+    .storefront-navbar .menu li > *,
+    .modal-box button,
+    .modal-box [role='button']
+  ) {
+    min-block-size: 44px;
+  }
+  html[data-ui-scale-scope='storefront'] :is(
+    .btn-square,
+    .btn-circle,
+    .product-card__wish,
+    .nav-search-fx__go,
+    .catalog-cat-tree__expand
+  ) {
+    min-inline-size: 44px;
+  }
+}
+html[data-ui-scale-scope='storefront'] .nav-search-fx {
+  --ns-h: max(2.5rem, 44px);
+}

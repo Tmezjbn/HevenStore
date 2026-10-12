@@ -1,0 +1,609 @@
+/* Product detail atmosphere (Morphine-style patterns + particles + logo) */
+.pdp-fx--under {
+  /* Wallpaper under storefront chrome (Navbar/main sit at z-10+) */
+  z-index: 0;
+}
+.pdp-fx--over {
+  /* Above storefront content (z-10); never steal clicks from Plyr / CTAs */
+  z-index: 20;
+  pointer-events: none !important;
+}
+/*
+ * Showcase stage must sit ABOVE .pdp-fx--over (z-20). Otherwise patterns/logos
+ * paint on the video and Chromium often tiles/blurs the hardware video layer.
+ */
+.product-showcase-stage {
+  position: relative;
+  z-index: 25;
+  isolation: isolate;
+  background-color: var(--color-base-200);
+}
+.product-showcase-stage .plyr,
+.product-showcase-stage video {
+  /* Own compositor layer — avoids 2×2 tile glitch under atmosphere */
+  transform: translateZ(0);
+}
+.product-showcase-stage__media {
+  animation: product-showcase-in 220ms ease-out both;
+}
+@keyframes product-showcase-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.product-showcase-thumbs {
+  display: flex;
+  gap: 0.625rem;
+  overflow-x: auto;
+  padding-block: 0.2rem 0.35rem;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.product-showcase-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 6rem;
+  height: 4.5rem;
+  border-radius: 0.875rem;
+  overflow: hidden;
+  border: 2px solid color-mix(in oklch, var(--color-base-content) 14%, transparent);
+  background: var(--color-base-300);
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease,
+    filter 180ms ease,
+    background-color 180ms ease;
+}
+.product-showcase-thumb:hover {
+  border-color: color-mix(in oklch, var(--color-primary) 55%, var(--color-base-content));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px color-mix(in oklch, var(--color-base-content) 12%, transparent);
+}
+.product-showcase-thumb:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 90ms;
+}
+.product-showcase-thumb.is-on {
+  overflow: visible;
+  z-index: 0;
+  border-color: transparent;
+  box-shadow: none;
+}
+@property --rim-angle {
+  syntax: "<angle>";
+  initial-value: 210deg;
+  inherits: false;
+}
+@keyframes rim-spin {
+  to {
+    --rim-angle: 570deg;
+  }
+}
+.product-showcase-thumb.is-on::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 1rem;
+  padding: 2.5px;
+  background: conic-gradient(
+    from var(--rim-angle),
+    var(--color-primary),
+    color-mix(in oklch, var(--color-primary) 15%, transparent) 35%,
+    var(--color-primary) 55%,
+    color-mix(in oklch, var(--color-primary) 15%, transparent) 85%,
+    var(--color-primary)
+  );
+  animation: rim-spin 6s linear infinite;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: 1;
+  pointer-events: none;
+}
+.product-showcase-thumb.is-on .product-showcase-thumb__img {
+  border-radius: 0.875rem;
+}
+.product-showcase-thumb.is-on:hover {
+  transform: translateY(-1px);
+}
+.product-showcase-thumb:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+/* Quiet metadata under thumbs — no pill chrome, tool disappears into the task */
+.product-showcase-variant {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.85rem;
+  margin-top: 0.15rem;
+}
+.product-showcase-variant__title {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: color-mix(in oklch, var(--color-base-content) 48%, transparent);
+}
+.product-showcase-variant__btns {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.product-showcase-variant__btn {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0.15rem 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: color-mix(in oklch, var(--color-base-content) 45%, transparent);
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease;
+}
+.product-showcase-variant__btn:hover {
+  color: color-mix(in oklch, var(--color-base-content) 72%, transparent);
+}
+.product-showcase-variant__btn.is-on {
+  font-weight: 600;
+  color: color-mix(in oklch, var(--color-base-content) 82%, transparent);
+  border-bottom-color: color-mix(in oklch, var(--color-base-content) 35%, transparent);
+  background: transparent;
+}
+.product-showcase-variant__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: 0.15rem;
+}
+.product-showcase-thumb__n {
+  position: absolute;
+  inset-inline-end: 0.2rem;
+  bottom: 0.15rem;
+  font-size: 0.625rem;
+  font-weight: 800;
+  line-height: 1;
+  color: color-mix(in oklch, var(--color-base-content) 80%, transparent);
+}
+.product-showcase-thumb--video {
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklch, var(--color-base-300) 42%, transparent);
+}
+.product-showcase-thumb--video.is-on {
+  background: color-mix(in oklch, var(--color-base-300) 55%, transparent);
+}
+.product-showcase-thumb__play {
+  fill: currentColor;
+  opacity: 0.88;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+.product-showcase-thumb--video:hover .product-showcase-thumb__play,
+.product-showcase-thumb--video.is-on .product-showcase-thumb__play {
+  opacity: 1;
+  transform: scale(1.08);
+}
+.product-showcase-thumb--video.is-on .product-showcase-thumb__play {
+  color: var(--color-primary);
+}
+.product-showcase-thumb__img {
+  display: block;
+  transition: transform 220ms ease, opacity 180ms ease;
+}
+.product-showcase-thumb:hover .product-showcase-thumb__img {
+  transform: scale(1.05);
+}
+.product-showcase-thumb.is-on .product-showcase-thumb__img {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .product-showcase-stage__media,
+  .product-showcase-thumb,
+  .product-showcase-thumb::before,
+  .product-showcase-thumb::after,
+  .product-showcase-thumb__play,
+  .product-showcase-thumb__img {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+/*
+ * Mobile PDP order: media → info → seller → reviews. Media column dissolves
+ * into the grid (contents) so info can sort between media and reviews.
+ */
+@media (max-width: 1023.98px) {
+  .pdp-media-col {
+    display: contents;
+  }
+  .pdp-media-col > * {
+    order: 1;
+  }
+  .pdp-info-col {
+    order: 2;
+  }
+  .pdp-seller,
+  .pdp-reviews {
+    order: 3;
+  }
+}
+/* Clipped to welcome card — always under .card-body text */
+.pdp-fx--contained {
+  z-index: 0;
+  border-radius: inherit;
+}
+.pdp-fx--over *,
+.pdp-fx--under,
+.pdp-fx--under *,
+.pdp-fx--contained,
+.pdp-fx--contained * {
+  pointer-events: none !important;
+}
+/* Page roots paint opaque bg-base-100 over z-0 patterns — clear them in behind mode */
+html.atm-pattern-behind main > .bg-base-100,
+html.atm-pattern-behind main > .min-h-screen.bg-base-100,
+html.atm-pattern-behind main > .relative.min-h-screen.bg-base-100 {
+  background-color: transparent !important;
+}
+/* Welcome card hosts its own FX; keep fill soft so patterns read under text */
+html.atm-chrome-hero .hero-welcome-card {
+  background-color: color-mix(in oklch, var(--color-base-100) 72%, transparent) !important;
+}
+html.atm-chrome-hero .hero-welcome-card .card-body {
+  position: relative;
+  z-index: 1;
+}
+/* Atmosphere Pages → Footer / Drawer Menu: see-through chrome (checked) */
+html.atm-chrome-footer footer.footer {
+  background-color: transparent !important;
+  backdrop-filter: none;
+}
+html.atm-chrome-drawer .drawer-side > ul.menu,
+html.atm-chrome-drawer .drawer-side > div:not(.drawer-overlay) {
+  background-color: color-mix(in oklch, var(--color-base-200) 35%, transparent) !important;
+  backdrop-filter: blur(8px);
+}
+/* Unchecked = solid chrome above over-layer (z-20) so FX never appears "in" them */
+html.atm-solid-footer footer.footer {
+  position: relative;
+  z-index: 30;
+  background-color: var(--color-base-200) !important;
+}
+html.atm-solid-drawer .drawer-side {
+  z-index: 60;
+}
+html.atm-solid-drawer .drawer-side > ul.menu,
+html.atm-solid-drawer .drawer-side > div:not(.drawer-overlay) {
+  background-color: var(--color-base-200) !important;
+  backdrop-filter: none;
+}
+/* Checked drawer: sit under over-layer so FX shows through translucent panel */
+html.atm-chrome-drawer .drawer-side {
+  z-index: 15 !important;
+}
+.pdp-fx__pattern {
+  opacity: var(--pdp-grid-opacity, 0.14);
+  mask-image: radial-gradient(ellipse 95% 90% at 50% 45%, #000 35%, transparent 100%);
+}
+.pdp-fx__pattern--lines {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklch, var(--color-base-content) 28%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--color-base-content) 28%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: var(--pdp-grid-size, 56px) var(--pdp-grid-size, 56px);
+}
+.pdp-fx__pattern--dots {
+  background-image: radial-gradient(
+    circle,
+    color-mix(in oklch, var(--color-base-content) 32%, transparent) 1.25px,
+    transparent 1.3px
+  );
+  background-size: var(--pdp-grid-size, 56px) var(--pdp-grid-size, 56px);
+}
+.pdp-fx__pattern--diagonal {
+  background-image: repeating-linear-gradient(
+    -32deg,
+    transparent 0,
+    transparent 45%,
+    color-mix(in oklch, var(--color-base-content) 22%, transparent) 45%,
+    color-mix(in oklch, var(--color-base-content) 22%, transparent) calc(45% + 1.5px),
+    transparent calc(45% + 1.5px),
+    transparent 100%
+  );
+  background-size: var(--pdp-grid-size, 56px) var(--pdp-grid-size, 56px);
+}
+.pdp-fx__pattern--cross {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklch, var(--color-base-content) 20%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--color-base-content) 20%, transparent) 1px,
+      transparent 1px
+    ),
+    repeating-linear-gradient(
+      45deg,
+      transparent 0,
+      transparent 48%,
+      color-mix(in oklch, var(--color-base-content) 14%, transparent) 48%,
+      color-mix(in oklch, var(--color-base-content) 14%, transparent) calc(48% + 1px),
+      transparent calc(48% + 1px),
+      transparent 100%
+    );
+  background-size:
+    var(--pdp-grid-size, 56px) var(--pdp-grid-size, 56px),
+    var(--pdp-grid-size, 56px) var(--pdp-grid-size, 56px),
+    var(--pdp-grid-size, 56px) var(--pdp-grid-size, 56px);
+}
+.pdp-fx__pattern--plus {
+  background-image:
+    linear-gradient(
+      to right,
+      transparent calc(50% - 0.5px),
+      color-mix(in oklch, var(--color-base-content) 26%, transparent) calc(50% - 0.5px),
+      color-mix(in oklch, var(--color-base-content) 26%, transparent) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    ),
+    linear-gradient(
+      to bottom,
+      transparent calc(50% - 0.5px),
+      color-mix(in oklch, var(--color-base-content) 26%, transparent) calc(50% - 0.5px),
+      color-mix(in oklch, var(--color-base-content) 26%, transparent) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    );
+  background-size: var(--pdp-grid-size, 56px) var(--pdp-grid-size, 56px);
+}
+.pdp-fx__mark {
+  position: absolute;
+  opacity: var(--pdp-particle-opacity, 0.28);
+  color: color-mix(in oklch, var(--color-base-content) 70%, transparent);
+  animation-name: pdp-fx-drift;
+  animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+.pdp-fx__mark--x::before,
+.pdp-fx__mark--x::after {
+  content: '';
+  position: absolute;
+  inset: 20% 48%;
+  background: currentColor;
+  border-radius: 1px;
+}
+.pdp-fx__mark--x::before {
+  transform: rotate(45deg);
+}
+.pdp-fx__mark--x::after {
+  transform: rotate(-45deg);
+}
+.pdp-fx__mark--plus::before,
+.pdp-fx__mark--plus::after {
+  content: '';
+  position: absolute;
+  background: currentColor;
+  border-radius: 1px;
+}
+.pdp-fx__mark--plus::before {
+  inset: 18% 46%;
+}
+.pdp-fx__mark--plus::after {
+  inset: 46% 18%;
+}
+.pdp-fx__mark--box {
+  border: 1.5px solid currentColor;
+  border-radius: 1px;
+  background: transparent;
+}
+.pdp-fx__mark--diamond {
+  border: 1.5px solid currentColor;
+  border-radius: 1px;
+  background: transparent;
+  animation-name: pdp-fx-drift-diamond;
+}
+.pdp-fx__mark--dot {
+  border-radius: 9999px;
+  background: currentColor;
+  border: none;
+}
+.pdp-fx__game-logo {
+  position: absolute;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+  animation-name: pdp-fx-drift-logo;
+  animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+.pdp-fx__game-logo--stylized:not(.atmosphere-logo--ink) {
+  filter: grayscale(0.25) contrast(1.05);
+  mix-blend-mode: soft-light;
+}
+/* Mono atmosphere marks: white on dark themes, black on *-light */
+.atmosphere-logo--ink {
+  filter: brightness(0) invert(1);
+}
+[data-theme$='-light'] .atmosphere-logo--ink {
+  filter: brightness(0);
+}
+@keyframes pdp-fx-drift {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate(0, 0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate(var(--pdp-dx, 0px), var(--pdp-dy, -48px));
+  }
+}
+@keyframes pdp-fx-drift-diamond {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) rotate(45deg) translate(0, 0);
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(45deg)
+      translate(var(--pdp-dx, 0px), var(--pdp-dy, -48px));
+  }
+}
+@keyframes pdp-fx-drift-logo {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--pdp-rot, 0deg)) translate(0, 0);
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(var(--pdp-rot, 0deg))
+      translate(var(--pdp-dx, 0px), var(--pdp-dy, -28px));
+  }
+}
+/* Atmosphere particles/logos keep drift under reduced-motion (Cursor often forces the flag). */
+
+/* CTA hover-3d — perspective() IN transform (Blink flattens parent perspective under overflow). */
+.cta-3d-tilt {
+  display: inline-grid;
+}
+.cta-3d-tilt__face {
+  --cta-s: 1;
+  transform: perspective(75rem) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))
+    scale(var(--cta-s));
+  will-change: transform;
+  /* No transform transition — JS rAF lerps --rx/--ry; a CSS transition would fight it. */
+}
+.cta-3d-tilt:hover .cta-3d-tilt__face,
+.cta-3d-tilt:focus-visible .cta-3d-tilt__face {
+  --cta-s: 1.03;
+}
+.cta-3d-tilt__face .cta-3d-card {
+  position: relative;
+  overflow: hidden;
+}
+.cta-3d-tilt__face .cta-3d-card::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    circle at var(--shine-x, 50%) var(--shine-y, 50%),
+    color-mix(in oklch, var(--color-neutral-content) 18%, transparent) 0%,
+    transparent 42%
+  );
+  opacity: 0;
+  transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cta-3d-tilt:hover .cta-3d-tilt__face .cta-3d-card::after,
+.cta-3d-tilt:focus-visible .cta-3d-tilt__face .cta-3d-card::after {
+  opacity: 1;
+}
+
+[data-theme] .cta-3d-card.card {
+  background-color: var(--color-neutral);
+  background-image:
+    radial-gradient(
+      ellipse 90% 55% at 50% -10%,
+      color-mix(in oklch, var(--color-primary) 14%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      circle,
+      color-mix(in oklch, var(--color-neutral-content) 16%, transparent) 1px,
+      transparent 1.5px
+    );
+  background-size: auto, 1.75rem 1.75rem;
+  background-position: center, 0 0;
+  backdrop-filter: none;
+  color: var(--color-neutral-content);
+  border-radius: var(--radius-box, 0.75rem);
+  /* Border only at rest — no ghost-card shadow pair */
+  border: 1px solid color-mix(in oklch, var(--color-neutral-content) 14%, transparent);
+  box-shadow: none;
+  transition: border-color 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme] .cta-3d-card.card:hover,
+.cta-3d-tilt:focus-visible .cta-3d-card.card {
+  border-color: color-mix(in oklch, var(--color-primary) 50%, transparent);
+  box-shadow: none;
+}
+[data-theme] .cta-3d-card__btn {
+  transition: box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cta-3d-tilt:hover .cta-3d-card__btn,
+.cta-3d-tilt:focus-visible .cta-3d-card__btn {
+  /* Glow on the CTA only — card keeps border, no ghost-card pair */
+  box-shadow: 0 0 20px color-mix(in oklch, var(--color-primary) 30%, transparent);
+  transform: translateY(-1px);
+}
+/* CTA 3d tilt keeps motion under reduced-motion (Cursor often forces the flag). */
+
+/* Light themes: slash seams show dark bed, not page white */
+[data-theme$='-light'] .hero-media-backdrop {
+  background-color: oklch(0.18 0.02 255);
+}
+
+/*
+ * Ad banner glare hover — React Bits GlareHover
+ * (https://www.reactbits.dev/animations/glare-hover). CSS-only, no deps.
+ */
+.ads-banner-glare {
+  --ads-glare-rgba: rgb(255 255 255 / 0.42);
+  --ads-glare-angle: -45deg;
+  --ads-glare-size: 250%;
+  --ads-glare-duration: 650ms;
+}
+.ads-banner-glare::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    var(--ads-glare-angle),
+    transparent 58%,
+    var(--ads-glare-rgba) 70%,
+    transparent 82%,
+    transparent 100%
+  );
+  background-size: var(--ads-glare-size) var(--ads-glare-size);
+  background-repeat: no-repeat;
+  background-position: -100% -100%;
+  opacity: 0;
+  transition:
+    background-position var(--ads-glare-duration) cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 120ms linear;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ads-banner-glare:hover::before,
+  .ads-banner-glare:focus-within::before {
+    opacity: 1;
+    background-position: 100% 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ads-banner-glare::before {
+    display: none;
+  }
+}

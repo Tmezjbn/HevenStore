@@ -4,16 +4,25 @@
  * Skips dist asserts when dist/ is missing or stale (npm test before build).
  * Run: node scripts/check-dashboard-css-chunk.mjs
  */
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+// src/index.css + src/css/*.css (split storefront styles)
+function readIndexCss() {
+  const _fs = globalThis.process.getBuiltinModule('node:fs');
+  const _p = globalThis.process.getBuiltinModule('node:path');
+  const _r = _p.resolve(_p.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
+  const dir = _p.join(_r, 'src/css');
+  return [_fs.readFileSync(_p.join(_r, 'src/index.css'), 'utf8'), ..._fs.readdirSync(dir).filter((f) => f.endsWith('.css')).sort().map((f) => _fs.readFileSync(_p.join(dir, f), 'utf8'))].join('\n');
+}
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 
-const editorPage = read('src/pages/dashboard/ProductEditorPage.tsx');
-const adminPage = read('src/pages/dashboard/AdminProductsPage.tsx');
+const editorPage = readProductEditorSource();
+const adminPage = read('src/pages/dashboard/AdminProductsPage.tsx') + read('src/pages/dashboard/StaffProductsList.tsx');
 const settingsPage = read('src/pages/dashboard/SettingsPage.tsx');
 const homePage = read('src/pages/dashboard/DashboardHomePage.tsx');
 const buyerOrdersPage = read('src/pages/dashboard/BuyerOrdersPage.tsx');
@@ -22,11 +31,11 @@ const sellerOrdersPage = read('src/pages/dashboard/SellerOrdersPage.tsx');
 const ordersPage = read('src/pages/dashboard/OrdersPage.tsx');
 const categoriesPage = read('src/pages/dashboard/CategoriesPage.tsx');
 const usersPage = read('src/pages/dashboard/UsersPage.tsx');
-const ownerProductsPage = read('src/pages/dashboard/OwnerProductsPage.tsx');
+const ownerProductsPage = read('src/pages/dashboard/OwnerProductsPage.tsx') + read('src/pages/dashboard/StaffProductsList.tsx');
 const guidesPage = read('src/pages/dashboard/GuidesPage.tsx');
 const changelogsPage = read('src/pages/dashboard/OwnerChangelogsPage.tsx');
 const analyticsPage = read('src/pages/dashboard/AnalyticsPage.tsx');
-const indexCss = read('src/index.css');
+const indexCss = readIndexCss();
 const editorCss = read('src/styles/product-editor.css');
 const adminCss = read('src/styles/admin-catalog.css');
 const settingsCss = read('src/styles/settings-page.css');

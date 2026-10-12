@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readBuilderSource } from './builder-source.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const cats = readFileSync(join(root, 'src/lib/categories.ts'), 'utf8');
@@ -37,7 +38,7 @@ assert.match(settings, /store_category_tree_expand/);
 assert.match(settings, /function parseStoreCategoryTreeExpand/);
 assert.match(settings, /store_category_tree_expand: 'false'/);
 
-const builder = readFileSync(join(root, 'src/pages/dashboard/WebsiteBuilderPage.tsx'), 'utf8');
+const builder = readBuilderSource(root);
 assert.match(builder, /store_category_tree_expand/);
 assert.match(builder, /Store category expand/);
 

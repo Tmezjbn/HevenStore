@@ -1,4 +1,5 @@
 /** Mirrors src/lib/productOos.ts stock tone. */
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -39,7 +40,9 @@ assert.match(pdp, /stockTone === 'low'/);
 assert.match(pdp, /t\('يتبقى', 'Only'\)/);
 assert.match(pdp, /t\('فقط', 'left'\)/);
 
-const productsPage = readFileSync(join(root, 'src/pages/dashboard/AdminProductsPage.tsx'), 'utf8');
+const productsPage =
+  readFileSync(join(root, 'src/pages/dashboard/AdminProductsPage.tsx'), 'utf8') +
+  readFileSync(join(root, 'src/pages/dashboard/StaffProductsList.tsx'), 'utf8');
 assert.match(productsPage, /productListTitle/);
 assert.match(productsPage, /listFilter/);
 assert.match(productsPage, /DashboardOverflowMenu/);
@@ -48,7 +51,7 @@ assert.match(productsPage, /openEdit/);
 assert.match(productsPage, /state: \{ product \}/);
 assert.match(productsPage, /\/dashboard\/products\/new/);
 
-const editorPage = readFileSync(join(root, 'src/pages/dashboard/ProductEditorPage.tsx'), 'utf8');
+const editorPage = readProductEditorSource();
 assert.match(editorPage, /pe-panel/);
 assert.match(editorPage, /floatActions/);
 assert.match(editorPage, /editorSnapshot/);

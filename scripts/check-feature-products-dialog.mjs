@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readBuilderSource } from './builder-source.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(root, p), 'utf8');
 
-const catalog = read('src/pages/dashboard/OwnerProductsPage.tsx');
+const catalog = read('src/pages/dashboard/OwnerProductsPage.tsx') + read('src/pages/dashboard/StaffProductsList.tsx');
 assert.match(catalog, /FeatureProductsDialog/);
 assert.match(catalog, /feature['"]?\s*===\s*['"]1['"]|get\('feature'\)/);
 assert.match(catalog, /Feature Products!/);
@@ -24,7 +25,7 @@ const editor = read('src/components/dashboard/ProductIdListEditor.tsx');
 assert.match(editor, /export default function ProductIdListEditor/);
 assert.match(editor, /Deselect all/);
 
-const builder = read('src/pages/dashboard/WebsiteBuilderPage.tsx');
+const builder = readBuilderSource(root);
 assert.match(builder, /products\?feature=1/);
 assert.doesNotMatch(builder, /function ProductIdListEditor/);
 

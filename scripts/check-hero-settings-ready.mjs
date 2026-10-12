@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readBuilderSource } from './builder-source.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -15,7 +16,7 @@ assert.match(home, /isPlaceholderData/);
 assert.match(home, /settingsReady/);
 assert.match(home, /settingsReady\s*&&\s*parseHeroEnabled/);
 
-const builder = readFileSync(join(root, 'src/pages/dashboard/WebsiteBuilderPage.tsx'), 'utf8');
+const builder = readBuilderSource(root);
 assert.match(builder, /settingsPlaceholder/);
 assert.match(builder, /!settingsLoading\s*&&\s*!settingsPlaceholder/);
 

@@ -1,0 +1,394 @@
+/* Type 1 — canvas matrix (light). */
+.product-card__fx-matrix-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0.92;
+  pointer-events: none;
+  /* Fade top + bottom — hides wrap reset bunching (bulk letter smear at top edge). */
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 10%,
+    #000 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(180deg, transparent 0%, #000 10%, #000 88%, transparent 100%);
+}
+/* Type 3 — Letter Glitch (React Bits). */
+.product-card__fx-glitch {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.product-card__fx-glitch-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.product-card__fx-glitch-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.product-card__fx-glitch-vignette--outer {
+  background: radial-gradient(circle, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.85) 100%);
+}
+.product-card__fx-glitch-vignette--center {
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 60%);
+}
+/* Type 2 — DOM glyph columns (richer, heavier). */
+@keyframes product-card-fx-matrix {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+@keyframes product-card-fx-matrix-chroma {
+  0%,
+  100% {
+    color: var(--card-fx-color, #22c55e);
+  }
+  50% {
+    color: var(--card-fx-color-2, #06b6d4);
+  }
+}
+.product-card__fx-matrix {
+  display: grid;
+  grid-template-columns: repeat(var(--matrix-cols, 36), minmax(0, 1fr));
+  justify-items: center;
+  align-items: flex-start;
+  height: 100%;
+  width: 100%;
+  opacity: 0.9;
+  color: var(--card-fx-color, #22c55e);
+  font-family: 'Segoe UI', ui-monospace, monospace;
+  font-size: 0.72rem;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  user-select: none;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 10%,
+    #000 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(180deg, transparent 0%, #000 10%, #000 88%, transparent 100%);
+}
+.product-card__fx-matrix-col {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  white-space: nowrap;
+  animation: product-card-fx-matrix var(--matrix-dur, 5.4s) linear infinite;
+  animation-delay: calc(var(--i, 0) * -0.55s);
+  opacity: calc(0.78 + min(var(--i, 0), 18) * 0.012);
+  will-change: transform;
+}
+.product-card__fx.is-matrix-up .product-card__fx-matrix-col {
+  animation-direction: reverse;
+}
+.product-card__fx.is-gradient.is-shift.is-matrix-dom .product-card__fx-matrix-col {
+  animation:
+    product-card-fx-matrix var(--matrix-dur, 5.4s) linear infinite,
+    product-card-fx-matrix-chroma 4.2s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -0.55s), calc(var(--i, 0) * -0.28s);
+}
+.product-card__fx.is-gradient.is-shift.is-matrix-dom.is-matrix-up .product-card__fx-matrix-col {
+  animation-direction: reverse, normal;
+}
+.product-card__fx-matrix-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+.product-card__fx-matrix-head {
+  display: block;
+  color: color-mix(in oklch, var(--card-fx-color, #22c55e) 22%, white);
+  text-shadow:
+    0 0 5px var(--card-fx-color, #22c55e),
+    0 0 14px color-mix(in oklch, var(--card-fx-color, #22c55e) 70%, transparent);
+  font-weight: 700;
+}
+.product-card__fx-matrix-tail {
+  display: block;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  color: var(--card-fx-color, #22c55e);
+  opacity: 0.92;
+  text-shadow: 0 0 7px color-mix(in oklch, var(--card-fx-color, #22c55e) 55%, transparent);
+}
+.product-card__fx.is-gradient.is-shift.is-matrix-dom .product-card__fx-matrix-tail,
+.product-card__fx.is-gradient.is-shift.is-matrix-dom .product-card__fx-matrix-head {
+  color: inherit;
+  text-shadow: 0 0 6px currentColor;
+}
+.product-card__fx.is-gradient.is-shift.is-matrix-dom .product-card__fx-matrix-head {
+  opacity: 1;
+  font-weight: 700;
+}
+.product-card__fx.is-gradient.is-shift.is-matrix-dom .product-card__fx-matrix-tail {
+  opacity: 0.9;
+}
+/* Pause in place — don't tear down DOM (that re-spawned incomplete rain). */
+.product-card__fx.is-offscreen .product-card__fx-matrix-col,
+.product-card__fx.is-offscreen .product-card__fx-sheen::after,
+.product-card__fx.is-offscreen .product-card__fx-ember,
+.product-card__fx.is-offscreen .product-card__fx-rift::before {
+  animation-play-state: paused;
+}
+.product-card__fx-logo {
+  position: absolute;
+  inset-inline-end: -8%;
+  bottom: -6%;
+  width: min(58%, 9.5rem);
+  height: auto;
+  max-height: 70%;
+  object-fit: contain;
+  opacity: 0.14;
+  filter: grayscale(0.2);
+  transform: rotate(-8deg);
+}
+.product-card__fx-scan {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 2px,
+      color-mix(in oklch, var(--card-fx-color, #22c55e) 18%, transparent) 2px 3px
+    );
+  opacity: 0.55;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 20%, #000 80%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 20%, #000 80%, transparent);
+}
+.product-card__fx.is-gradient .product-card__fx-scan {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 2px,
+      color-mix(in oklch, var(--card-fx-color, #22c55e) 16%, transparent) 2px 3px
+    ),
+    linear-gradient(
+      165deg,
+      color-mix(in oklch, var(--card-fx-color, #22c55e) 22%, transparent),
+      color-mix(in oklch, var(--card-fx-color-2, #06b6d4) 22%, transparent)
+    );
+}
+/* Vault metal sweep — Trusted Vault sheen */
+.product-card__fx-sheen {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in oklch, var(--card-fx-color, #22c55e) 8%, transparent) 0%,
+      transparent 42%,
+      transparent 100%
+    );
+  overflow: hidden;
+}
+.product-card__fx.is-gradient .product-card__fx-sheen {
+  background: linear-gradient(
+    155deg,
+    color-mix(in oklch, var(--card-fx-color, #22c55e) 14%, transparent) 0%,
+    transparent 40%,
+    color-mix(in oklch, var(--card-fx-color-2, #06b6d4) 10%, transparent) 100%
+  );
+}
+.product-card__fx-sheen::after {
+  content: '';
+  position: absolute;
+  top: -30%;
+  bottom: -30%;
+  inset-inline-start: -45%;
+  width: 42%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    color-mix(in oklch, var(--card-fx-color, #22c55e) 12%, white) 45%,
+    color-mix(in oklch, var(--card-fx-color, #22c55e) 38%, transparent) 52%,
+    transparent 72%
+  );
+  opacity: 0.55;
+  transform: skewX(-18deg);
+  animation: product-card-fx-sheen 5.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.product-card__fx.is-gradient .product-card__fx-sheen::after {
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    color-mix(in oklch, var(--card-fx-color, #22c55e) 18%, white) 40%,
+    color-mix(in oklch, var(--card-fx-color-2, #06b6d4) 42%, transparent) 55%,
+    transparent 78%
+  );
+}
+/* Sparse ember sparks */
+.product-card__fx-embers {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 25%, #000 85%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 25%, #000 85%, transparent);
+}
+.product-card__fx-ember {
+  position: absolute;
+  width: 0.2rem;
+  height: 0.2rem;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--card-fx-color, #22c55e) 55%, white);
+  box-shadow:
+    0 0 6px color-mix(in oklch, var(--card-fx-color, #22c55e) 70%, transparent),
+    0 0 12px color-mix(in oklch, var(--card-fx-color, #22c55e) 35%, transparent);
+  left: calc(8% + (var(--i, 0) * 10.5%));
+  bottom: calc(6% + ((var(--i, 0) * 7%) % 40%));
+  opacity: 0;
+  animation: product-card-fx-ember calc(3.4s + (var(--i, 0) * 0.35s)) ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -0.55s);
+}
+/* Soft vertical energy rift */
+.product-card__fx-rift {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      120% 80% at 50% 120%,
+      color-mix(in oklch, var(--card-fx-color, #22c55e) 22%, transparent),
+      transparent 55%
+    );
+}
+.product-card__fx.is-gradient .product-card__fx-rift {
+  background:
+    radial-gradient(
+      110% 70% at 30% 120%,
+      color-mix(in oklch, var(--card-fx-color, #22c55e) 24%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      110% 70% at 70% 0%,
+      color-mix(in oklch, var(--card-fx-color-2, #06b6d4) 20%, transparent),
+      transparent 55%
+    );
+}
+.product-card__fx-rift::before {
+  content: '';
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  inset-inline-start: 52%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in oklch, var(--card-fx-color, #22c55e) 75%, white) 35%,
+    color-mix(in oklch, var(--card-fx-color, #22c55e) 75%, white) 65%,
+    transparent
+  );
+  box-shadow:
+    0 0 10px color-mix(in oklch, var(--card-fx-color, #22c55e) 55%, transparent),
+    0 0 28px color-mix(in oklch, var(--card-fx-color, #22c55e) 28%, transparent);
+  animation: product-card-fx-rift 3.6s ease-in-out infinite;
+}
+.product-card__fx.is-gradient .product-card__fx-rift::before {
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in oklch, var(--card-fx-color, #22c55e) 80%, white) 30%,
+    color-mix(in oklch, var(--card-fx-color-2, #06b6d4) 80%, white) 70%,
+    transparent
+  );
+  box-shadow:
+    0 0 10px color-mix(in oklch, var(--card-fx-color, #22c55e) 45%, transparent),
+    0 0 22px color-mix(in oklch, var(--card-fx-color-2, #06b6d4) 30%, transparent);
+}
+.product-card__fx-rift::after {
+  content: '';
+  position: absolute;
+  inset: 12% 28%;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    color-mix(in oklch, var(--card-fx-color, #22c55e) 16%, transparent),
+    transparent 70%
+  );
+  filter: blur(8px);
+  opacity: 0.85;
+}
+.product-card__fx.is-gradient .product-card__fx-rift::after {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    color-mix(in oklch, var(--card-fx-color-2, #06b6d4) 18%, transparent),
+    transparent 70%
+  );
+}
+
+/* pe-fx-matrix-rain + .product-editor/.pe-* → src/styles/product-editor.css (PERF-2) */
+@keyframes product-card-fx-sheen {
+  0% {
+    transform: skewX(-18deg) translateX(-30%);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.6;
+  }
+  55% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: skewX(-18deg) translateX(280%);
+    opacity: 0;
+  }
+}
+@keyframes product-card-fx-ember {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(0.7);
+  }
+  20% {
+    opacity: 0.85;
+  }
+  80% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-2.4rem) scale(1.05);
+  }
+}
+@keyframes product-card-fx-rift {
+  0%,
+  100% {
+    opacity: 0.55;
+    filter: brightness(0.95);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.15);
+  }
+}
+/*
+ * Storefront merch FX (aura / matrix / sheen / embers / rift / hover-3d) calm via JS:
+ * site_settings.merch_motion_mode — auto honors prefers-reduced-motion; always keeps motion
+ * (Cursor/Windows escape hatch); off always calms. No universal CSS animation nuke (that
+ * finished aura in ~0.01ms). Page chrome staggers/enters still have targeted reduce rules.
+ */
+@keyframes product-stock-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.72;
+    transform: scale(1.06);
+  }
+}

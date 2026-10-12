@@ -2,13 +2,14 @@
  * Pins dashboard product edit URLs to slug (not UUID).
  * Run: node scripts/check-product-edit-slug.mjs
  */
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const app = fs.readFileSync('src/App.tsx', 'utf8');
-const products = fs.readFileSync('src/pages/dashboard/AdminProductsPage.tsx', 'utf8');
-const owner = fs.readFileSync('src/pages/dashboard/OwnerProductsPage.tsx', 'utf8');
-const editor = fs.readFileSync('src/pages/dashboard/ProductEditorPage.tsx', 'utf8');
+const products = fs.readFileSync('src/pages/dashboard/AdminProductsPage.tsx', 'utf8') + fs.readFileSync('src/pages/dashboard/StaffProductsList.tsx', 'utf8');
+const owner = fs.readFileSync('src/pages/dashboard/OwnerProductsPage.tsx', 'utf8') + fs.readFileSync('src/pages/dashboard/StaffProductsList.tsx', 'utf8');
+const editor = readProductEditorSource();
 const detail = fs.readFileSync('src/pages/ProductDetailPage.tsx', 'utf8');
 
 assert.match(app, /products\/:productSlug\/edit/);

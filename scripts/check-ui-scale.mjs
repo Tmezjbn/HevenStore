@@ -2,12 +2,20 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+// src/index.css + src/css/*.css (split storefront styles)
+function readIndexCss() {
+  const _fs = globalThis.process.getBuiltinModule('node:fs');
+  const _p = globalThis.process.getBuiltinModule('node:path');
+  const _r = _p.resolve(_p.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
+  const dir = _p.join(_r, 'src/css');
+  return [_fs.readFileSync(_p.join(_r, 'src/index.css'), 'utf8'), ..._fs.readdirSync(dir).filter((f) => f.endsWith('.css')).sort().map((f) => _fs.readFileSync(_p.join(dir, f), 'utf8'))].join('\n');
+}
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path) => readFileSync(join(root, path), 'utf8');
 const settings = read('src/lib/siteSettings.ts');
 const app = read('src/App.tsx');
-const css = read('src/index.css');
+const css = readIndexCss();
 const html = read('index.html');
 const nav = read('src/components/layout/Navbar.tsx');
 const settingsHook = read('src/hooks/useSiteSettings.ts');

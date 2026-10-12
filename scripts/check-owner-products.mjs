@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const page = readFileSync(join(root, 'src/pages/dashboard/ProductsPage.tsx'), 'utf8');
-const owner = readFileSync(join(root, 'src/pages/dashboard/OwnerProductsPage.tsx'), 'utf8');
+const owner =
+  readFileSync(join(root, 'src/pages/dashboard/OwnerProductsPage.tsx'), 'utf8') +
+  readFileSync(join(root, 'src/pages/dashboard/StaffProductsList.tsx'), 'utf8');
 const css = readFileSync(join(root, 'src/styles/dashboard-owner-surfaces.css'), 'utf8');
 
 assert.match(page, /OwnerProductsPage/);

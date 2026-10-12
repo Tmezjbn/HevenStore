@@ -1,4 +1,5 @@
 /** Custom product types: lib + editor + relaxed DB check. */
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -15,7 +16,7 @@ assert.match(lib, /slugifyProductType/);
 const settings = read('src/lib/siteSettings.ts');
 assert.match(settings, /product_types_json/);
 
-const editor = read('src/pages/dashboard/ProductEditorPage.tsx');
+const editor = readProductEditorSource();
 assert.match(editor, /parseProductTypesJson/);
 assert.match(editor, /Add type/);
 

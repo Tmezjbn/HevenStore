@@ -51,8 +51,8 @@ mustInclude('src/App.tsx', 'GuidesPage');
 mustInclude('src/layouts/DashboardLayout.tsx', '/dashboard/deletion-requests');
 mustInclude('src/lib/siteSettings.ts', '/dashboard/guides');
 mustInclude('src/stores/authStore.ts', 'is_active');
-mustInclude('src/index.css', 'badge-strip-motion.is-open .badge-strip-motion__clip');
-mustInclude('src/index.css', 'overflow: visible');
+mustInclude('src/css/03-skins-base.css', 'badge-strip-motion.is-open .badge-strip-motion__clip');
+mustInclude('src/css/03-skins-base.css', 'overflow: visible');
 mustInclude('src/components/ui/ProfileBadgeStrip.tsx', 'badge-strip-motion__clip');
 
 console.log('check-profile-badges: ok');

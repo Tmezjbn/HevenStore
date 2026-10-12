@@ -1,8 +1,10 @@
 /** PERF-5 search debounce + builder leave-guard wiring. */
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readBuilderSource } from './builder-source.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const store = readFileSync(join(root, 'src/pages/GamesPage.tsx'), 'utf8');
@@ -11,14 +13,14 @@ assert.match(store, /setTimeout/);
 assert.match(store, /200/);
 assert.match(store, /onChange=\{\(e\) => setSearchDraft/);
 
-const builder = readFileSync(join(root, 'src/pages/dashboard/WebsiteBuilderPage.tsx'), 'utf8');
+const builder = readBuilderSource(root);
 assert.match(builder, /useBlocker/);
 assert.match(builder, /builderDirty/);
 assert.match(builder, /beforeunload/);
 assert.match(builder, /Applying this preset replaces unsaved changes/);
 assert.match(builder, /You have unsaved changes\. Leave this page\?/);
 
-const editor = readFileSync(join(root, 'src/pages/dashboard/ProductEditorPage.tsx'), 'utf8');
+const editor = readProductEditorSource();
 assert.match(editor, /useBlocker/);
 assert.match(editor, /beforeunload/);
 assert.match(editor, /dirty && !saving/);

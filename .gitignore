@@ -54,3 +54,8 @@ desktop.ini
 .devin/mcp_config.local.json
 
 .playwright-mcp/
+
+# Local tool caches (never commit)
+.playwright-mcp/
+.wrangler/
+supabase/.temp/

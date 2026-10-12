@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readBuilderSource } from './builder-source.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const settings = readFileSync(join(root, 'src/lib/siteSettings.ts'), 'utf8');
 const home = readFileSync(join(root, 'src/pages/HomePage.tsx'), 'utf8');
 const store = readFileSync(join(root, 'src/pages/GamesPage.tsx'), 'utf8');
-const builder = readFileSync(join(root, 'src/pages/dashboard/WebsiteBuilderPage.tsx'), 'utf8');
+const builder = readBuilderSource(root);
 
 assert.match(settings, /home_featured_product_ids/);
 assert.match(settings, /store_featured_product_ids/);
@@ -40,7 +41,9 @@ assert.match(builder, /products\?feature=1/);
 assert.match(builder, /STORE_CATEGORY_SECTIONS_MAX/);
 assert.match(builder, /addStoreCategorySection/);
 
-const catalog = readFileSync(join(root, 'src/pages/dashboard/OwnerProductsPage.tsx'), 'utf8');
+const catalog =
+  readFileSync(join(root, 'src/pages/dashboard/OwnerProductsPage.tsx'), 'utf8') +
+  readFileSync(join(root, 'src/pages/dashboard/StaffProductsList.tsx'), 'utf8');
 assert.match(catalog, /Feature Products!/);
 assert.match(catalog, /FeatureProductsDialog/);
 

@@ -2,10 +2,19 @@
  * Phase 7 a11y invariants — shared Modal with Escape/focus-trap, contentDir, labelled modals.
  * Run: node scripts/check-a11y.mjs
  */
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+// src/index.css + src/css/*.css (split storefront styles)
+function readIndexCss() {
+  const _fs = globalThis.process.getBuiltinModule('node:fs');
+  const _p = globalThis.process.getBuiltinModule('node:path');
+  const _r = _p.resolve(_p.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
+  const dir = _p.join(_r, 'src/css');
+  return [_fs.readFileSync(_p.join(_r, 'src/index.css'), 'utf8'), ..._fs.readdirSync(dir).filter((f) => f.endsWith('.css')).sort().map((f) => _fs.readFileSync(_p.join(dir, f), 'utf8'))].join('\n');
+}
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
@@ -61,7 +70,7 @@ assert.doesNotMatch(
 assert.match(i18n, /3_000|3000/, 'lang busy lock needs failsafe unlock');
 assert.match(i18n, /document\.documentElement\.lang\s*=\s*l/, 'setLang writes html.lang under veil');
 
-const css = read('src/index.css');
+const css = readIndexCss();
 assert.match(css, /\.lang-black-veil[\s\S]{0,400}will-change:\s*opacity/, 'lang veil needs compositor layer');
 assert.match(
   css,
@@ -129,18 +138,18 @@ for (const file of [
 }
 
 assert.doesNotMatch(
-  read('src/pages/dashboard/AdminProductsPage.tsx'),
+  (read('src/pages/dashboard/AdminProductsPage.tsx') + read('src/pages/dashboard/StaffProductsList.tsx')),
   /modal modal-open/,
   'Admin products list must not use raw daisy modal markup',
 );
 assert.doesNotMatch(
-  read('src/pages/dashboard/OwnerProductsPage.tsx'),
+  (read('src/pages/dashboard/OwnerProductsPage.tsx') + read('src/pages/dashboard/StaffProductsList.tsx')),
   /modal modal-open/,
   'Owner products list must not use raw daisy modal markup',
 );
 
 assert.doesNotMatch(
-  read('src/pages/dashboard/ProductEditorPage.tsx'),
+  readProductEditorSource(),
   /aria-label="Up"|aria-label="Down"/,
   'gallery reorder buttons need bilingual aria-labels',
 );

@@ -2,6 +2,7 @@
  * safeHref allowlist + ConfirmDialog replaces native confirm.
  * Run: node scripts/check-safe-href.mjs
  */
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -31,7 +32,8 @@ for (const file of [
   'src/pages/dashboard/OwnerChangelogsPage.tsx',
   'src/pages/dashboard/ProductEditorPage.tsx',
 ]) {
-  const src = read(file);
+  const src =
+    (file.endsWith('ProductEditorPage.tsx') ? readProductEditorSource() : read(file)) + (/(Admin|Owner)ProductsPage\.tsx$/.test(file) ? read('src/pages/dashboard/StaffProductsList.tsx') : '');
   assert.match(src, /ConfirmDialog/, `${file} must use ConfirmDialog`);
   assert.doesNotMatch(src, /\bconfirm\s*\(/, `${file} must not use window.confirm`);
 }

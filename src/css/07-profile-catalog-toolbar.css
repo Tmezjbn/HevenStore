@@ -1,0 +1,477 @@
+/* Profile settings — section titles + field labels (product title scale) */
+.profile-section-title {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  color: var(--color-base-content);
+  text-wrap: balance;
+}
+.profile-section-title--with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+}
+.profile-section-title__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  /* Cap-height optical center (Lucide paths sit high in viewBox) */
+  translate: 0 0.06em;
+  opacity: 0.8;
+}
+.profile-section-title__icon > svg {
+  width: 0.92em;
+  height: 0.92em;
+  display: block;
+}
+.profile-section-title--quiet {
+  font-size: 1rem;
+  font-weight: 600;
+  color: color-mix(in oklch, var(--color-base-content) 82%, transparent);
+}
+.profile-section-title--danger {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-error);
+  letter-spacing: -0.01em;
+}
+.profile-field-label {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: color-mix(in oklch, var(--color-base-content) 78%, transparent);
+}
+
+/* Dashboard Site Settings → src/styles/settings-page.css (PERF-2 dynamic import) */
+
+/* Dashboard Guides → src/styles/dashboard-docs.css (PERF-2 dynamic import) */
+
+.menu li.account-switch-profile > a {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.account-switch-profile__name {
+  min-width: 0;
+  flex: 0 1 auto;
+  max-width: calc(100% - 2.5rem);
+}
+.account-switch-profile__dash {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in oklch, var(--color-base-content) 48%, transparent);
+  pointer-events: none;
+}
+.menu li.account-switch-profile > a:hover .account-switch-profile__dash {
+  color: color-mix(in oklch, var(--color-base-content) 72%, transparent);
+}
+.account-switch-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: 0.55rem;
+  border: 1px solid color-mix(in oklch, var(--color-base-content) 14%, transparent);
+  background: color-mix(in oklch, var(--color-base-100) 40%, transparent);
+  color: color-mix(in oklch, var(--color-base-content) 80%, transparent);
+  transition:
+    border-color 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.account-switch-btn:hover:not(:disabled) {
+  border-color: color-mix(in oklch, var(--color-primary) 40%, transparent);
+  background: color-mix(in oklch, var(--color-primary) 10%, transparent);
+  color: var(--color-base-content);
+}
+.account-switch-btn.is-parked {
+  border-color: color-mix(in oklch, var(--color-success) 40%, transparent);
+  background: color-mix(in oklch, var(--color-success) 12%, transparent);
+}
+.account-switch-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.account-switch-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.account-switch-btn.is-err {
+  border-color: color-mix(in oklch, var(--color-error) 45%, transparent);
+  color: var(--color-error);
+}
+/* Drawer row: names the OTHER (parked) account — not the live one */
+.menu li.account-switch-menu > button {
+  align-items: flex-start;
+  background: color-mix(in oklch, var(--color-success) 8%, transparent);
+}
+.guides-card {
+  scroll-margin-top: 5.5rem;
+}
+.guides-card.is-clickable {
+  cursor: pointer;
+}
+.guides-card.is-read {
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--color-success) 28%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .guides-card {
+    animation: guides-card-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .guides-card:nth-child(1) { animation-delay: 0.02s; }
+  .guides-card:nth-child(2) { animation-delay: 0.05s; }
+  .guides-card:nth-child(3) { animation-delay: 0.08s; }
+}
+@keyframes guides-card-in {
+  from {
+    opacity: 0.75;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.guides-complete {
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--color-success) 12%, var(--color-base-200));
+  border: 1px solid color-mix(in oklch, var(--color-success) 28%, transparent);
+}
+
+/* Store / catalog page — Vault display + denser commerce grid */
+.catalog-page__inner {
+  display: flex;
+  flex-direction: column;
+}
+.catalog-page-hero {
+  text-align: center;
+  padding-block: clamp(1.5rem, 4vw, 2.75rem) 1.1rem;
+}
+.catalog-page-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 7.5vw, 4rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  color: var(--color-base-content);
+  overflow: visible;
+  padding-block: 0.06em;
+}
+.catalog-page-title::after {
+  content: '';
+  display: block;
+  width: 3.25rem;
+  height: 0.22rem;
+  margin-inline: auto;
+  margin-top: 0.85rem;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--color-warning) 70%, var(--color-primary));
+  box-shadow: 0 0 18px color-mix(in oklch, var(--color-warning) 32%, transparent);
+}
+.catalog-cat-tree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.catalog-cat-tree__row {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem 0.5rem;
+  padding-inline-start: calc(var(--depth, 0) * 0.75rem);
+}
+.catalog-cat-tree__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.catalog-cat-tree__chip-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+.catalog-cat-tree__expand,
+.catalog-cat-tree__expand-spacer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+.catalog-cat-tree__expand {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+.catalog-cat-tree__expand:hover {
+  opacity: 1;
+  background: color-mix(in oklch, var(--color-base-content) 8%, transparent);
+}
+.catalog-cat-tree__expand:focus-visible,
+.catalog-cat-tree__chip:focus-visible,
+.catalog-cat-tree__clear:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.catalog-cat-tree__chip {
+  border: 1px solid color-mix(in oklch, var(--color-base-content) 18%, transparent);
+  background: color-mix(in oklch, var(--color-base-200) 70%, transparent);
+  color: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+.catalog-cat-tree__chip:hover {
+  border-color: color-mix(in oklch, var(--color-primary) 45%, transparent);
+}
+.catalog-cat-tree__chip--active {
+  border-color: color-mix(in oklch, var(--color-primary) 65%, transparent);
+  background: color-mix(in oklch, var(--color-primary) 14%, transparent);
+}
+.catalog-cat-tree__clear {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.65;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.15rem 0;
+}
+.catalog-cat-tree__clear:hover {
+  opacity: 1;
+}
+.catalog-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+/* Column toolbar: `.nav-search-fx--plain { flex: 1 1 12rem }` would become a 12rem HEIGHT. */
+@media (max-width: 639.98px) {
+  .catalog-toolbar > .nav-search-fx {
+    flex: 0 0 auto;
+  }
+}
+@media (min-width: 640px) {
+  .catalog-toolbar {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.85rem;
+  }
+  .catalog-toolbar__search {
+    flex: 1 1 18rem;
+    max-width: 28rem;
+  }
+}
+.catalog-count {
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: color-mix(in oklch, var(--color-base-content) 58%, transparent);
+}
+.catalog-count__q {
+  color: color-mix(in oklch, var(--color-base-content) 72%, transparent);
+}
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+@media (min-width: 768px) {
+  .catalog-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+@media (min-width: 1024px) {
+  .catalog-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.1rem;
+  }
+}
+.catalog-grid__cell {
+  min-width: 0;
+  height: 100%;
+  animation: catalog-card-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 35ms);
+}
+.catalog-skel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-box, 0.75rem);
+  border: 1px solid color-mix(in oklch, var(--color-base-300) 85%, transparent);
+  background: var(--color-base-200);
+  animation: catalog-card-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+.catalog-skel__media {
+  aspect-ratio: 5 / 4;
+  border-radius: 0;
+}
+.catalog-skel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.85rem;
+}
+@keyframes catalog-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.catalog-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.75rem;
+}
+.catalog-more__btn {
+  appearance: none;
+  min-height: 2.75rem;
+  padding: 0.55rem 1.5rem;
+  border-radius: 0.6rem;
+  border: 1px solid color-mix(in oklch, var(--color-base-300) 90%, transparent);
+  background: color-mix(in oklch, var(--color-base-200) 85%, transparent);
+  color: var(--color-base-content);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+.catalog-more__btn:hover {
+  border-color: color-mix(in oklch, var(--color-warning) 40%, var(--color-base-300));
+  background: color-mix(in oklch, var(--color-warning) 8%, var(--color-base-200));
+  box-shadow: 0 0 18px color-mix(in oklch, var(--color-warning) 16%, transparent);
+}
+.catalog-more__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.catalog-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.65rem;
+  margin-top: 0.5rem;
+  padding: 3.5rem 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklch, var(--color-base-300) 85%, transparent);
+  background: color-mix(in oklch, var(--color-base-200) 45%, transparent);
+}
+.catalog-state--empty {
+  border-style: dashed;
+}
+.catalog-state__icon {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 0.25rem;
+  border-radius: 0.85rem;
+  background: color-mix(in oklch, var(--color-warning) 12%, transparent);
+  color: color-mix(in oklch, var(--color-warning) 80%, var(--color-base-content));
+}
+.catalog-state__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.catalog-state__text {
+  margin: 0 0 0.5rem;
+  max-width: 26rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: color-mix(in oklch, var(--color-base-content) 62%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .catalog-grid__cell,
+  .catalog-skel {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+  /* Product cards keep hover lift / hover-3d — do not nuke transform/transition here. */
+}
+@media (prefers-reduced-motion: no-preference) {
+  .catalog-page-title {
+    animation: catalog-title-in 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .catalog-page-title::after {
+    animation: catalog-rule-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both;
+  }
+}
+@keyframes catalog-title-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.55rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes catalog-rule-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.35);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .catalog-page-title,
+  .catalog-page-title::after {
+    animation: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-search-fx__menu-item {
+    transition: none;
+  }
+}
+@keyframes nav-search-fx-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(450deg);
+  }
+}

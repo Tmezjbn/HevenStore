@@ -130,7 +130,7 @@ Each item: **what** · **where** · **who unblocks**.
 | Host SPA rewrite + security headers actually served | Host (`_redirects` / `vercel.json` / proxy) | Owner / deployer |
 | Product decisions still deferred: guest checkout; full SSG/prerender; in-app refunds (owner: no) | Product / eng debt | Owner decision + eng |
 | PERF-2 partial ✅: dashboard CSS deferred off storefront main chunk (`product-editor`, `admin-catalog`, `settings-page`, `dashboard-role-surfaces`, `dashboard-owner-surfaces`, `dashboard-docs`, `analytics-page` + dynamic import; `check-dashboard-css-chunk.mjs`). Theme-skin split still rejected. Leftover = DaisyUI/Tailwind/storefront. See `LAUNCH-AUDIT-2026-07-24.md` PERF-2 | `src/styles/*.css` | Done 2026-07-29 |
-| Deferred scale/refactor: megafile splits (`index.css`, builder, product editor); Admin/Owner product-list unify; generated Supabase types; webhook outbox; server catalog search | codebase | Eng when prioritized |
+| Deferred scale/refactor: (megafile splits + Admin/Owner unify DONE 2026-10-12: `src/css/*`, `dashboard/productEditor/*`, `dashboard/websiteBuilder/*`, `StaffProductsList.tsx`; checks read them via `scripts/_product-editor-source.mjs` / `builder-source.mjs` / `readIndexCss()`) generated Supabase types; webhook outbox; server catalog search | codebase | Eng when prioritized |
 | Optional image transforms | Storage Pro + `VITE_SUPABASE_IMAGE_TRANSFORM=true` | Owner |
 
 Accepted (not open): SEC-5 auth tokens in localStorage — kept; rely on CSP. Rate limits on public RPCs already shipped in-repo.

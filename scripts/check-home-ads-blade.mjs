@@ -3,13 +3,22 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readBuilderSource } from './builder-source.mjs';
+// src/index.css + src/css/*.css (split storefront styles)
+function readIndexCss() {
+  const _fs = globalThis.process.getBuiltinModule('node:fs');
+  const _p = globalThis.process.getBuiltinModule('node:path');
+  const _r = _p.resolve(_p.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
+  const dir = _p.join(_r, 'src/css');
+  return [_fs.readFileSync(_p.join(_r, 'src/index.css'), 'utf8'), ..._fs.readdirSync(dir).filter((f) => f.endsWith('.css')).sort().map((f) => _fs.readFileSync(_p.join(dir, f), 'utf8'))].join('\n');
+}
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const settings = readFileSync(join(root, 'src/lib/siteSettings.ts'), 'utf8');
 const banner = readFileSync(join(root, 'src/components/home/ProductAdsBanner.tsx'), 'utf8');
 const home = readFileSync(join(root, 'src/pages/HomePage.tsx'), 'utf8');
-const builder = readFileSync(join(root, 'src/pages/dashboard/WebsiteBuilderPage.tsx'), 'utf8');
-const css = readFileSync(join(root, 'src/index.css'), 'utf8');
+const builder = readBuilderSource(root);
+const css = readIndexCss();
 
 assert.match(settings, /home_ads_blade_enabled/);
 assert.match(settings, /home_ads_blade_text_en/);

@@ -2,6 +2,7 @@
  * Embed classification + Resources library wiring.
  * Run: node scripts/check-media-resources.mjs
  */
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -112,7 +113,7 @@ assert.match(helpers, /upsertMediaResource/);
 assert.match(helpers, /listMediaResources/);
 assert.match(helpers, /media_resources/);
 
-const editor = read('src/pages/dashboard/ProductEditorPage.tsx');
+const editor = readProductEditorSource();
 assert.match(editor, /upsertMediaResource/);
 assert.match(editor, /applyEmbedDraft/);
 // Pasted embed URL must land in Resources — bounded to the handler body, not any later upsert.

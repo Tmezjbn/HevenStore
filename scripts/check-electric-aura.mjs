@@ -5,9 +5,10 @@
  */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { readBuilderSource } from './builder-source.mjs';
 
 const eb = fs.readFileSync('src/components/ui/ElectricBorder.tsx', 'utf8');
-const css = fs.readFileSync('src/index.css', 'utf8');
+const css = ['src/index.css', ...fs.readdirSync('src/css').sort().map((f) => `src/css/${f}`)].map((f) => fs.readFileSync(f, 'utf8')).join('\n');
 const card = fs.readFileSync('src/components/ui/ProductCard.tsx', 'utf8');
 const fx = fs.readFileSync('src/components/dashboard/ProductEffectsSection.tsx', 'utf8');
 const lib = fs.readFileSync('src/lib/productEffects.ts', 'utf8');
@@ -15,7 +16,7 @@ const catalog = fs.readFileSync('src/hooks/useCatalog.ts', 'utf8');
 const settings = fs.readFileSync('src/lib/siteSettings.ts', 'utf8');
 const calmHook = fs.readFileSync('src/hooks/useMerchMotionCalm.ts', 'utf8');
 const bodyFx = fs.readFileSync('src/components/ui/ProductCardBodyFx.tsx', 'utf8');
-const builder = fs.readFileSync('src/pages/dashboard/WebsiteBuilderPage.tsx', 'utf8');
+const builder = readBuilderSource('.');
 const migration = fs.readFileSync(
   'supabase/migrations/20260723240000_products_aura_electric_json.sql',
   'utf8',

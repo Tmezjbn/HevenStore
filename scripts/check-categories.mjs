@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readBuilderSource } from './builder-source.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -30,7 +31,7 @@ mustInclude('src/pages/dashboard/CategoriesPage.tsx', 'parent_id');
 mustInclude('src/pages/dashboard/CategoriesPage.tsx', 'level');
 mustInclude('src/pages/HomePage.tsx', 'CategoryProductsSection');
 mustInclude('src/pages/HomePage.tsx', 'mainCategories');
-mustInclude('src/pages/dashboard/WebsiteBuilderPage.tsx', 'Category product sections');
+assert.ok(readBuilderSource(root).includes('Category product sections'), 'WebsiteBuilder missing "Category product sections"');
 mustInclude(
   'supabase/migrations/20260711150000_categories_owner_rls.sql',
   "role IN ('owner', 'admin', 'moderator')"

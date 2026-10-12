@@ -39,7 +39,7 @@ const dashFiles = [
   'src/pages/dashboard/DeletionRequestsPage.tsx',
 ];
 for (const f of dashFiles) {
-  const src = read(f);
+  const src = read(f) + (/(Admin|Owner)ProductsPage\.tsx$/.test(f) ? read('src/pages/dashboard/StaffProductsList.tsx') : '');
   assert.match(src, /from ['"].*formatMoney['"]/, `${f} must import formatMoney`);
   assert.doesNotMatch(src, /function formatMoney\s*\(/, `${f} must not redeclare formatMoney`);
 }

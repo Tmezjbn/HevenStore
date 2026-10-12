@@ -1,4 +1,5 @@
 // Per-key details: migration + display coalesce + editor wiring.
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
@@ -19,7 +20,7 @@ assert.ok(ful.includes('export function parseKeyUnits'), 'parseKeyUnits missing'
 assert.ok(ful.includes('keyUnits'), 'fulfillmentDisplay must accept keyUnits');
 assert.ok(ful.includes("u.details?.trim() ? u.details : content"), 'per-key coalesce missing');
 
-const editor = readFileSync(join(root, 'src', 'pages', 'dashboard', 'ProductEditorPage.tsx'), 'utf8');
+const editor = readProductEditorSource();
 assert.ok(editor.includes('keyOverrides'), 'ProductEditor must track keyOverrides');
 assert.ok(editor.includes("select('id, content, details, claimed_at')"), 'ProductEditor must load key details');
 assert.ok(editor.includes('Delivery content'), 'ProductEditor must label default delivery');

@@ -1,3 +1,4 @@
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -11,7 +12,7 @@ const mig = readFileSync(
 const settings = readFileSync(join(root, 'src/lib/siteSettings.ts'), 'utf8');
 const sellerPage = readFileSync(join(root, 'src/pages/dashboard/SellerProductsPage.tsx'), 'utf8');
 const settingsPage = readFileSync(join(root, 'src/pages/dashboard/SettingsPage.tsx'), 'utf8');
-const editor = readFileSync(join(root, 'src/pages/dashboard/ProductEditorPage.tsx'), 'utf8');
+const editor = readProductEditorSource();
 
 assert.match(mig, /seller_daily_product_limit/);
 assert.match(mig, /products_seller_daily_limit_guard/);

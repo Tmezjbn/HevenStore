@@ -18,7 +18,7 @@ for (const file of [
   'src/pages/dashboard/OwnerProductsPage.tsx',
   'src/pages/dashboard/OrdersPage.tsx',
 ]) {
-  const body = src(file);
+  const body = src(file) + (/(Admin|Owner)ProductsPage\.tsx$/.test(file) ? src('src/pages/dashboard/StaffProductsList.tsx') : '');
   assert.ok(body.includes('pageRange') || body.includes('.range('), `${file} must use .range / pageRange`);
   assert.ok(body.includes('PageBar'), `${file} must render PageBar`);
   assert.ok(body.includes("count: 'exact'"), `${file} must request exact count`);

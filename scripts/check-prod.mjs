@@ -2,10 +2,12 @@
  * Phase 9 prod invariants — ErrorBoundary, headers, package metadata, npm test wiring.
  * Run: node scripts/check-prod.mjs
  */
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readBuilderSource } from './builder-source.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
@@ -111,7 +113,7 @@ assert.ok(
   'Hover3dZones shared component missing',
 );
 assert.doesNotMatch(
-  read('src/pages/dashboard/WebsiteBuilderPage.tsx'),
+  readBuilderSource(root),
   /function Hover3dZones/,
   'WebsiteBuilder must not duplicate Hover3dZones',
 );
@@ -163,32 +165,32 @@ assert.doesNotMatch(
   'PRODUCT_EDITOR_COLS must not duplicate rating_seed (already in LIST)',
 );
 assert.match(
-  read('src/pages/dashboard/AdminProductsPage.tsx'),
+  (read('src/pages/dashboard/AdminProductsPage.tsx') + read('src/pages/dashboard/StaffProductsList.tsx')),
   /PRODUCT_EDITOR_COLS/,
   'AdminProductsPage list must use PRODUCT_EDITOR_COLS',
 );
 assert.match(
-  read('src/pages/dashboard/OwnerProductsPage.tsx'),
+  (read('src/pages/dashboard/OwnerProductsPage.tsx') + read('src/pages/dashboard/StaffProductsList.tsx')),
   /PRODUCT_EDITOR_COLS/,
   'OwnerProductsPage list must use PRODUCT_EDITOR_COLS',
 );
 assert.match(
-  read('src/pages/dashboard/ProductEditorPage.tsx'),
+  readProductEditorSource(),
   /PRODUCT_EDITOR_COLS/,
   'ProductEditor must use PRODUCT_EDITOR_COLS',
 );
 assert.doesNotMatch(
-  read('src/pages/dashboard/ProductEditorPage.tsx'),
+  readProductEditorSource(),
   /\.select\(['"]\*['"]\)/,
   'ProductEditor must not select(*)',
 );
 assert.doesNotMatch(
-  read('src/pages/dashboard/AdminProductsPage.tsx'),
+  (read('src/pages/dashboard/AdminProductsPage.tsx') + read('src/pages/dashboard/StaffProductsList.tsx')),
   /\.select\(['"]\*['"]/,
   'AdminProductsPage must not select(*)',
 );
 assert.doesNotMatch(
-  read('src/pages/dashboard/OwnerProductsPage.tsx'),
+  (read('src/pages/dashboard/OwnerProductsPage.tsx') + read('src/pages/dashboard/StaffProductsList.tsx')),
   /\.select\(['"]\*['"]/,
   'OwnerProductsPage must not select(*)',
 );

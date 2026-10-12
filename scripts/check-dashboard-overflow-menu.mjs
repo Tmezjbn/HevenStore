@@ -19,7 +19,7 @@ for (const file of [
   'src/pages/dashboard/AdminProductsPage.tsx',
   'src/pages/dashboard/SellerProductsPage.tsx',
 ]) {
-  const src = read(file);
+  const src = read(file) + (/(Admin|Owner)ProductsPage\.tsx$/.test(file) ? read('src/pages/dashboard/StaffProductsList.tsx') : '');
   assert.match(src, /DashboardOverflowMenu/, `${file} must use DashboardOverflowMenu`);
   assert.doesNotMatch(
     src,

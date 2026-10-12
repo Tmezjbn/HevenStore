@@ -1,0 +1,540 @@
+/* Product card — catalog commerce tile (Trusted Vault) */
+.product-card {
+  /* overflow visible — Blink flattens parent perspective under overflow ≠ visible */
+  overflow: visible;
+  transition:
+    border-color 180ms ease,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.product-card:hover {
+  border-color: color-mix(in oklch, var(--color-warning) 38%, var(--color-base-300));
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--color-warning) 14%, transparent);
+  transform: translateY(-2px);
+}
+/* Don't fight whole-card pointer tilt with a card translate */
+.product-card.is-hover3d:hover {
+  transform: none;
+}
+/* Dim inner face only — whole-card opacity lets daisyUI aura paint through the body. */
+.product-card.is-oos .product-card__figure,
+.product-card.is-oos .product-card__heading,
+.product-card.is-oos .product-card__meta,
+.product-card.is-oos .product-price-row {
+  opacity: 0.9;
+}
+.product-card.is-oos:hover {
+  border-color: color-mix(in oklch, var(--color-error) 28%, var(--color-base-300));
+  box-shadow: none;
+}
+.product-card__figure {
+  background: var(--color-base-300);
+  overflow: hidden;
+}
+/*
+ * Whole-card pointer tilt (ProductCard): JS lerps --rx/--ry.
+ * daisyUI .hover-3d zones steal clicks from wishlist/cart — not used on storefront cards.
+ * Builder thumb preview may still use blink-safe .hover-3d.
+ */
+.product-card.is-hover3d {
+  overflow: visible;
+}
+.product-card__tilt-face {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  border-radius: inherit;
+  transform: perspective(75rem) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-origin: center center;
+  will-change: transform;
+  /* No CSS transition — rAF lerp owns motion; CSS would fight it. */
+}
+/* Aura host = tilt face: keep flex (beats .aura display:block / electric inline-block). */
+.product-card__tilt-face.product-card-aura.aura {
+  display: flex;
+  flex-direction: column;
+}
+.product-card__tilt-face > .product-card__figure,
+.product-card__tilt-face > .product-card > .product-card__figure {
+  border-start-start-radius: inherit;
+  border-start-end-radius: inherit;
+}
+.hover-3d.is-blink-safe {
+  perspective: none;
+  filter: none;
+  display: grid;
+  width: 100%;
+}
+.hover-3d.is-blink-safe > :first-child {
+  transform: perspective(75rem) rotate3d(var(--transform), 0, 10deg);
+}
+/*
+ * Product / find-more aura wraps — keep stock daisyUI aura-dual (host ring +
+ * blurred ::before/::after). Center “wind” came from translucent card faces
+ * (e.g. whole-card OOS opacity), not from the aura itself.
+ */
+.product-card-aura.aura,
+.home-stagger__aura.aura {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
+}
+.home-stagger__aura.aura {
+  height: 100%;
+}
+/*
+ * One clean edge: aura host owns the stroke. Kill Daisy/Tailwind card border +
+ * hover ring so gold/etc. don't stack a sharp secondary outline (tilt-face wrap).
+ */
+.product-card-aura.aura .product-card,
+.product-card-aura.aura .find-more-tile,
+.home-stagger__aura.aura .product-card {
+  /* Opaque face covers conic center; !important beats Tailwind border-base-300 */
+  background-color: var(--color-base-200);
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.product-card-aura.aura .product-card:hover,
+.home-stagger__aura.aura .product-card:hover {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.hero-welcome.aura .hero-welcome-card,
+.ads-banner-aura.aura > .group {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+/*
+ * Electric border — React Bits canvas noise arcs
+ * (https://www.reactbits.dev/animations/electric-border). Layers in ElectricBorder.tsx.
+ */
+.aura.aura-electric {
+  --electric-border-color: currentColor;
+  --aura-padding: 3px;
+  color: #2dd4bf;
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+  padding: var(--aura-padding);
+  border-radius: inherit;
+  overflow: visible;
+  /* Kill daisyUI conic host + blurred ::before/::after — stroke is canvas */
+  animation: none !important;
+  background: none !important;
+  background-image: none !important;
+}
+.aura.aura-electric.aura--custom-tint {
+  color: var(--aura-tint, #2dd4bf);
+  --electric-border-color: var(--aura-tint, #2dd4bf);
+  background-image: none !important;
+}
+.aura.aura-electric::before,
+.aura.aura-electric::after {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+}
+.electric-border__canvas-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+}
+.electric-border__canvas {
+  display: block;
+}
+.electric-border__layers {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+.electric-border__glow1,
+.electric-border__glow2,
+.electric-border__bg {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+.electric-border__content {
+  position: relative;
+  z-index: 1;
+  border-radius: inherit;
+  min-height: 0;
+  height: 100%;
+}
+.product-card__tilt-face.aura-electric,
+.product-card-aura.aura-electric {
+  display: flex;
+  flex-direction: column;
+}
+.product-card__tilt-face.aura-electric .electric-border__content,
+.product-card-aura.aura-electric .electric-border__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+/* Product Effects dialog: don't clip canvas glow around ~80×60 thumbs */
+.effect-card {
+  overflow: visible;
+}
+.effect-card .aura.aura-electric {
+  overflow: visible;
+  border-radius: 0.5rem;
+}
+.effect-preview-thumb {
+  border-radius: inherit;
+}
+.effect-preview-thumb--electric {
+  overflow: visible;
+}
+.effect-preview-thumb--electric > img,
+.effect-preview-thumb--electric > div {
+  border-radius: inherit;
+  overflow: hidden;
+}
+/* Dim / Aurora: quiet themes — hide electric layers like other aura pseudos */
+[data-theme='dim'] .aura.aura-electric .electric-border__layers,
+[data-theme='dim-light'] .aura.aura-electric .electric-border__layers,
+[data-theme='aurora'] .aura.aura-electric .electric-border__layers,
+[data-theme='aurora-light'] .aura.aura-electric .electric-border__layers,
+[data-theme='dim'] .aura.aura-electric .electric-border__canvas-wrap,
+[data-theme='dim-light'] .aura.aura-electric .electric-border__canvas-wrap,
+[data-theme='aurora'] .aura.aura-electric .electric-border__canvas-wrap,
+[data-theme='aurora-light'] .aura.aura-electric .electric-border__canvas-wrap {
+  display: none;
+}
+
+/* Custom aura_color on presets that hardcode gradients (gold/silver/rainbow/holo). */
+.aura.aura--custom-tint {
+  background-image: conic-gradient(
+    from var(--aura-angle),
+    transparent 225deg,
+    var(--aura-tint, currentColor)
+  ) !important;
+}
+.aura.aura--custom-tint.aura-dual {
+  background-image: repeating-conic-gradient(
+    from var(--aura-angle),
+    transparent 0%,
+    transparent 40%,
+    var(--aura-tint, currentColor) 50%
+  ) !important;
+}
+.aura.aura--custom-tint.aura-glow {
+  background-image: radial-gradient(
+    closest-corner,
+    var(--aura-tint, currentColor) 0%,
+    #0000 90%
+  ) !important;
+}
+/* Store page: no overflow clip — wraps all product auras / hover-3d */
+.catalog-page {
+  overflow: visible;
+}
+.product-card__media {
+  position: relative;
+}
+.product-card__img {
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.product-card:hover .product-card__img {
+  transform: scale(1.04);
+}
+.product-card__empty {
+  color: color-mix(in oklch, var(--color-base-content) 35%, transparent);
+  background: color-mix(in oklch, var(--color-base-300) 80%, var(--color-base-200));
+}
+.product-card__wish {
+  appearance: none;
+  position: absolute;
+  top: 0.5rem;
+  inset-inline-start: 0.5rem;
+  z-index: 10;
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--color-base-300) 70%, transparent);
+  background: color-mix(in oklch, var(--color-base-100) 72%, transparent);
+  color: color-mix(in oklch, var(--color-base-content) 75%, transparent);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+.product-card__wish:hover {
+  background: var(--color-base-100);
+  color: var(--color-base-content);
+}
+.product-card__wish:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.product-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  color: color-mix(in oklch, var(--color-base-content) 62%, transparent);
+}
+.product-card__stock {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--color-warning) 35%, transparent);
+  background: color-mix(in oklch, var(--color-warning) 12%, transparent);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+}
+.product-card__stock--ok {
+  color: var(--color-success);
+}
+.product-card__stock--low {
+  color: color-mix(in oklch, var(--color-warning) 88%, var(--color-base-content));
+}
+.product-card__stock-sep {
+  opacity: 0.45;
+}
+.product-card__stock-n {
+  display: inline-block;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-inline: 0.15rem;
+}
+.product-card__heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  text-align: center;
+}
+.product-card__title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  width: 100%;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(1.125rem, 2.1vw, 1.375rem);
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  text-wrap: balance;
+  text-align: center;
+  color: var(--color-base-content);
+  transition: color 160ms ease;
+}
+.product-card__title:hover {
+  color: color-mix(in oklch, var(--color-warning) 45%, var(--color-base-content));
+}
+.product-card__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+}
+.product-card__seller {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+.product-card__rating {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  margin-top: 0.55rem;
+}
+.product-card__rating-n {
+  margin-inline-start: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: color-mix(in oklch, var(--color-base-content) 78%, transparent);
+}
+.product-price-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.4rem 0.55rem;
+  width: 100%;
+  margin-top: 0.15rem;
+}
+/* No seller row — park price next to CTA (CTA usually margin-top:auto) */
+.product-price-row--tight {
+  margin-top: auto;
+}
+.product-price-row--tight + .product-card-cta {
+  margin-top: 0.45rem;
+}
+.product-card__price {
+  font-size: clamp(1.65rem, 3vw, 2.125rem);
+  font-weight: 850;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--color-base-content);
+}
+.product-price-sale--deal {
+  /* Dark: warm deal tint. Don't mix warning into cool ink on light — reads burgundy/red. */
+  color: color-mix(in oklch, var(--color-warning) 55%, var(--color-base-content));
+}
+[data-theme$='-light'] .product-price-sale--deal {
+  color: var(--color-warning-content, oklch(0.32 0.09 75));
+}
+.product-price-compare {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  text-decoration: line-through;
+  color: color-mix(in oklch, var(--color-base-content) 45%, transparent);
+}
+.product-price-row--oos .product-card__price {
+  opacity: 0.72;
+}
+.product-price-row--oos .product-price-compare {
+  opacity: 0.35;
+}
+.product-card-cta {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 2.4rem;
+  margin-top: auto;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  background: var(--color-primary);
+  color: var(--color-primary-content);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.product-card-cta:not(:disabled):hover {
+  /* Restrained signal — soft lift, not neon bloom (primary is near-white on Vault). */
+  transform: scale(1.02);
+  box-shadow: 0 0 10px color-mix(in oklch, var(--color-primary) 12%, transparent);
+}
+.product-card-cta:not(:disabled):active {
+  transform: scale(0.98);
+}
+.product-card-cta:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.product-card-cta.is-added {
+  background: color-mix(in oklch, var(--color-success) 85%, var(--color-primary));
+  color: var(--color-primary-content);
+}
+.product-card-cta--oos {
+  background: color-mix(in oklch, var(--color-error) 10%, var(--color-base-300));
+  border-color: color-mix(in oklch, var(--color-error) 32%, var(--color-base-300));
+  color: color-mix(in oklch, var(--color-error) 78%, var(--color-base-content));
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.product-card-cta--oos:hover,
+.product-card-cta--oos:active {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Card-body FX layer (matrix / logo / scan / sheen / embers / rift) */
+.product-card__body {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  /* Card is overflow:visible (hover-3d/aura) — clip FX to card bottom radius. */
+  border-end-end-radius: var(--radius-box);
+  border-end-start-radius: var(--radius-box);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.55rem;
+  padding: 0.85rem 0.9rem 0.95rem;
+  text-align: start;
+}
+.product-card__body > *:not(.product-card__fx) {
+  position: relative;
+  z-index: 1;
+}
+.product-card__fx {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+  container-type: size;
+}
+/*
+ * Soft L↔R wash for non-matrix FX only. Matrix uses per-glyph color wave
+ * (cheap `color` anim) — full-card blend wash was CPU-heavy and not the intent.
+ * Layer is 220% wide and slides via transform — animating background-position
+ * repaints the gradient + soft-light blend every frame instead of compositing.
+ */
+.product-card__fx.is-gradient.is-shift:not(.product-card__fx--matrix)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 220%;
+  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--card-fx-color, #22c55e) 32%, transparent) 0%,
+    color-mix(in oklch, var(--card-fx-color-2, #06b6d4) 28%, transparent) 45%,
+    color-mix(in oklch, var(--card-fx-color, #22c55e) 32%, transparent) 100%
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0.9;
+  animation: product-card-fx-shift 7.5s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+.product-card__fx.is-offscreen.is-shift:not(.product-card__fx--matrix)::before {
+  animation-play-state: paused;
+}
+@keyframes product-card-fx-shift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* 220%-wide layer slides its own 54.5% = 120% of card width: same sweep
+       range the old 220%-size background-position 0→100% produced. */
+    transform: translateX(-54.5455%);
+  }
+}

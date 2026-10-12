@@ -2,15 +2,27 @@
  * Assert product card-body FX wiring stays honest.
  * Run: node scripts/check-product-card-fx.mjs
  */
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+// src/index.css + src/css/*.css (split storefront styles)
+function readIndexCss() {
+  const _fs = globalThis.process.getBuiltinModule('node:fs');
+  const _p = globalThis.process.getBuiltinModule('node:path');
+  const _r = _p.resolve(_p.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..');
+  const dir = _p.join(_r, 'src/css');
+  return [_fs.readFileSync(_p.join(_r, 'src/index.css'), 'utf8'), ..._fs.readdirSync(dir).filter((f) => f.endsWith('.css')).sort().map((f) => _fs.readFileSync(_p.join(dir, f), 'utf8'))].join('\n');
+}
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 function mustInclude(rel, needle) {
-  const text = readFileSync(join(root, rel), 'utf8');
+  const text =
+    rel === 'src/index.css' ? readIndexCss() : rel === 'src/pages/dashboard/ProductEditorPage.tsx'
+      ? readProductEditorSource()
+      : readFileSync(join(root, rel), 'utf8');
   if (!text.includes(needle)) {
     console.error(`FAIL ${rel}: missing ${JSON.stringify(needle)}`);
     process.exit(1);
@@ -115,7 +127,7 @@ mustInclude('src/components/ui/ProductCard.tsx', 'is-hover3d');
 mustInclude('src/pages/HomePage.tsx', 'home-stagger__aura');
 mustInclude('src/components/ui/ProductCardBodyFx.tsx', 'is-shift');
 
-const cssFx = readFileSync(join(root, 'src/index.css'), 'utf8');
+const cssFx = readIndexCss();
 // Blink killer: old group that clipped catalog / find-more / ads aura wrappers
 assert.doesNotMatch(
   cssFx,

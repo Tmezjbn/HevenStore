@@ -1,4 +1,5 @@
 /** Mirrors parsePlyrConfig defaults — fails if parse logic drifts. */
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -75,7 +76,7 @@ assert.match(player, /loadedmetadata/);
 assert.match(player, /failKey/);
 assert.doesNotMatch(player, /LOAD_FAIL_MS/);
 
-const editor = readFileSync(join(root, 'src/pages/dashboard/ProductEditorPage.tsx'), 'utf8');
+const editor = readProductEditorSource();
 assert.match(editor, /ProductVideoPlayer/);
 assert.match(editor, /preview/);
 assert.match(editor, /src=\{form\.video_url\}/);

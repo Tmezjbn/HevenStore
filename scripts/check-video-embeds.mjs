@@ -2,6 +2,7 @@
  * Multi-embed showcase (ads / no-ads) wiring.
  * Run: node scripts/check-video-embeds.mjs
  */
+import { readProductEditorSource } from './_product-editor-source.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -33,7 +34,7 @@ const migOn = read('supabase/migrations/20260720260000_products_video_enabled.sq
 assert.match(migOn, /video_enabled boolean/);
 assert.match(migOn, /DEFAULT false/);
 
-const editor = read('src/pages/dashboard/ProductEditorPage.tsx');
+const editor = readProductEditorSource();
 assert.match(editor, /video_embeds/);
 assert.match(editor, /applyEmbedDraft/);
 assert.match(editor, /withAds/);
