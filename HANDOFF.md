@@ -40,6 +40,7 @@ Route guards: `allLinks` in `src/layouts/DashboardLayout.tsx`; it MUST wait for 
 12. **`client-error` edge fn rejects bodies >16 KB.** Deployed `--no-verify-jwt` (also pinned in `supabase/config.toml`, as are `polar-webhook` and `purge-deleted-accounts`).
 13. **Coupon usage rows outlive orders:** `coupon_usages.order_id` is `ON DELETE SET NULL` by design.
 14. **Keyed products have derived stock.** Editor disables the stock input when `product_keys` exist. Don't re-enable.
+15. **Store wallet (non-withdrawable store credit).** Balances move only server-side: `credit_wallet_topup` (service_role, called by the HMAC-SHA512-verified `nowpayments-webhook`), `pay_order_with_wallet` (debit + `finalize_paid_order` in one transaction; `orders.payment_method='wallet'`), `admin_adjust_wallet` (owner/admin, note required). `wallets`/`wallet_ledger`/`wallet_topups` are SELECT-only for clients; ledger is append-only (RLS + trigger). Limits live in `site_settings` (`wallet_enabled`, `wallet_topup_min_usd`, `wallet_topup_max_usd`) with a DB guard (1 ≤ min ≤ max ≤ 10000). `partially_paid` without a USD figure credits nothing — staff reconcile (`OPS.md`). Check `check-wallet.mjs`.
 
 `scripts/check-checkout-authority.mjs` asserts most of these. Run it after any checkout/auth/fulfillment change; extend it for new invariants.
 
@@ -70,7 +71,7 @@ Route guards: `allLinks` in `src/layouts/DashboardLayout.tsx`; it MUST wait for 
 npm run typecheck; npm run lint; npm test; npm run build; npx eslint <touched files>
 ```
 
-`npm test` = `scripts/run-checks.mjs` runs every `scripts/check-*.mjs` (**83**; all MUST pass).
+`npm test` = `scripts/run-checks.mjs` runs every `scripts/check-*.mjs` (**84**; all MUST pass).
 
 ## File map
 
@@ -78,7 +79,8 @@ npm run typecheck; npm run lint; npm test; npm run build; npx eslint <touched fi
 |------|----------|
 | Commerce RPCs/RLS/key pool | `supabase/migrations/20260711100000_checkout_server_authority.sql` (+ `…120000_finalize_manual_stock`, `…110000_profiles_access_control`, `20260720193000_audit_sec_*`, `20260720200000_audit_sec_phase7_harden`) |
 | Support / order numbers | `20260723230000_support_tickets.sql`, `20260724170000_support_ticket_rate_limits.sql`, `20260723232000_orders_order_number.sql` · `src/lib/support.ts`, `SupportPage.tsx` |
-| Edge functions | `supabase/functions/`: `polar-checkout`, `polar-webhook`, `client-error`, `databuddy-analytics`, `purge-deleted-accounts`, `hard-delete-user`, `_shared` |
+| Edge functions | `supabase/functions/`: `polar-checkout`, `polar-webhook`, `wallet-topup`, `nowpayments-webhook`, `client-error`, `databuddy-analytics`, `purge-deleted-accounts`, `hard-delete-user`, `_shared` |
+| Wallet | `20261012160000_store_wallet.sql` · `wallet-topup` + `nowpayments-webhook` edge fns · `src/lib/wallet.ts` · `check-wallet.mjs` |
 | Checkout client | `src/lib/startPolarCheckout.ts`, `CartPage.tsx`, `CheckoutSuccessPage.tsx` |
 | Catalog | `src/pages/GamesPage.tsx`, `src/hooks/useCatalog.ts` |
 | Product editor | `ProductEditorPage.tsx` (entry, ~1100 lines) + `src/pages/dashboard/productEditor/*` |
@@ -108,6 +110,7 @@ Format: **what** · **where** · **who**.
 | Catalog downloads up to 5000 actives and filters client-side; support search covers newest 200 per bin (`SupportPage.tsx`) | `useCatalog.ts`, `SupportPage.tsx` | Eng when scale needs it |
 | Debt: generated Supabase types (`as unknown as` clusters); webhook outbox; server catalog search; `CartPage` local `money()` bypasses `formatMoney`; support standing badge stale until profile refetch | codebase | Eng when prioritized |
 | Product decisions deferred: guest checkout; full SSG; in-app refunds/chargebacks (owner: not now — a reversed Polar payment stays `paid` + fulfillment exposed) | Product | Owner |
+| Wallet go-live: set secrets `NOWPAYMENTS_API_KEY` + `NOWPAYMENTS_IPN_SECRET`; deploy `wallet-topup` + `nowpayments-webhook`; set IPN URL in NOWPayments dashboard; turn custody off + set payout wallet; then set `wallet_enabled=true` | NOWPayments dashboard / Supabase | Owner |
 | Optional image transforms | Storage Pro + `VITE_SUPABASE_IMAGE_TRANSFORM=true` | Owner |
 
 Verified 2026-10-12: all 149 migrations applied on live; edge secrets `SITE_URL` + `POLAR_SERVER` set; `PURGE_CRON_SECRET` rotated and matched to the cron job (they had drifted apart); `claimed` always gets an assignee (`20261012120000`).

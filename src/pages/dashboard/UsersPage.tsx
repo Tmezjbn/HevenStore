@@ -19,7 +19,11 @@ import {
   RotateCcw,
   Loader2,
   ChevronDown,
+  Wallet,
 } from 'lucide-react';
+import WalletAdjustDialog from '../../components/wallet/WalletAdjustDialog';
+import { fetchWalletBalances } from '../../lib/wallet';
+import { formatMoney } from '../../lib/formatMoney';
 import UserAvatar from '../../components/ui/UserAvatar';
 import Modal from '../../components/ui/Modal';
 import ConfirmDialog from '../../components/dashboard/ConfirmDialog';
@@ -106,6 +110,9 @@ export default function UsersPage() {
   const [roleBusy, setRoleBusy] = useState(false);
   const [roleError, setRoleError] = useState('');
   const [deleteError, setDeleteError] = useState('');
+  /** null = balances failed to load (show "—"); missing id = no wallet row = 0. */
+  const [walletBalances, setWalletBalances] = useState<Record<string, number> | null>({});
+  const [walletTarget, setWalletTarget] = useState<{ id: string; name: string } | null>(null);
 
   const isOwner = profile?.role === 'owner';
   const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50';
@@ -172,6 +179,24 @@ export default function UsersPage() {
       window.clearTimeout(tmr);
     };
   }, [page, search, statusFilter, roleFilter, t]);
+
+  // One query per page of users for wallet balances.
+  useEffect(() => {
+    let cancelled = false;
+    const ids = users.map((u) => u.id);
+    if (!ids.length) return;
+    fetchWalletBalances(ids).then(
+      (map) => {
+        if (!cancelled) setWalletBalances(map);
+      },
+      () => {
+        if (!cancelled) setWalletBalances(null);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [users]);
 
   const canDanger = (u: Profile | null) => {
     if (!u || !profile) return false;
@@ -688,6 +713,25 @@ export default function UsersPage() {
                     <time className={`${prefix}__joined tabular-nums`} dateTime={user.created_at}>
                       {fmtDate(user.created_at, lang)}
                     </time>
+                    <span
+                      className={`${prefix}__joined tabular-nums inline-flex items-center gap-1`}
+                      title={t('رصيد المحفظة', 'Wallet balance')}
+                    >
+                      <Wallet size={12} aria-hidden />
+                      <span className="sr-only">{t('رصيد المحفظة', 'Wallet balance')}</span>
+                      <span dir="ltr">
+                        {walletBalances ? formatMoney(walletBalances[user.id] ?? 0) : '—'}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      className={`btn btn-ghost btn-xs ${focusRing}`}
+                      onClick={() =>
+                        setWalletTarget({ id: user.id, name: user.full_name || user.email || user.id })
+                      }
+                    >
+                      {t('تعديل الرصيد', 'Adjust balance')}
+                    </button>
                   </div>
                   <div className={`${prefix}__change`}>
                     {user.id !== profile?.id ? roleSelect(user) : null}
@@ -1069,6 +1113,16 @@ export default function UsersPage() {
           )}
         </div>
       </details>
+
+      <WalletAdjustDialog
+        target={walletTarget}
+        balance={walletTarget && walletBalances ? (walletBalances[walletTarget.id] ?? 0) : undefined}
+        onClose={() => setWalletTarget(null)}
+        onDone={(id, next) => {
+          setWalletBalances((prev) => (prev ? { ...prev, [id]: next } : prev));
+          setWalletTarget(null);
+        }}
+      />
 
       <Modal
         open={deleteOpen}

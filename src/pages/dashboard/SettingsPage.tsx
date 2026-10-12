@@ -59,7 +59,9 @@ import {
   Home,
   Store,
   Code2,
+  Wallet,
 } from 'lucide-react';
+import WalletSettingsForm from '../../components/wallet/WalletSettingsForm';
 import { Link } from 'react-router-dom';
 import {
   parseMultiAccountRoles,
@@ -96,6 +98,7 @@ const SETTINGS_NAV = [
   { id: 'settings-about', labelAr: 'من نحن', labelEn: 'About' },
   { id: 'settings-deletion', labelAr: 'حذف الحساب', labelEn: 'Deletion' },
   { id: 'settings-legal', labelAr: 'الخصوصية والشروط', labelEn: 'Privacy & Terms' },
+  { id: 'settings-wallet', labelAr: 'المحفظة', labelEn: 'Wallet', ownerOnly: true },
   { id: 'settings-dev', labelAr: 'تطوير', labelEn: 'Dev', ownerOnly: true },
 ] as const;
 
@@ -1154,6 +1157,20 @@ export default function SettingsPage() {
             />
           )}
         </SettingsPanel>
+
+        {isOwner ? (
+          <SettingsPanel
+            id="settings-wallet"
+            icon={Wallet}
+            title={t('المحفظة', 'Wallet')}
+            hint={t(
+              'رصيد متجر يُشحن بالعملات الرقمية عبر NOWPayments. غير قابل للسحب نقداً.',
+              'Store credit topped up with crypto via NOWPayments. Not withdrawable as cash.',
+            )}
+          >
+            <WalletSettingsForm />
+          </SettingsPanel>
+        ) : null}
 
         {isOwner ? (
           <SettingsPanel

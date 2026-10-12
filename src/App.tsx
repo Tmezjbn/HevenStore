@@ -71,6 +71,7 @@ const BadgesPage = lazy(() => import('./pages/dashboard/BadgesPage'));
 const MyBadgesPage = lazy(() => import('./pages/dashboard/MyBadgesPage'));
 const DeletionRequestsPage = lazy(() => import('./pages/dashboard/DeletionRequestsPage'));
 const SupportPage = lazy(() => import('./pages/dashboard/SupportPage'));
+const WalletPage = lazy(() => import('./pages/dashboard/WalletPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -221,6 +222,7 @@ const router = createBrowserRouter([
           { path: 'my-badges', element: <MyBadgesPage /> },
           { path: 'deletion-requests', element: <DeletionRequestsPage /> },
           { path: 'support', element: <SupportPage /> },
+          { path: 'wallet', element: <WalletPage /> },
           { path: '*', element: <Navigate to="/dashboard" replace /> },
         ],
       },

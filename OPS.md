@@ -106,3 +106,11 @@ Engineering open items that are product/debt (not ops wiring): `HANDOFF.md` → 
 
 **Last verified:** 2026-10-12  
 **How to update this doc:** After changing alert tags, cron SQL, or deploy steps in repo, update the matching section. After a restore drill, add a row to the log. Do not claim live boxes are checked without dashboard confirmation.
+
+## 7. Store wallet (NOWPayments)
+
+- Secrets: `NOWPAYMENTS_API_KEY`, `NOWPAYMENTS_IPN_SECRET` (+ `SITE_URL`). Deploy `wallet-topup` and `nowpayments-webhook` (JWT verify **off**, pinned in `config.toml`).
+- IPN URL (NOWPayments dashboard): `https://<project-ref>.supabase.co/functions/v1/nowpayments-webhook`. Turn custody off and set a payout wallet.
+- Alert tags: `ALERT_WALLET_PARTIAL_REVIEW`, `ALERT_NOWPAYMENTS_MISMATCH`, `ALERT_NOWPAYMENTS_UNKNOWN_TOPUP`, `ALERT_NOWPAYMENTS_BAD_ORDER_ID`; `credit_wallet_topup failed` = DB error, NOWPayments retries (HTTP 500).
+- **Reconcile `partially_paid`:** `wallet_topups.status='partially_paid'` with `credited_usd` null = no USD figure came with the payment. Check the payment in NOWPayments, then credit the confirmed USD via `admin_adjust_wallet` (note: top-up id + payment id). A later `finished` IPN credits only the remainder up to `amount_usd` (it counts prior `credited_usd`), so do not adjust if the buyer completes it.
+- Balances are store credit only; no withdrawals. Users can't write wallet tables; every move is a `wallet_ledger` row.

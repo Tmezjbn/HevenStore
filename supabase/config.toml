@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.purge-deleted-accounts]
 verify_jwt = false
+
+[functions.nowpayments-webhook]
+verify_jwt = false

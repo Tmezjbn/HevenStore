@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ShoppingCart,
@@ -13,7 +13,9 @@ import {
   Shield,
   ArrowLeft,
   CreditCard,
+  Wallet,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
 import { validateCoupon, couponDiscount } from '../lib/coupons';
@@ -23,6 +25,13 @@ import { usePageMeta } from '../hooks/usePageMeta';
 import { useProductsByIds } from '../hooks/useCatalog';
 import ProductMedia from '../components/ui/ProductMedia';
 import { cartDeliveryLabel } from '../lib/productDelivery';
+import { payCartWithWallet } from '../lib/wallet';
+import { formatMoney } from '../lib/formatMoney';
+import {
+  useWalletBalance,
+  useWalletConfig,
+  walletBalanceQueryKey,
+} from '../components/wallet/walletQueries';
 
 function money(n: number) {
   return `$${n.toFixed(2)}`;
@@ -47,6 +56,13 @@ export default function CartPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState('');
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [walletError, setWalletError] = useState('');
+  const walletBusyRef = useRef(false);
+  const queryClient = useQueryClient();
+  const walletCfg = useWalletConfig();
+  const walletReady = !!user && walletCfg.data?.enabled === true;
+  const walletBalanceQ = useWalletBalance(user?.id, walletReady);
   // Back from Polar via bfcache keeps the old spinner state — reset it.
   useEffect(() => {
     const onShow = (e: PageTransitionEvent) => {
@@ -61,6 +77,10 @@ export default function CartPage() {
   const finalTotal = Math.max(0, subtotal - discount);
   const canApply = couponCode.trim().length > 0;
   const delivery = cartDeliveryLabel(t, items, lang);
+  const walletBalance = walletBalanceQ.data ?? 0;
+  const walletShort =
+    walletBalanceQ.isSuccess && Math.round(walletBalance * 100) < Math.round(finalTotal * 100);
+  const canWalletPay = walletReady && walletBalanceQ.isSuccess && !walletShort;
 
   const applyCoupon = async () => {
     if (!canApply || couponLoading) return;
@@ -107,6 +127,29 @@ export default function CartPage() {
       setPayError(t('حدث خطأ أثناء معالجة الطلب. حاول مجدداً.', 'An error occurred. Please try again.'));
       setPayLoading(false);
     }
+  };
+
+  // Server prices the order and debits the wallet atomically; success page verifies `paid`.
+  const payWithWallet = async () => {
+    if (walletBusyRef.current || payLoading || !canWalletPay) return;
+    walletBusyRef.current = true;
+    setWalletError('');
+    setPayError('');
+    setWalletLoading(true);
+    try {
+      const result = await payCartWithWallet(items, useCartStore.getState().coupon, t);
+      void queryClient.invalidateQueries({ queryKey: walletBalanceQueryKey(user?.id) });
+      if (result.ok) {
+        navigate(`/checkout/success?order_id=${encodeURIComponent(result.orderId)}`);
+        return;
+      }
+      if (result.clearCoupon) setCoupon(null);
+      setWalletError(result.error);
+    } catch {
+      setWalletError(t('حدث خطأ أثناء معالجة الطلب. حاول مجدداً.', 'An error occurred. Please try again.'));
+    }
+    walletBusyRef.current = false;
+    setWalletLoading(false);
   };
 
   if (items.length === 0) {
@@ -351,7 +394,7 @@ export default function CartPage() {
               <button
                 type="button"
                 onClick={completePayment}
-                disabled={payLoading}
+                disabled={payLoading || walletLoading}
                 className="btn btn-primary w-full min-h-12 hidden lg:flex gap-2"
               >
                 {payLoading ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <CreditCard size={16} aria-hidden />}
@@ -359,6 +402,51 @@ export default function CartPage() {
                   ? t('إتمام الدفع', 'Complete Payment')
                   : t('تسجيل الدخول للدفع', 'Sign in to pay')}
               </button>
+
+              {walletReady && (
+                <div className="rounded-box border border-base-300 bg-base-100/60 px-3 py-3 text-sm space-y-2">
+                  <div className="flex justify-between items-center gap-3">
+                    <span className="text-base-content/70 inline-flex items-center gap-1.5">
+                      <Wallet size={14} aria-hidden />
+                      {t('رصيد المحفظة', 'Wallet balance')}
+                    </span>
+                    <span className="font-semibold tabular-nums" dir="ltr">
+                      {walletBalanceQ.isSuccess ? formatMoney(walletBalance) : '—'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void payWithWallet()}
+                    disabled={!canWalletPay || walletLoading || payLoading}
+                    className="btn btn-outline w-full min-h-12 gap-2"
+                  >
+                    {walletLoading ? (
+                      <Loader2 size={16} className="animate-spin" aria-hidden />
+                    ) : (
+                      <Wallet size={16} aria-hidden />
+                    )}
+                    {t('ادفع من المحفظة', 'Pay with wallet')}
+                  </button>
+                  {walletShort && (
+                    <p className="text-xs text-base-content/70 text-pretty">
+                      {t('رصيدك لا يكفي لهذا الطلب.', 'Your balance does not cover this order.')}{' '}
+                      <Link to="/dashboard/wallet" className="link link-primary">
+                        {t('اشحن الرصيد', 'Top up')}
+                      </Link>
+                    </p>
+                  )}
+                  {walletBalanceQ.isError && (
+                    <p className="text-xs text-error">
+                      {t('تعذر تحميل رصيد المحفظة.', 'Could not load wallet balance.')}
+                    </p>
+                  )}
+                  {walletError && (
+                    <div role="alert" className="alert alert-error text-sm py-2">
+                      {walletError}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <ul className="text-xs text-base-content/70 space-y-1.5 mt-1">
                 <li className="flex items-start gap-2">
@@ -418,7 +506,7 @@ export default function CartPage() {
             <button
               type="button"
               onClick={completePayment}
-              disabled={payLoading}
+              disabled={payLoading || walletLoading}
               className="btn btn-primary flex-1 min-h-12 gap-2"
             >
               {payLoading ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <CreditCard size={16} aria-hidden />}

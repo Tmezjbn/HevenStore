@@ -3256,3 +3256,17 @@ a.admin-home__meter:hover {
   border-color: color-mix(in oklch, var(--color-error) 35%, transparent);
   background: color-mix(in oklch, var(--color-error) 6%, var(--color-base-200));
 }
+
+/* Wallet page (/dashboard/wallet) — rides the buyer-ledger block. */
+.buyer-ledger__hero-stats.wallet-vault__stats {
+  grid-template-columns: 1fr;
+}
+.wallet-vault__balance {
+  font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem);
+}
+.wallet-vault__topup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.1rem 1.15rem;
+}

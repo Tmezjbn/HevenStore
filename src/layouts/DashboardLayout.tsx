@@ -3,7 +3,7 @@ import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Tag, Users, BarChart3, Bell, Settings,
   Palette, Globe, ShoppingBag, Ticket, LogOut, Menu, ScrollText,
-  User, BookOpen, Award, UserX, Headphones,
+  User, BookOpen, Award, UserX, Headphones, Wallet,
 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useI18n } from '../lib/i18n';
@@ -96,6 +96,7 @@ export default function DashboardLayout() {
   const allLinks = [
     { icon: LayoutDashboard, label: 'لوحة التحكم', labelEn: 'Dashboard', href: '/dashboard', roles: ['owner', 'admin', 'moderator', 'support', 'seller', 'buyer', 'member'] },
     { icon: User, label: 'ملفي الشخصي', labelEn: 'My Profile', href: '/dashboard/profile', roles: ['owner', 'admin', 'moderator', 'support', 'seller', 'buyer', 'member'] },
+    { icon: Wallet, label: 'المحفظة', labelEn: 'Wallet', href: '/dashboard/wallet', roles: ['owner', 'admin', 'moderator', 'support', 'seller', 'buyer', 'member'] },
     { icon: Award, label: 'شاراتي', labelEn: 'My Badges', href: '/dashboard/my-badges', roles: ['moderator', 'support', 'seller', 'buyer', 'member'] },
     { icon: BookOpen, label: 'الأدلة', labelEn: 'Guides', href: '/dashboard/guides', roles: ['owner', 'admin', 'moderator', 'support', 'seller', 'buyer', 'member'] },
     { icon: BarChart3, label: 'التحليلات', labelEn: 'Analytics', href: '/dashboard/analytics', roles: ['owner', 'admin'] },
