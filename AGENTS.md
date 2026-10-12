@@ -6,11 +6,13 @@
 
 ## Read order
 
-1. **`HANDOFF.md`** — MUST before bugs or any checkout / auth / fulfillment / roles / RLS / support work. Invariants, verify commands, gotchas, open items.
+1. **`HANDOFF.md`** — MUST before bugs or any checkout / auth / fulfillment / roles / RLS / support work. Invariants, verify, file map, open items.
 2. **`PRODUCT.md` + `DESIGN.md`** — before any UI work (Trusted Vault, bilingual AR/EN + RTL parity).
 3. **`OPS.md`** — before deploy/launch/ops (alerts, uptime, PITR, live checklist).
 4. **`POLAR_SETUP.md`** — before Polar sandbox/prod wiring.
-5. **`README.md`** — stack map, scripts, env overview.
+5. **`README.md`** — stack, run, env names, ship.
+
+History (audit, old HANDOFF rows): `docs/archive/` — not needed for normal tasks.
 
 `.impeccable/design.json` is a tool sidecar for live mode; do not treat it as source of truth over DESIGN.md.
 
@@ -23,8 +25,9 @@ npm test
 npm run build
 ```
 
-- `npm test` runs every `scripts/check-*.mjs` via `scripts/run-checks.mjs` (**82** checks; all MUST pass).
+- `npm test` runs every `scripts/check-*.mjs` via `scripts/run-checks.mjs` (**83** checks; all MUST pass).
 - After checkout/auth/fulfillment edits, also run `node scripts/check-checkout-authority.mjs`.
+- `git push` from a non-GUI terminal: `git -c credential.helper= -c credential.helper=manager push`
 
 ## Owner internal log
 
@@ -36,5 +39,5 @@ npm run build
 
 ---
 
-**Last verified:** 2026-07-24  
+**Last verified:** 2026-10-12  
 **How to update this doc:** Keep it short. Change read-order or verify commands only when they change in the repo; put substance in HANDOFF / OPS / DESIGN.

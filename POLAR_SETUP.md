@@ -77,5 +77,5 @@ npx supabase functions deploy polar-webhook --no-verify-jwt
 
 ---
 
-**Last verified:** 2026-07-24  
+**Last verified:** 2026-10-12  
 **How to update this doc:** When Polar payload fields or required secrets change in `supabase/functions/polar-*`, update steps here. Never paste a real project-ref or live secret into this file.

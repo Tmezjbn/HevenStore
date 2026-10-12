@@ -39,5 +39,5 @@ Baseline bar: fix obvious contrast, focus, and keyboard issues as surfaces are t
 
 ---
 
-**Last verified:** 2026-07-24  
+**Last verified:** 2026-10-12  
 **How to update this doc:** Change only when brand/users/principles actually change. Token and component rules belong in `DESIGN.md`.

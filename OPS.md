@@ -63,18 +63,18 @@ Supabase owns Postgres backups. Before launch marketing:
 
 Before a release that touches money/auth:
 
-1. `supabase db push` (or apply new migrations in SQL editor) — include latest audit/support/order-number migrations from `supabase/migrations/`.
+1. `npm run db:push` — include latest audit/support/order-number/rate-limit migrations. `20260723230000_support_tickets.sql` was edited pre-apply (helper `REVOKE`s): never apply an older copy.
 2. Redeploy edge fns: `polar-checkout`, `polar-webhook --no-verify-jwt`, `client-error --no-verify-jwt`, `purge-deleted-accounts --no-verify-jwt`, `hard-delete-user`, optional `databuddy-analytics` (`supabase/config.toml` pins verify_jwt so a missing flag doesn't silently re-enable JWT).
 3. Edge secret `SITE_URL` = production origin (no localhost fallback in prod).
 4. Host serves SPA rewrite (`public/_redirects` / `vercel.json`) + security headers.
 5. Build with `VITE_SUPABASE_*` so sitemap/prerender get product URLs.
 
-Details: `README.md` Deploy, `HANDOFF.md` invariants, `POLAR_SETUP.md`.
+Commands: `npm run db:push` · `npm run deploy:functions -- <names>` · `npm run deploy` (see `README.md`). Invariants: `HANDOFF.md`. Polar: `POLAR_SETUP.md`.
 
 ## 5. Client crash beacon
 
 - `reportError` always POSTs to `client-error` (consent-independent). Databuddy errors stay consent-gated.
-- Client dedupes identical message+path for ~60s (session); edge fn also rate-limits ~30/IP/min.
+- Client dedupes identical message+path for ~60s (session); edge fn rate-limits ~30/IP/min and rejects bodies >16 KB.
 - Deploy: `npx supabase functions deploy client-error --no-verify-jwt`
 
 ## 6. Not verifiable from source (confirm live before launch)
@@ -104,5 +104,5 @@ Engineering open items that are product/debt (not ops wiring): `HANDOFF.md` → 
 
 ---
 
-**Last verified:** 2026-07-24  
+**Last verified:** 2026-10-12  
 **How to update this doc:** After changing alert tags, cron SQL, or deploy steps in repo, update the matching section. After a restore drill, add a row to the log. Do not claim live boxes are checked without dashboard confirmation.

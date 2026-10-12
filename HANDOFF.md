@@ -1,147 +1,125 @@
-# HANDOFF — Engineering memory (HEVEN.FUN)
+# HANDOFF — Engineering brief (HEVEN.FUN)
 
-**Purpose:** Server-authority invariants, roles, verify commands, and gotchas so a fresh agent does not break checkout/auth/fulfillment.
+**Purpose:** Server-authority invariants, roles, verify commands, gotchas, open items — so a fresh agent does not break checkout/auth/fulfillment.
 
-**Read this when:** fixing any bug; touching checkout, Polar, orders, stock, keys, roles, RLS, support tickets, or dashboard route guards. Also before claiming “done.”
+**Read this when:** fixing any bug; touching checkout, Polar, orders, stock, keys, roles, RLS, support, dashboard guards; before claiming “done.” History/changelog: `docs/archive/HANDOFF-history.md`.
 
-## Stack
+Stack/run/env: `README.md`. Design rules: `DESIGN.md`. Alerts/deploy gate: `OPS.md`. Polar: `POLAR_SETUP.md`.
 
-- Vite + React 18 + TypeScript · Tailwind CSS 4 + DaisyUI 5 · Zustand (cart/wishlist/auth/appearance) · TanStack React Query (catalog).
-- Supabase: Postgres + RLS, Auth, Storage, Edge Functions under `supabase/functions/`.
-- Payments: Polar. Checkout + webhook edge functions (signature-verified).
-- Bilingual AR/EN. Every user-facing string goes through `t('عربي', 'English')` from `src/lib/i18n`. RTL parity is a first-class constraint.
+## Rules for all UI strings
+Every user-facing string goes through `t('عربي', 'English')` from `src/lib/i18n`; RTL parity is a constraint. Dates: always `fmtDate` / `fmtDateTime` / `fmtTime` from `src/lib/dates.ts` (Gregorian, Latin digits, bidi marks stripped) — never raw `toLocale*String`.
 
 ## Roles (`src/types/index.ts`)
 
-`Role` = `owner | admin | moderator | support | seller | buyer | member`.
+`owner | admin | moderator | support | seller | buyer | member`.
 
-| Role | Dashboard reality |
-|------|-------------------|
-| **owner** | Full site: products, categories, orders, users, builder, themes, settings, changelogs, deletion requests, support. |
+| Role | Reality |
+|------|---------|
+| **owner** | Everything: products, categories, orders, users, builder, themes, settings, changelogs, deletion requests, support. |
 | **admin** | Staff ops: products, orders, users, coupons, badges, analytics, support. Not owner-only site chrome. |
-| **moderator** | **Not** product staff. Nav + product RLS stripped. Handles **escalated** support tickets + review moderation. Home: `ModeratorDashboardHome`. Check: `scripts/check-moderator-dashboard.mjs`. |
-| **support** | Ticket desk at `/dashboard/support` (`SupportPage.tsx`, `src/lib/support.ts`). Claim / escalate / reject-escalation; **Important** + **Sellers** bins. Standing: default **100**, **−15** per rejected escalation, **restricted ≤40** (cannot escalate), owner/admin reset via `reset_support_standing`. Migration: `supabase/migrations/20260723230000_support_tickets.sql`. |
+| **moderator** | **Not** product staff (nav + product RLS stripped; no fulfillment secrets). Handles **escalated** tickets + review moderation. Home `ModeratorDashboardHome`; check `check-moderator-dashboard.mjs`. |
+| **support** | Ticket desk `/dashboard/support` (`SupportPage.tsx`, `src/lib/support.ts`): claim / escalate / reject-escalation; Important + Sellers bins. Standing default **100**, **−15** per rejected escalation, **≤40 = restricted** (cannot escalate); owner/admin reset via `reset_support_standing`. |
 | **seller** | Own listings + sales fulfillment; seller support queue. |
-| **buyer** / **member** | Own orders, profile, badges, open support tickets. |
+| **buyer** / **member** | Own orders, profile, badges, open tickets. |
 
-Dashboard nav/roles: `src/layouts/DashboardLayout.tsx` (`allLinks`). MUST wait for profile load before redirecting, or refresh falsely kicks users out.
+Route guards: `allLinks` in `src/layouts/DashboardLayout.tsx`; it MUST wait for the profile to load before redirecting, or refresh falsely kicks users out.
 
-## Non-negotiable invariants (MUST NOT regress)
+## Invariants (MUST NOT regress)
 
-1. **The client never writes to money tables.** `orders`, `order_items`, `coupon_usages` are INSERT/UPDATE/DELETE-blocked by RLS for clients. Order creation goes through the `create_pending_order` RPC (recomputes prices, validates stock + coupon server-side). Payment finalization goes through `finalize_paid_order` RPC, called ONLY by the webhook. Never “fix” a checkout bug by adding a client-side `.from('orders').insert/update(...)`.
-2. **Stock is server-decremented in `finalize_paid_order`.** Key-pool products: stock = count of unclaimed rows in `product_keys` (claimed atomically with `FOR UPDATE SKIP LOCKED`). Manual-stock products: atomic `GREATEST(0, stock - qty)`. Don't decrement anywhere else.
-3. **Roles can't be self-assigned.** A trigger forces `role='member'` on profile INSERT; `guard_role_change` covers UPDATE. `profiles` SELECT = own row OR staff (via `current_user_role()` — always use that helper in RLS policies to avoid recursion).
-4. **Dashboard routes are role-guarded** in `src/layouts/DashboardLayout.tsx` via the `allLinks` roles config. It waits for the profile to load before deciding — keep that, or users get falsely redirected on refresh.
-5. **The success page never fakes success.** `CheckoutSuccessPage` handles missing/failed/processing states and only marks paid on a verified paid order. On paid it removes that order's `product_id`s from the cart (not a blank `clearCart` — revisiting an old paid URL must not wipe a newer cart). The cart is NOT cleared when starting Polar (abandoned Polar checkouts keep the cart). `signOut` / `signOutBoth` clear cart + wishlist (`clearLocalCommerce`) so shared devices don't leak the previous shopper's basket.
-6. **Fulfillment secrets** (`product_secrets`, `product_keys.content`) are only exposed via the `get_order_fulfillment` RPC to the paid order's owner. Never SELECT them client-side.
-7. **Sold goods are immutable from the client** (`20260720193000_audit_sec_keys_seller_reviews_orders.sql`): claimed `product_keys` rows reject JWT UPDATE/DELETE (`CLAIMED_KEY_LOCKED` trigger; service-role paths like `finalize_paid_order` pass); sellers can only INSERT `products` with `seller_id = auth.uid()` (staff may set it explicitly); `reviews` are insert/delete-only — no UPDATE policy (blocks retargeting `product_id` / `is_verified_purchase` forgery; UI never had edit); there is NO direct UPDATE policy on `orders` — status transitions go via RPCs/webhook only.
+1. **Client never writes money tables.** `orders`, `order_items`, `coupon_usages` are INSERT/UPDATE/DELETE-blocked by RLS. Orders are created by RPC `create_pending_order` (server recomputes prices, validates stock + coupon) and finalized by `finalize_paid_order`, called ONLY by the webhook. Never fix checkout with client `.from('orders').insert/update`.
+2. **Stock is decremented only in `finalize_paid_order`.** Key-pool products: stock = unclaimed `product_keys` rows (claimed atomically, `FOR UPDATE SKIP LOCKED`). Manual stock: atomic `GREATEST(0, stock - qty)`. Concurrent oversell finalizes `paid` with `KEY_SHORTFALL`/`STOCK_SHORTFALL` notes and no auto-refund (accepted; ops watch).
+3. **Roles can't be self-assigned.** Trigger forces `role='member'` on profile INSERT; `guard_role_change` covers UPDATE. `profiles` SELECT = own row or staff via `current_user_role()` — always use that helper in RLS to avoid recursion.
+4. **Dashboard routes are role-guarded** (see Roles).
+5. **Success page never fakes success.** `CheckoutSuccessPage` handles missing/failed/processing; marks paid only on a verified paid order, then removes that order's `product_id`s from the cart (not blanket `clearCart` — an old paid URL must not wipe a newer cart). Cart is NOT cleared when starting Polar (abandoned checkouts keep it). `signOut`/`signOutBoth` clear cart + wishlist (`clearLocalCommerce`) for shared devices.
+6. **Fulfillment secrets** (`product_secrets`, `product_keys.content`) are exposed only via `get_order_fulfillment` (status `paid`, order owner). Never SELECT them client-side. Staff policies on them are `owner`/`admin` + seller-owns-product; `moderator`/`support` excluded (`20260724160000_moderator_strip_fulfillment_secrets.sql`).
+7. **Sold goods are immutable from the client** (`20260720193000_audit_sec_keys_seller_reviews_orders.sql`): claimed `product_keys` reject JWT UPDATE/DELETE (`CLAIMED_KEY_LOCKED`; service-role paths pass); sellers INSERT `products` only with `seller_id = auth.uid()` (staff may set it); `reviews` are insert/delete-only (no UPDATE policy); NO direct UPDATE policy on `orders` — transitions via RPCs/webhook only.
+8. **SECURITY DEFINER helpers are least-privilege.** `REVOKE ALL … FROM PUBLIC, anon, authenticated` unless intentionally GRANTed with caller authz (`notify_users`, `support_role_ids` are revoked; do not add an `auth.uid()` guard — it breaks DEFINER-to-DEFINER `PERFORM`).
+9. **Staff notes** live in `profile_staff_notes` (RLS staff-only; write via RPC `set_staff_notes`; `src/lib/staffNotes.ts`). `profiles.staff_notes` is pinned NULL by a CHECK — never use it.
+10. **Order numbers:** `orders.order_number` = `ORD-YYYYMMDD-########` (UTC date + global sequence), set by BEFORE INSERT trigger, frozen after (`ORDER_NUMBER_LOCKED`). UUID `orders.id` stays the PK for Polar/webhooks/deep links. Check `check-order-number.mjs`.
+11. **Admin/owner stock totals** come from RPC `product_stock_pulse()` (`src/lib/stockPulse.ts`) — avoids the PostgREST 1000-row cap. Don't re-aggregate client-side.
+12. **`client-error` edge fn rejects bodies >16 KB.** Deployed `--no-verify-jwt` (also pinned in `supabase/config.toml`, as are `polar-webhook` and `purge-deleted-accounts`).
+13. **Coupon usage rows outlive orders:** `coupon_usages.order_id` is `ON DELETE SET NULL` by design.
+14. **Keyed products have derived stock.** Editor disables the stock input when `product_keys` exist. Don't re-enable.
 
-`scripts/check-checkout-authority.mjs` asserts most of these against source. Run it after any change near checkout/auth/fulfillment; extend it when you add a new invariant.
-
-## Order numbers
-
-- Display code: `orders.order_number` = `ORD-YYYYMMDD-########` (UTC date + 8-digit global sequence).
-- Assigned by a `BEFORE INSERT` trigger off `orders_order_number_seq`. Migration: `20260723232000_orders_order_number.sql`.
-- UUID `orders.id` remains the **PK** and is what Polar, webhooks, and deep links use.
-- After insert, `order_number` is frozen (`ORDER_NUMBER_LOCKED` on UPDATE). Check: `scripts/check-order-number.mjs`.
-
-## Product effects (not Website Builder)
-
-Managed from the **Products** area:
-
-| Effect | Where | Notes |
-|--------|-------|--------|
-| Aura (incl. `electric`) | `ProductEffectsDialog` / `ProductEffectsSection` | Canvas: `ElectricBorder.tsx`. Tunables: `aura_electric_json` + `aura_color`. |
-| Hover 3D | same dialog | Aura rides `product-card__tilt-face` so glow tilts with the card; aura hosts suppress the card’s own border. Global tune: `site_settings.product_hover_3d_json`. |
-| Card-body FX | product editor (`card_fx` JSON) | Matrix types 1/2; **type 3 = Letter Glitch**. No CHECK constraint on `card_fx`. |
-
-Checks: `scripts/check-electric-aura.mjs`, `check-product-hover-3d-whole-card.mjs`, `check-product-card-fx.mjs`.
-
-## How to fix a bug here
-
-1. **Trace the real flow end to end before editing.** Checkout: `CartPage` → `startPolarCheckout` → `create_pending_order` RPC → `polar-checkout` edge fn → Polar → `polar-webhook` → `finalize_paid_order` RPC → `CheckoutSuccessPage` polls `orders.status`. A symptom on success often roots in the webhook or RPC.
-2. **Fix the root cause in the shared function, not one caller.** Grep every caller of anything you touch.
-3. **Prefer the existing pattern.** Catalog pages reuse `GamesPage` with a `types` prop. Media → `ProductMedia` / `InViewVideo`. Fulfillment display → `fulfillmentDisplay()` in `src/lib/fulfillment.ts`.
-4. **Money/security behavior belongs in SQL**, not TypeScript. New behavior = timestamped idempotent migration under `supabase/migrations/` (`CREATE OR REPLACE FUNCTION`, `DROP POLICY IF EXISTS` before `CREATE POLICY`). RPCs: `SECURITY DEFINER SET search_path = public` and validate `auth.uid()` themselves.
-5. **Verify before claiming done** (PowerShell — `&&` does not chain; use `;`):
-
-```powershell
-npm run typecheck
-npm run lint
-npm test
-npm run build
-npx eslint <files-you-touched>
-```
-
-6. **Non-trivial logic leaves one runnable check** — extend an existing `scripts/check-*.mjs` or add one small assert-based script. No test frameworks. `npm test` → `scripts/run-checks.mjs` runs **every** `scripts/check-*.mjs` (currently **80**); all MUST pass.
+`scripts/check-checkout-authority.mjs` asserts most of these. Run it after any checkout/auth/fulfillment change; extend it for new invariants.
 
 ## Gotchas that already bit
 
-- **PowerShell:** `cmd1 && cmd2` fails. Use `cmd1; if ($LASTEXITCODE -eq 0) { cmd2 }`.
-- **Arabic string-replace anchors** can fail (encoding / RTL marks). Anchor on nearby ASCII (JSX attrs, tags).
-- **`tsconfig.app.json` lib is ES2021** (needed for `replaceAll`). Don't downgrade.
-- **Font links in `index.html`:** only Vault (default) fonts are render-blocking; other skins use `media="print"` + `data-onload-media="all"`, unlocked by `public/font-deferred.js` (CSP forbids inline `onload`). CSP MUST allow `api.fonts.coollabs.io` (CSS) and `cdn.fonts.coollabs.io` (woff2).
-- **framer-motion MUST stay out of the main chunk.** `ProductAdsBanner`, `NotificationBell`, `FindMoreProducts` are `React.lazy`. Eager motion import on storefront ≈ +42 KB gzip. Assert: `scripts/check-motion-chunk.mjs` (run after `npm run build`).
-- **Autoplay videos** go through `InViewVideo` (`ProductMedia.tsx`). Don't add raw `<video autoPlay>`.
-- **Keyed products have derived stock.** Editor disables stock input when `product_keys` exist. Don't re-enable.
-- **Coupon usage rows outlive orders:** `coupon_usages.order_id` is `ON DELETE SET NULL` by design.
-- **DaisyUI custom themes MUST set `:root { --noise: 0 }`** (see `src/index.css`). Missing `--noise` → `--fx-noise` film grain flashes on `:active` / menu press.
-- **Storefront wheel/trackpad scrolling is always native.** No JS interception anywhere — an earlier Blink-only wheel lerp lost to compositor scrolling under heavy paint (why Firefox felt smoother). Back-to-top keeps a short rAF ease (`smoothScrollWindowTo` in `src/lib/smoothScroll.ts`). Check: `scripts/check-storefront-scroll.mjs`.
+- **PowerShell:** `&&` fails; use `;`. **Arabic string-replace anchors** can fail (RTL marks) — anchor on nearby ASCII.
+- **`tsconfig.app.json` lib is ES2021** (for `replaceAll`). Don't downgrade.
+- **Fonts (`index.html`):** only Vault fonts are render-blocking; other skins use `media="print"` + `data-onload-media="all"` unlocked by `public/font-deferred.js` (CSP forbids inline `onload`). CSP MUST allow `api.fonts.coollabs.io` (CSS) + `cdn.fonts.coollabs.io` (woff2).
+- **framer-motion stays out of the main chunk** (`ProductAdsBanner`, `NotificationBell`, `FindMoreProducts` are `React.lazy`; eager ≈ +42 KB gzip). `check-motion-chunk.mjs` after `npm run build`.
+- **Autoplay video** goes through `InViewVideo` (`ProductMedia.tsx`); no raw `<video autoPlay>`.
+- **DaisyUI custom themes MUST set `:root { --noise: 0 }`** (in `src/css/01-themes.css`), or film grain flashes on `:active`/menu press.
+- **Storefront scrolling is native** — no JS wheel interception (a Blink-only lerp lost to compositor scrolling). Back-to-top uses `smoothScrollWindowTo` (`src/lib/smoothScroll.ts`). Check `check-storefront-scroll.mjs`.
+- **CSS layout:** `src/index.css` only `@import`s `src/css/01-themes.css … 13-reviews.css` — order matters. Themes + DaisyUI theme blocks are in `01-themes.css`. Dashboard CSS is lazy in `src/styles/*.css` (guard `check-dashboard-css-chunk.mjs`); storefront `.pe-reviews*` stays in main.
+- **Check scripts read split sources** via `scripts/_product-editor-source.mjs`, `scripts/builder-source.mjs`, and `readIndexCss()` (index.css + `src/css/*`). New split files must be reachable there.
+- **Product effects** (Products area, not Website Builder): aura incl. `electric` (`ProductEffectsDialog`, `ElectricBorder.tsx`, `aura_electric_json` + `aura_color`; aura rides `product-card__tilt-face`); Hover 3D (`site_settings.product_hover_3d_json`); card-body FX `card_fx` JSON (matrix 1/2, **3 = Letter Glitch**; no CHECK). Checks: `check-electric-aura`, `check-product-hover-3d-whole-card`, `check-product-card-fx`.
 
-## Project map
+## Fixing a bug here
+
+1. **Trace the flow end to end.** Checkout: `CartPage` → `startPolarCheckout` → `create_pending_order` → `polar-checkout` → Polar → `polar-webhook` → `finalize_paid_order` → `CheckoutSuccessPage` polls `orders.status`. Success-page symptoms often root in webhook/RPC.
+2. **Fix the shared function, not one caller;** grep every caller.
+3. **Reuse patterns:** catalog = `GamesPage` + `types` prop; media = `ProductMedia`/`InViewVideo`; fulfillment display = `fulfillmentDisplay()` (`src/lib/fulfillment.ts`).
+4. **Money/security belongs in SQL.** New behavior = timestamped idempotent migration (`CREATE OR REPLACE FUNCTION`, `DROP POLICY IF EXISTS` before `CREATE POLICY`); RPCs `SECURITY DEFINER SET search_path = public` and validate `auth.uid()` themselves.
+5. **Leave one runnable check** — extend a `scripts/check-*.mjs` or add one assert script. No test frameworks.
+
+## Verify
+
+```powershell
+npm run typecheck; npm run lint; npm test; npm run build; npx eslint <touched files>
+```
+
+`npm test` = `scripts/run-checks.mjs` runs every `scripts/check-*.mjs` (**83**; all MUST pass).
+
+## File map
 
 | Area | Location |
 |------|----------|
-| Commerce RPCs / RLS / key pool | `supabase/migrations/20260711100000_checkout_server_authority.sql` (+ later harden migrations) |
-| Manual-stock finalize | `20260711120000_finalize_manual_stock.sql` |
-| Profile/role hardening | `20260711110000_profiles_access_control.sql` |
-| Sold-goods immutability | `20260720193000_audit_sec_keys_seller_reviews_orders.sql` |
-| Phase-7 harden | `20260720200000_audit_sec_phase7_harden.sql` |
-| Support tickets | `20260723230000_support_tickets.sql` · `src/lib/support.ts` · `SupportPage.tsx` |
-| Order numbers | `20260723232000_orders_order_number.sql` |
-| Payment webhook | `supabase/functions/polar-webhook/index.ts` |
+| Commerce RPCs/RLS/key pool | `supabase/migrations/20260711100000_checkout_server_authority.sql` (+ `…120000_finalize_manual_stock`, `…110000_profiles_access_control`, `20260720193000_audit_sec_*`, `20260720200000_audit_sec_phase7_harden`) |
+| Support / order numbers | `20260723230000_support_tickets.sql`, `20260724170000_support_ticket_rate_limits.sql`, `20260723232000_orders_order_number.sql` · `src/lib/support.ts`, `SupportPage.tsx` |
+| Edge functions | `supabase/functions/`: `polar-checkout`, `polar-webhook`, `client-error`, `databuddy-analytics`, `purge-deleted-accounts`, `hard-delete-user`, `_shared` |
 | Checkout client | `src/lib/startPolarCheckout.ts`, `CartPage.tsx`, `CheckoutSuccessPage.tsx` |
-| Catalog | `src/pages/GamesPage.tsx` |
-| Product editor / keys UI | `src/pages/dashboard/ProductsPage.tsx`, `ProductEditorPage.tsx` |
+| Catalog | `src/pages/GamesPage.tsx`, `src/hooks/useCatalog.ts` |
+| Product editor | `ProductEditorPage.tsx` (entry, ~1100 lines) + `src/pages/dashboard/productEditor/*` |
+| Website builder | `WebsiteBuilderPage.tsx` (entry, ~1400) + `src/pages/dashboard/websiteBuilder/*` |
+| Staff product lists | `src/pages/dashboard/StaffProductsList.tsx` (`variant` prop); `AdminProductsPage`/`OwnerProductsPage` are thin wrappers |
+| Storefront CSS | `src/index.css` → `src/css/01…13-*.css`; dashboard CSS `src/styles/*.css` |
 | Role guard | `src/layouts/DashboardLayout.tsx` |
-| Invariant self-checks | `scripts/check-*.mjs` (**80** files; `npm test`) |
-| Edge functions | `polar-checkout`, `polar-webhook`, `client-error`, `databuddy-analytics`, `purge-deleted-accounts`, `hard-delete-user` (+ `_shared`) |
-| Migrations on disk | **143** SQL files under `supabase/migrations/` |
-| Dashboard pages | **24** under `src/pages/dashboard/` |
+| Self-checks | `scripts/check-*.mjs` (83) |
+| Counts (2026-10-12) | 149 migrations · 24 dashboard pages in `src/pages/dashboard/` |
 
-Deploy: migrations MUST be applied to the live Supabase project — **`npm run db:push`** (Supabase CLI linked; reads `SUPABASE_DB_PASSWORD` from `.env` + `SUPABASE_ACCESS_TOKEN` from `.devin/mcp_config.local.json`; applies only unrecorded files and writes `schema_migrations` rows itself — prefer it over SQL-editor pastes). Edge functions deploy separately — **`npm run deploy:functions -- <names>`** (or no names = all; needs a full Personal Access Token as `SUPABASE_ACCESS_TOKEN` in `.env` — the MCP token can't deploy). Site deploy: **`npm run deploy`** (build + `wrangler pages deploy` to the `heven` Pages project; needs `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` in `.env`).
-
-## Current truth
-
-Baseline 6-domain audit completed 2026-07-20 (142 findings); phases 1–12 landed. Open items below.
-
-Repo enforces server-authority checkout, sold-goods locks, SPA rewrite (`public/_redirects`), purge-secret CI guard (`scripts/check-purge-secret.mjs`), SEO/a11y/ops docs, support desk + order numbers + product effects as above. Frontend assumes migrations + edge deploys match what is in this tree.
+Deploy (details in `README.md`/`OPS.md`): `npm run db:push` · `npm run deploy:functions -- <names>` · `npm run deploy`.
 
 ## Open items
 
-Each item: **what** · **where** · **who unblocks**.
+Format: **what** · **where** · **who**.
 
 | What | Where | Who |
 |------|-------|-----|
-| Confirm live DB has latest migrations (audit harden, support tickets, order numbers, …) | Supabase project / `supabase db push` | Owner / deployer |
-| Confirm edge fns redeployed (esp. `polar-webhook` 500-on-finalize-failure retry; `client-error --no-verify-jwt`) | Supabase Edge Functions | Owner / deployer |
-| Rotate live `PURGE_CRON_SECRET`, keep only placeholder in repo, re-run `supabase/cron/purge_due_account_deletions.sql` | Dashboard secrets + cron SQL | Owner (rotate before any commit of a real secret) |
-| Wire Polar delivery-failure mail, log drain/uptime, enable PITR, run restore drill | `OPS.md` | Owner |
-| Host SPA rewrite + security headers actually served | Host (`_redirects` / `vercel.json` / proxy) | Owner / deployer |
-| Product decisions still deferred: guest checkout; full SSG/prerender; in-app refunds (owner: no) | Product / eng debt | Owner decision + eng |
-| PERF-2 partial ✅: dashboard CSS deferred off storefront main chunk (`product-editor`, `admin-catalog`, `settings-page`, `dashboard-role-surfaces`, `dashboard-owner-surfaces`, `dashboard-docs`, `analytics-page` + dynamic import; `check-dashboard-css-chunk.mjs`). Theme-skin split still rejected. Leftover = DaisyUI/Tailwind/storefront. See `LAUNCH-AUDIT-2026-07-24.md` PERF-2 | `src/styles/*.css` | Done 2026-07-29 |
-| Deferred scale/refactor: (megafile splits + Admin/Owner unify DONE 2026-10-12: `src/css/*`, `dashboard/productEditor/*`, `dashboard/websiteBuilder/*`, `StaffProductsList.tsx`; checks read them via `scripts/_product-editor-source.mjs` / `builder-source.mjs` / `readIndexCss()`) generated Supabase types; webhook outbox; server catalog search | codebase | Eng when prioritized |
+| Confirm edge fns redeployed (`polar-webhook` 500-on-finalize-failure retry; `client-error --no-verify-jwt`) | Supabase Edge Functions | Owner/deployer |
+| Rotate live `PURGE_CRON_SECRET`; keep placeholder in repo; re-run `supabase/cron/purge_due_account_deletions.sql` | Dashboard + cron SQL | Owner |
+| Polar failure mail, log drain/uptime, PITR, restore drill | `OPS.md` | Owner |
+| Host serves SPA rewrite + security headers; tighten CSP `frame-src` (currently `'self' https:`) | `public/_headers`, `vercel.json` | Owner/deployer |
+| Prod build has `VITE_SUPABASE_*` so sitemap lists products (build fails if env set and 0 products) | Build env | Owner |
+| Sitemap origin pinned to `https://heven.fun` (`scripts/generate-sitemap.mjs`) while app serves staging `heven.pages.dev`; noindex staging until cutover | script / host | Owner |
+| Webhook verifies amount but not currency (USD hardcoded) | `polar-webhook` | Eng |
+| `order_is_visible_to_caller` lets any seller on a multi-seller order read buyer UUID + whole order | `20260720191000_fix_orders_rls_recursion.sql` | Eng |
+| Skin anti-patterns vs DESIGN.md: Abyss/Aurora hero `h1` gradient text (`src/css/09-skin-personalities.css`); Aurora card hover border + wide shadow; hero desc `opacity-70` on Vault (`HomePage.tsx`) | CSS / HomePage | Eng/design |
+| Catalog downloads up to 5000 actives and filters client-side; support search covers newest 200 per bin (`SupportPage.tsx`) | `useCatalog.ts`, `SupportPage.tsx` | Eng when scale needs it |
+| Debt: generated Supabase types (`as unknown as` clusters); webhook outbox; server catalog search; `CartPage` local `money()` bypasses `formatMoney`; support standing badge stale until profile refetch | codebase | Eng when prioritized |
+| Product decisions deferred: guest checkout; full SSG; in-app refunds/chargebacks (owner: not now — a reversed Polar payment stays `paid` + fulfillment exposed) | Product | Owner |
 | Optional image transforms | Storage Pro + `VITE_SUPABASE_IMAGE_TRANSFORM=true` | Owner |
 
-Accepted (not open): SEC-5 auth tokens in localStorage — kept; rely on CSP. Rate limits on public RPCs already shipped in-repo.
+Verified 2026-10-12: all 149 migrations applied on live; edge secrets `SITE_URL` + `POLAR_SERVER` set; `claimed` always gets an assignee (`20261012120000`).
 
-**Launch gate (2026-07-24 audit):** P0 SEC-1/SEC-2/SEC-3/SEO-1 cleared in repo — apply `20260723230000_support_tickets.sql` (edited pre-apply with helper `REVOKE`s) + `20260724160000_moderator_strip_fulfillment_secrets.sql`, and build prod with `VITE_SUPABASE_*`. FUNC-1 (support thread selection) cleared in repo via `loadTicketById` + `selectedFallback`. Remaining soft/P1 items still in `LAUNCH-AUDIT-2026-07-24.md`.
+Accepted (not open): auth tokens in localStorage (rely on CSP); same-URL hreflang; public-RPC and support-ticket rate limits already shipped.
 
 ## Working style
 
-Lazy-senior / ponytail: reuse what exists, stdlib > dependency, shortest diff that fixes the **root cause**, no speculative abstractions, delete over add. Question scope. Mark deliberate corner-cuts with a `ponytail:` comment naming the ceiling and upgrade path. Never lazy about: trust-boundary validation, security, accessibility, RTL/i18n parity, and anything the user explicitly asked for. Details: `.cursor/rules/ponytail.mdc`.
+Lazy-senior / ponytail: reuse, stdlib > dependency, shortest diff fixing the **root cause**, no speculative abstractions. Mark deliberate corner-cuts with a `ponytail:` comment naming ceiling + upgrade path. Never lazy about trust-boundary validation, security, accessibility, RTL/i18n. Details: `.cursor/rules/ponytail.mdc`.
 
 ---
 
-**Last verified:** 2026-07-24  
-**How to update this doc:** After any checkout/auth/fulfillment/role change, update the matching invariant/gotcha/open-item here in the same PR; re-count `scripts/check-*.mjs` if checks were added/removed; never weaken a security claim.
+**Last verified:** 2026-10-12  
+**How to update:** After any checkout/auth/fulfillment/role change, update the matching invariant/gotcha/open item in the same PR; re-count checks if added/removed; never weaken a security claim. Move completed/dated rows to `docs/archive/HANDOFF-history.md`.

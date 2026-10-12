@@ -100,16 +100,16 @@ The system rejects generic SaaS marketing: no cream backgrounds, no hero metric 
 - Bebas Neue condensed display over Rubik body (Vault default skin) at heavy weights for commerce headlines
 - Teal/cyan (or skin primary) glow reserved for hover, CTA, and promotional emphasis — not wallpaper
 - 12px corner radius as the default container language
-- DaisyUI 5 on Tailwind CSS 4 (themes in `src/css/01-themes.css`, imported by `src/index.css`) for buttons, cards, navbar, drawer, forms, tables
+- DaisyUI 5 on Tailwind CSS 4 (themes in `src/css/01-themes.css`) for buttons, cards, navbar, drawer, forms, tables
 - **Six user-selectable skins** (`src/lib/appearance.ts`), each with dark + light DaisyUI themes: Vault (default, Bebas Neue/Rubik), Aurora (Space Grotesk), Sunset (Fraunces), Abyss (Syne), Dim (Manrope), Coffee (Literata). Content is identical across skins; only the feel changes.
 - CSS transitions for hover/focus; no page-wide motion choreography
-- Custom DaisyUI themes MUST set `:root { --noise: 0 }` or menu `:active` flashes film grain (see `src/index.css` / HANDOFF)
+- Custom DaisyUI themes MUST set `:root { --noise: 0 }` (in `01-themes.css`; why: HANDOFF gotchas)
 
 ## 2. Colors
 
 A committed monochrome dark palette (Vault, the default skin): the near-black void is the brand; the signal is near-white ink, not a hue. Color arrives through product imagery, status semantics, and user-selected alternate skins.
 
-All colors live as DaisyUI theme variables in `src/css/01-themes.css` (imported by `src/index.css`) (`@plugin "daisyui/theme"` blocks — one dark + one light theme per skin). Components use semantic roles (`primary`, `base-100/200/300`, `base-content`), never raw hex.
+All colors live as DaisyUI theme variables in `src/css/01-themes.css` (`@plugin "daisyui/theme"` blocks — one dark + one light theme per skin). Components use semantic roles (`primary`, `base-100/200/300`, `base-content`), never raw hex.
 
 ### Vault dark (`heven`, default)
 - **Primary / Signal Ink** (#ececec on #161616 content): CTA fill, active nav, focus rings, discount badges. High-contrast monochrome — the "signal" is brightness, not hue.
@@ -134,7 +134,7 @@ Aurora (indigo #818cf8), Sunset (rose #fb7185), Abyss (acid lime on deep teal), 
 **Body Font (Vault default):** Rubik (system-ui fallback) via `--font-sans`  
 **Mono:** system monospace stack for codes, order numbers, technical strings
 
-Other skins swap the pair (see `index.html` async font loads + `src/index.css` per-theme overrides): Aurora = Space Grotesk, Sunset = Fraunces, Abyss = Syne, Dim = Manrope, Coffee = Literata. Only the Vault fonts are render-blocking.
+Other skins swap the pair (see `index.html` async font loads + per-theme overrides in `src/css/`): Aurora = Space Grotesk, Sunset = Fraunces, Abyss = Syne, Dim = Manrope, Coffee = Literata. Only the Vault fonts are render-blocking.
 
 **Character:** Tight, confident grotesque — heavy weights sell deals; regular weight carries explanations.
 
@@ -162,7 +162,7 @@ Hybrid system: surfaces are flat at rest; a primary-tinted glow and slight trans
 
 ## 5. Components
 
-**Layer:** [DaisyUI 5](https://daisyui.com/) on Tailwind CSS 4, themes defined with `@plugin "daisyui/theme"` blocks in `src/css/01-themes.css` (no `tailwind.config.js`). `data-theme` set on `<html>` by the appearance store (`src/stores/appearanceStore.ts`, with View Transition swaps). Brand tokens map to Daisy roles: `primary` = Signal Ink (per skin), `accent` = muted secondary, `base-100` = Vault Void, `base-200`/`base-300` = stepped surfaces.
+**Layer:** DaisyUI 5 on Tailwind CSS 4 (no `tailwind.config.js`). `data-theme` set on `<html>` by the appearance store (`src/stores/appearanceStore.ts`, with View Transition swaps). Brand tokens map to Daisy roles: `primary` = Signal Ink (per skin), `accent` = muted secondary, `base-100` = Vault Void, `base-200`/`base-300` = stepped surfaces.
 
 Commerce-tactile: buttons feel pressable; cards feel selectable; nav stays out of the way until scroll.
 
@@ -208,7 +208,7 @@ Bespoke components only (legacy shadcn/Radix tree purged; `scripts/check-cleanup
 - **Do** test AR and EN copy at the same visual weight — RTL layout mirrors spacing, not just `dir`.
 - **Do** use glow and motion on the element the user is about to click.
 - **Do** respect `prefers-reduced-motion` — crossfade or instant state change instead of translateY choreography.
-- **Do** keep framer-motion off the eager storefront chunk (lazy the motion hosts — see HANDOFF).
+- **Do** keep framer-motion off the eager storefront chunk (see HANDOFF).
 
 ### Don't:
 - **Don't** use generic SaaS patterns from PRODUCT.md: cream/sand backgrounds, hero metric templates, uppercase tracked eyebrows on every section, identical icon-card grids.
@@ -220,5 +220,5 @@ Bespoke components only (legacy shadcn/Radix tree purged; `scripts/check-cleanup
 
 ---
 
-**Last verified:** 2026-07-24  
-**How to update this doc:** When tokens/skins/shared UI rules change in `src/css/*.css` or `src/components/ui/`, update the matching section here. Engineering incidents go in HANDOFF gotchas, not as aspirational design wishes.
+**Last verified:** 2026-10-12  
+**How to update this doc:** When tokens/skins/shared UI rules change in `src/css/*.css` (storefront; dashboard CSS is `src/styles/*.css`) or `src/components/ui/`, update the matching section here. Engineering incidents go in HANDOFF gotchas.
