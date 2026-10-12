@@ -24,6 +24,7 @@ import UserAvatar from '../../components/ui/UserAvatar';
 import type { Profile, Role } from '../../types';
 import { PROFILE_ADMIN_COLS } from '../../lib/dbCols';
 import { formatMoney } from '../../lib/formatMoney';
+import { fmtDate, fmtDateTime } from '../../lib/dates';
 
 type Peek = Pick<Profile, 'id' | 'email' | 'full_name' | 'username' | 'avatar_url' | 'role'>;
 
@@ -139,7 +140,6 @@ export default function DeletionRequestsPage() {
   const { settings } = useSiteSettings();
   const graceDays =
     Math.max(1, Math.min(3650, Number.parseInt(settings.account_deletion_grace_days, 10) || 30));
-  const locale = lang === 'ar' ? 'ar' : 'en';
   const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50';
   const fieldFocus =
     'focus:outline-none focus:ring-0 focus:border-base-content/40 focus:shadow-none';
@@ -423,7 +423,7 @@ export default function DeletionRequestsPage() {
                         {r.profile?.email ? ` · ${r.profile.email}` : ''}
                       </p>
                       <p className="text-xs text-base-content/50 mt-0.5 tabular-nums">
-                        {new Date(r.created_at).toLocaleString(locale)}
+                        {fmtDateTime(r.created_at, lang)}
                       </p>
                     </div>
                     {r.profile?.role ? (
@@ -498,7 +498,7 @@ export default function DeletionRequestsPage() {
                         {p.deletion_scheduled_at ? (
                           <p className="text-xs text-error/90 mt-0.5 font-medium">
                             {t('موعد الحذف', 'Purge')}:{' '}
-                            {new Date(p.deletion_scheduled_at).toLocaleDateString(locale)}
+                            {fmtDate(p.deletion_scheduled_at, lang)}
                             {left != null ? (
                               <span className="text-base-content/55 font-normal">
                                 {' '}
@@ -584,7 +584,7 @@ export default function DeletionRequestsPage() {
                               {h.email ? ` · ${h.email}` : ''}
                             </p>
                             <p className="text-xs text-base-content/50 mt-0.5 tabular-nums">
-                              {t('حُذف', 'Deleted')} {new Date(h.deleted_at).toLocaleString(locale)}
+                              {t('حُذف', 'Deleted')} {fmtDateTime(h.deleted_at, lang)}
                               {' · '}
                               <span className="text-base-content/70 font-medium">
                                 {orderCount} {t('طلب', 'orders')}
@@ -619,7 +619,7 @@ export default function DeletionRequestsPage() {
                           {'created_at' in snap && snap.created_at ? (
                             <Meta
                               label={t('انضم', 'Joined')}
-                              value={new Date(String(snap.created_at)).toLocaleDateString(locale)}
+                              value={fmtDate(String(snap.created_at), lang)}
                             />
                           ) : null}
                           {'is_active' in snap ? (
@@ -674,7 +674,7 @@ export default function DeletionRequestsPage() {
                                         </span>
                                         {o.created_at ? (
                                           <span className="text-xs text-base-content/50 tabular-nums ms-auto">
-                                            {new Date(o.created_at).toLocaleString(locale)}
+                                            {fmtDateTime(o.created_at, lang)}
                                           </span>
                                         ) : null}
                                         <ChevronDown

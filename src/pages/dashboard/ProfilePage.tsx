@@ -26,6 +26,7 @@ import BadgeIcon from '../../components/ui/BadgeIcon';
 import ProfileBadgeStrip, { type PublicBadgeRow } from '../../components/ui/ProfileBadgeStrip';
 import type { Badge, UserBadge } from '../../types';
 import { useQueryClient } from '@tanstack/react-query';
+import { fmtDate } from '../../lib/dates';
 
 type Earned = UserBadge & { badge: Badge };
 type Flash = { kind: 'ok' | 'err'; text: string } | null;
@@ -54,7 +55,6 @@ export default function ProfilePage() {
   const queryClient = useQueryClient();
   const { settings } = useSiteSettings();
   const multiFlags = parseMultiAccountRoles(settings.multi_account_roles_json);
-  const locale = lang === 'ar' ? 'ar' : 'en';
 
   const [park, setPark] = useState<ParkedAccount | null>(() => loadPark());
   const [acctBusy, setAcctBusy] = useState(false);
@@ -189,8 +189,8 @@ export default function ProfilePage() {
       setUserMsg({
         kind: 'err',
         text: t(
-          `يمكنك التغيير مرة أخرى في ${unlockAt?.toLocaleDateString(locale) ?? '…'}`,
-          `You can change again on ${unlockAt?.toLocaleDateString('en') ?? '…'}`,
+          `يمكنك التغيير مرة أخرى في ${unlockAt ? fmtDate(unlockAt, lang) : '…'}`,
+          `You can change again on ${unlockAt ? fmtDate(unlockAt, 'en') : '…'}`,
         ),
       });
       return;
@@ -226,7 +226,7 @@ export default function ProfilePage() {
             t(
               `انتظر ${USERNAME_CHANGE_COOLDOWN_DAYS} يوماً بين التغييرات`,
               `Wait ${USERNAME_CHANGE_COOLDOWN_DAYS} days between changes`,
-            ) + (unlockAt ? ` · ${unlockAt.toLocaleDateString(locale)}` : ''),
+            ) + (unlockAt ? ` · ${fmtDate(unlockAt, lang)}` : ''),
         });
         return;
       }
@@ -406,8 +406,8 @@ export default function ProfilePage() {
           <span>
             {profile.deletion_scheduled_at
               ? t(
-                  `حسابك مجدول للحذف في ${new Date(profile.deletion_scheduled_at).toLocaleDateString(locale)}`,
-                  `Your account is scheduled for deletion on ${new Date(profile.deletion_scheduled_at).toLocaleDateString('en')}`,
+                  `حسابك مجدول للحذف في ${fmtDate(profile.deletion_scheduled_at, lang)}`,
+                  `Your account is scheduled for deletion on ${fmtDate(profile.deletion_scheduled_at, 'en')}`,
                 )
               : t('طلب حذف حسابك قيد المراجعة', 'Your account deletion request is pending review')}
           </span>
@@ -484,8 +484,8 @@ export default function ProfilePage() {
             <p>
               {userLocked && unlockAt
                 ? t(
-                    `التغيير مقفول حتى ${unlockAt.toLocaleDateString(locale)}`,
-                    `Locked until ${unlockAt.toLocaleDateString('en')}`,
+                    `التغيير مقفول حتى ${fmtDate(unlockAt, lang)}`,
+                    `Locked until ${fmtDate(unlockAt, 'en')}`,
                   )
                 : t(
                     `تغيير واحد كل ${USERNAME_CHANGE_COOLDOWN_DAYS} يوماً`,

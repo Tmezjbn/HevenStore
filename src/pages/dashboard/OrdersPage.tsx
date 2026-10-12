@@ -21,6 +21,7 @@ import { ORDER_STATUS_LABEL as STATUS_LABEL } from '../../lib/orderStatus';
 import type { Order, Profile, Role } from '../../types';
 import SellerOrdersPage from './SellerOrdersPage';
 import BuyerOrdersPage from './BuyerOrdersPage';
+import { fmtDate } from '../../lib/dates';
 
 const STAFF_ORDERS_ROLES: Role[] = ['owner', 'admin'];
 const BUYER_ORDERS_ROLES: Role[] = ['buyer', 'member', 'moderator', 'support'];
@@ -198,7 +199,7 @@ function productSummary(order: Order, lang: 'ar' | 'en'): string {
 }
 
 function formatOrderDate(iso: string, lang: 'ar' | 'en') {
-  return new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-u-ca-gregory' : 'en-US', {
+  return fmtDate(iso, lang, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

@@ -75,7 +75,10 @@ export default function DashboardLayout() {
               className="btn btn-primary btn-sm"
               onClick={() => {
                 setProfileStuck(false);
-                void fetchProfile(user.id).catch(() => setProfileStuck(true));
+                const stillMissing = () => {
+                  if (!useAuthStore.getState().profile) setProfileStuck(true);
+                };
+                void fetchProfile(user.id).then(stillMissing, stillMissing);
               }}
             >
               {t('إعادة المحاولة', 'Retry')}

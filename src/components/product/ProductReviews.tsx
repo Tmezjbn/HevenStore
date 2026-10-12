@@ -18,6 +18,7 @@ import Modal from '../ui/Modal';
 import UserAvatar from '../ui/UserAvatar';
 import RatingStars from '../ui/RatingStars';
 import { UGC_TEXT_CLASS, ugcAlignClass, ugcDir, ugcDisplay } from '../../lib/bidi';
+import { fmtDate } from '../../lib/dates';
 
 type Props = {
   productId: string;
@@ -147,7 +148,6 @@ export default function ProductReviews({
     return () => window.clearInterval(id);
   }, [cooldownMs, submitLockMs, productId, userId]);
 
-  const locale = lang === 'ar' ? 'ar-SA' : 'en-US';
   const count = productReviewCount ?? reviews.length;
   const avg =
     count > 0
@@ -316,7 +316,7 @@ export default function ProductReviews({
                       ) : null}
                     </div>
                     <time className="pe-reviews__date tabular-nums" dateTime={r.created_at}>
-                      {new Date(r.created_at).toLocaleDateString(locale)}
+                      {fmtDate(r.created_at, lang)}
                     </time>
                   </div>
                 </div>

@@ -22,6 +22,7 @@ import { UGC_TEXT_CLASS, ugcDir, ugcDisplay } from '../../lib/bidi';
 import UserAvatar from '../../components/ui/UserAvatar';
 import type { Notification, Profile } from '../../types';
 import { NOTIFICATION_COLS } from '../../lib/dbCols';
+import { fmtDateTime } from '../../lib/dates';
 
 const NOTIF_TYPES = ['info', 'message', 'system', 'discount', 'order', 'review'] as const;
 type NotifType = (typeof NOTIF_TYPES)[number];
@@ -78,7 +79,6 @@ export default function NotificationsPage() {
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const isOwner = profile?.role === 'owner';
-  const locale = lang === 'ar' ? 'ar' : 'en';
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -670,7 +670,7 @@ export default function NotificationsPage() {
                           </p>
                         ) : null}
                         <p className="text-xs text-base-content/65 tabular-nums">
-                          {new Date(n.created_at).toLocaleString(locale)}
+                          {fmtDateTime(n.created_at, lang)}
                         </p>
                       </div>
                       {!n.is_read ? (

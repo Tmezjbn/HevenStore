@@ -776,6 +776,7 @@ export default function ProductEditorPage() {
   };
 
   const seedCreateForm = () => {
+    createdIdRef.current = null;
     setEditing(null);
     const next: ProductForm = {
       ...EMPTY_FORM,
@@ -958,15 +959,25 @@ export default function ProductEditorPage() {
         return;
       }
 
+      // Leaving create mode: the next /new visit (same mounted page) must reseed.
+      seededCreateRef.current = false;
+      createdIdRef.current = null;
+
       // List → Edit: product already in location.state — paint now, extras in background.
       if (warmProduct) {
-        setEditing(warmProduct);
         const shell = buildFormFromProduct(warmProduct, { isSeller, userId: user?.id });
-        setForm(shell);
-        setKeyOverrides([]);
-        setBaseline(editorSnapshot(shell, [], []));
-        setLoadState('ready');
-        setTopOut(false);
+        // Re-runs (profile/settings hydration, uuid→slug canonicalize) must not
+        // reset a form the user already started editing.
+        const alreadyShown = loadedProductRef.current?.id === warmProduct.id;
+        loadedProductRef.current = warmProduct;
+        if (!alreadyShown) {
+          setEditing(warmProduct);
+          setForm(shell);
+          setKeyOverrides([]);
+          setBaseline(editorSnapshot(shell, [], []));
+          setLoadState('ready');
+          setTopOut(false);
+        }
         const [[{ data: cats }, sellersRes], extras] = await Promise.all([
           loadMeta(),
           fetchProductExtras(warmProduct.id),
@@ -1112,10 +1123,7 @@ export default function ProductEditorPage() {
 
   const uploadToBucket = async (file: File, tag: string): Promise<string | null> => {
     setFormError('');
-    const okType =
-      file.type.startsWith('image/') ||
-      file.type === 'video/mp4' ||
-      file.type === 'video/webm';
+    const okType = PRODUCT_MEDIA_ACCEPT.split(',').includes(file.type);
     if (!okType) {
       setFormError(t('صيغة غير مدعومة — صورة أو GIF أو MP4', 'Unsupported type — image, GIF, or MP4'));
       return null;
@@ -1124,12 +1132,19 @@ export default function ProductEditorPage() {
       setFormError(t('الحد الأقصى للملف 20 ميغابايت', 'Max file size is 20MB'));
       return null;
     }
+    if (!user?.id) {
+      setFormError(t('سجّل الدخول أولاً', 'Sign in first'));
+      return null;
+    }
     setUploading(true);
     try {
+      // Derive ext from the validated MIME type — file names may lack a dot or
+      // contain non-ASCII chars that make the storage key invalid.
       const ext =
-        file.name.split('.').pop()?.toLowerCase() ||
-        (file.type.startsWith('video/') ? 'mp4' : file.type === 'image/gif' ? 'gif' : 'png');
-      const path = `${user?.id}/${Date.now()}-${tag}.${ext}`;
+        { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm' }[
+          file.type
+        ] ?? 'bin';
+      const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${tag}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from('product-images')
         .upload(path, file, { cacheControl: '3600', contentType: file.type || undefined });
@@ -1254,6 +1269,7 @@ export default function ProductEditorPage() {
     setResourceSort(defaultResourceSort(target));
     setMediaLibraryLoading(true);
     setFormError('');
+    try {
     const fromResources = await listMediaResources();
     if (seq !== mediaLibSeqRef.current) return;
     const fromForm = urlsToItems(collectFormMediaUrls(form));
@@ -1283,7 +1299,14 @@ export default function ProductEditorPage() {
         ...fromStorage,
       ]),
     );
-    setMediaLibraryLoading(false);
+    } catch {
+      // Network/storage failure: don't leave the picker spinning forever.
+      if (seq === mediaLibSeqRef.current) {
+        setFormError(t('تعذّر تحميل المكتبة', 'Could not load the media library'));
+      }
+    } finally {
+      if (seq === mediaLibSeqRef.current) setMediaLibraryLoading(false);
+    }
   };
 
   const applyMediaPick = (url: string) => {
@@ -1336,6 +1359,11 @@ export default function ProductEditorPage() {
       setFormError(t('الاسم والمعرّف والسعر مطلوبة', 'Name, slug, and price are required'));
       return;
     }
+    const slugValue = slugify(form.slug);
+    if (!slugValue) {
+      setFormError(t('المعرّف غير صالح', 'Invalid slug'));
+      return;
+    }
     const price = Number(form.price);
     if (!Number.isFinite(price) || price < 0) {
       setFormError(t('السعر غير صالح', 'Invalid price'));
@@ -1372,7 +1400,7 @@ export default function ProductEditorPage() {
     const payload = {
       name: form.name.trim(),
       name_ar: form.name_ar.trim() || null,
-      slug: slugify(form.slug),
+      slug: slugValue,
       description: form.description.trim() || null,
       description_ar: form.description_ar.trim() || null,
       price,
@@ -4611,6 +4639,7 @@ export default function ProductEditorPage() {
                           type="file"
                           accept={SHOWCASE_VIDEO_ACCEPT}
                           className="hidden"
+                          disabled={uploading}
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) uploadShowcaseVideo(file);
@@ -4736,6 +4765,7 @@ export default function ProductEditorPage() {
                                           'Paste embed URL (YouTube / Vimeo / MP4 / /e/…)',
                                         )}
                                         className="pe-media__embed-input"
+                                        aria-label={`${t(`تضمين ${slot + 1}`, `Embed ${slot + 1}`)} — ${label}`}
                                       />
                                       <button
                                         type="button"
@@ -4954,7 +4984,7 @@ export default function ProductEditorPage() {
                           accept={GALLERY_ACCEPT}
                           multiple
                           className="hidden"
-                          disabled={form.galleryUrls.length >= GALLERY_MAX}
+                          disabled={uploading || form.galleryUrls.length >= GALLERY_MAX}
                           onChange={(e) => {
                             uploadGalleryFiles(e.target.files);
                             e.target.value = '';
@@ -5107,6 +5137,7 @@ export default function ProductEditorPage() {
                             type="file"
                             accept={PRODUCT_MEDIA_ACCEPT}
                             className="hidden"
+                            disabled={uploading}
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) uploadProductImage(slot.field, file);
@@ -5126,6 +5157,7 @@ export default function ProductEditorPage() {
                           <button
                             type="button"
                             onClick={() => setField(slot.field, '')}
+                            aria-label={t('إزالة', 'Remove')}
                                   className="pe-media__btn pe-media__btn--danger"
                           >
                                   <Trash2 size={12} />
@@ -5271,7 +5303,7 @@ export default function ProductEditorPage() {
               return (
                 <div className="pe-media__picker-body">
                   {linkItems.length > 0 ? (
-                    <div className="pe-media__pick-links" role="list">
+                    <div className="pe-media__pick-links">
                       {linkItems.map(({ url }) => {
                         let host = url;
                         let path = '';
@@ -5286,7 +5318,6 @@ export default function ProductEditorPage() {
                           <button
                             key={url}
                             type="button"
-                            role="listitem"
                             onClick={() => applyMediaPick(url)}
                             disabled={pickDisabled(url)}
                             className={`pe-media__pick pe-media__pick--link${

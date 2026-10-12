@@ -7,6 +7,7 @@ import { useI18n } from '../../lib/i18n';
 import { UGC_TEXT_CLASS, ugcDir, ugcDisplay } from '../../lib/bidi';
 import { NOTIFICATION_COLS } from '../../lib/dbCols';
 import type { Notification } from '../../types';
+import { fmtDate } from '../../lib/dates';
 
 export default function NotificationBell() {
   const user = useAuthStore((s) => s.user);
@@ -125,7 +126,7 @@ export default function NotificationBell() {
                           </p>
                         )}
                         <p className="text-[10px] text-base-content/55 mt-1">
-                          {new Date(n.created_at).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+                          {fmtDate(n.created_at, lang)}
                         </p>
                       </div>
                     </div>

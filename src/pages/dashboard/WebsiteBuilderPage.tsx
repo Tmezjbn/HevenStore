@@ -142,6 +142,7 @@ import {
 } from '../../lib/atmosphereLogos';
 import type { Category, Product } from '../../types';
 import { useQuery } from '@tanstack/react-query';
+import { fmtDateTime } from '../../lib/dates';
 
 type BuilderProduct = Pick<
   Product,
@@ -217,6 +218,12 @@ function newMediaId() {
   return `hm-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+/** Safe storage-path extension — file names may hold spaces, Arabic, or no dot. */
+function safeExt(name: string, fallback: string): string {
+  const m = /\.([a-z0-9]{1,5})$/i.exec(name);
+  return m ? m[1].toLowerCase() : fallback;
+}
+
 function kindFromFile(file: File): 'image' | 'video' {
   return file.type.startsWith('video/') ? 'video' : 'image';
 }
@@ -231,7 +238,7 @@ function normalizeEmbedUrl(raw: string): string | null {
   if (!trimmed) return null;
   try {
     const u = new URL(trimmed);
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    if (u.protocol !== 'https:') return null;
     return u.toString();
   } catch {
     return null;
@@ -473,62 +480,45 @@ export default function WebsiteBuilderPage() {
   const [error, setError] = useState('');
   const [okMsg, setOkMsg] = useState('');
 
+  // Skip placeholder defaults — they flip toggles (e.g. hero on) then snap off.
+  // One effect per group so saving one group never wipes unsaved edits in another.
+  const settingsReady = !settingsLoading && !settingsPlaceholder;
+
   useEffect(() => {
-    // Skip placeholder defaults — they flip toggles (e.g. hero on) then snap off.
-    if (!settingsLoading && !settingsPlaceholder) {
-      setHomeSections(parseSections(settings.home_sections, DEFAULT_HOME_SECTIONS));
-      setStoreSections(parseSections(settings.store_sections, DEFAULT_STORE_SECTIONS));
-      setHomeFeaturedIds(parseFeaturedProductIds(settings.home_featured_product_ids));
-      setStoreFeaturedIds(parseFeaturedProductIds(settings.store_featured_product_ids));
-      setStoreFeaturedMirror(parseStoreFeaturedMirrorHome(settings.store_featured_mirror_home));
-      setAdsProductIds(parseHomeAdsProductIds(settings.home_ads_product_ids));
-      setAdsAura(parseHomeAdsAura(settings.home_ads_aura) as AuraStyle);
-      setAdsIntervalSec(parseHomeAdsIntervalSec(settings.home_ads_interval_sec));
-      setAdsSize(parseHomeAdsSize(settings.home_ads_size));
-      setAdsBladeEnabled(parseHomeAdsBladeEnabled(settings.home_ads_blade_enabled));
-      setAdsBladeTextEn(
-        parseHomeAdsBladeText(settings.home_ads_blade_text_en, HOME_ADS_BLADE_TEXT_EN_DEFAULT),
-      );
-      setAdsBladeTextAr(
-        parseHomeAdsBladeText(settings.home_ads_blade_text_ar, HOME_ADS_BLADE_TEXT_AR_DEFAULT),
-      );
-      setAdsBladeSize(parseHomeAdsBladeSize(settings.home_ads_blade_size));
-      setAdsBladeColor(parseHomeAdsBladeColor(settings.home_ads_blade_color));
-      setAdsBladeOpacity(parseHomeAdsBladeOpacity(settings.home_ads_blade_opacity));
-      setAdsGlareHover(parseHomeAdsGlareHover(settings.home_ads_glare_hover));
-      setMerchMotionMode(parseMerchMotionMode(settings.merch_motion_mode));
-      setHoverCount(parseHomeHoverCardsCount(settings.home_hover_cards_count));
-      setHoverMode(parseHomeHoverCardsMode(settings.home_hover_cards_mode));
-      setHoverProductIds(parseHomeHoverCardsProductIds(settings.home_hover_cards_product_ids));
-      setFindMoreEnabled(parseProductFindMoreEnabled(settings.product_find_more_enabled));
-      setFindMoreMode(parseProductFindMoreMode(settings.product_find_more_mode));
-      setFindMoreSlots(parseProductFindMoreSlots(settings.product_find_more_slots));
-      setFindMoreIntervalSec(parseProductFindMoreIntervalSec(settings.product_find_more_interval_sec));
-      setFindMoreProductIds(parseProductFindMoreProductIds(settings.product_find_more_product_ids));
-      setPrivacyBanner(parsePrivacyConsentBanner(settings.privacy_consent_banner));
-      setDrawerCatsEnabled(parseDrawerCategoriesEnabled(settings.drawer_categories_enabled));
-      setStoreCatTreeExpand(parseStoreCategoryTreeExpand(settings.store_category_tree_expand));
-      setPlyrConfig(parsePlyrConfig(settings.plyr_json));
-      setPlyrSaved(false);
-      setDetailFx(parseProductDetailFx(settings.product_detail_fx_json, ATMOSPHERE_LOGO_IDS));
-      setDetailFxSaved(false);
-      setPresets(parseBuilderPresets(settings.builder_presets));
-      setFooterNav(parseFooterNav(settings.footer_nav));
-      setFooterSaved(false);
-      setSectionsSaved(false);
-      setHeroMedia(parseHeroMedia(settings.hero_media));
-      setHeroBlur(parseHeroMediaBlur(settings.hero_media_blur));
-      setHeroSoftness(parseHeroMediaSoftness(settings.hero_media_softness));
-      setHeroCardOpacity(parseHeroCardOpacity(settings.hero_card_opacity));
-      setHeroCardAura(parseHeroCardAura(settings.hero_card_aura) as AuraStyle);
-      setHeroBottomFade(parseHeroBottomFade(settings.hero_bottom_fade));
-      setHeroBottomFadeAnimate(parseHeroBottomFadeAnimate(settings.hero_bottom_fade_animate));
-      setHeroLogoPlacement(parseHeroLogoPlacement(settings.hero_logo_placement));
-      setHeroLogoUrl(parseHeroLogoUrl(settings.hero_logo_url));
-      setHeroEnabled(parseHeroEnabled(settings.hero_enabled));
-      setHeroBackdropEnabled(parseHeroBackdropEnabled(settings.hero_backdrop_enabled));
-      setHeroSaved(false);
-    }
+    if (!settingsReady) return;
+    setHomeSections(parseSections(settings.home_sections, DEFAULT_HOME_SECTIONS));
+    setStoreSections(parseSections(settings.store_sections, DEFAULT_STORE_SECTIONS));
+    setHomeFeaturedIds(parseFeaturedProductIds(settings.home_featured_product_ids));
+    setStoreFeaturedIds(parseFeaturedProductIds(settings.store_featured_product_ids));
+    setStoreFeaturedMirror(parseStoreFeaturedMirrorHome(settings.store_featured_mirror_home));
+    setAdsProductIds(parseHomeAdsProductIds(settings.home_ads_product_ids));
+    setAdsAura(parseHomeAdsAura(settings.home_ads_aura) as AuraStyle);
+    setAdsIntervalSec(parseHomeAdsIntervalSec(settings.home_ads_interval_sec));
+    setAdsSize(parseHomeAdsSize(settings.home_ads_size));
+    setAdsBladeEnabled(parseHomeAdsBladeEnabled(settings.home_ads_blade_enabled));
+    setAdsBladeTextEn(
+      parseHomeAdsBladeText(settings.home_ads_blade_text_en, HOME_ADS_BLADE_TEXT_EN_DEFAULT),
+    );
+    setAdsBladeTextAr(
+      parseHomeAdsBladeText(settings.home_ads_blade_text_ar, HOME_ADS_BLADE_TEXT_AR_DEFAULT),
+    );
+    setAdsBladeSize(parseHomeAdsBladeSize(settings.home_ads_blade_size));
+    setAdsBladeColor(parseHomeAdsBladeColor(settings.home_ads_blade_color));
+    setAdsBladeOpacity(parseHomeAdsBladeOpacity(settings.home_ads_blade_opacity));
+    setAdsGlareHover(parseHomeAdsGlareHover(settings.home_ads_glare_hover));
+    setMerchMotionMode(parseMerchMotionMode(settings.merch_motion_mode));
+    setHoverCount(parseHomeHoverCardsCount(settings.home_hover_cards_count));
+    setHoverMode(parseHomeHoverCardsMode(settings.home_hover_cards_mode));
+    setHoverProductIds(parseHomeHoverCardsProductIds(settings.home_hover_cards_product_ids));
+    setFindMoreEnabled(parseProductFindMoreEnabled(settings.product_find_more_enabled));
+    setFindMoreMode(parseProductFindMoreMode(settings.product_find_more_mode));
+    setFindMoreSlots(parseProductFindMoreSlots(settings.product_find_more_slots));
+    setFindMoreIntervalSec(parseProductFindMoreIntervalSec(settings.product_find_more_interval_sec));
+    setFindMoreProductIds(parseProductFindMoreProductIds(settings.product_find_more_product_ids));
+    setPrivacyBanner(parsePrivacyConsentBanner(settings.privacy_consent_banner));
+    setDrawerCatsEnabled(parseDrawerCategoriesEnabled(settings.drawer_categories_enabled));
+    setStoreCatTreeExpand(parseStoreCategoryTreeExpand(settings.store_category_tree_expand));
+    setSectionsSaved(false);
   }, [
     settings.home_sections,
     settings.store_sections,
@@ -558,10 +548,59 @@ export default function WebsiteBuilderPage() {
     settings.privacy_consent_banner,
     settings.drawer_categories_enabled,
     settings.store_category_tree_expand,
+    settingsReady,
+  ]);
+
+  useEffect(() => {
+    if (!settingsReady) return;
+    setPlyrConfig(parsePlyrConfig(settings.plyr_json));
+    setPlyrSaved(false);
+  }, [
     settings.plyr_json,
+    settingsReady,
+  ]);
+
+  useEffect(() => {
+    if (!settingsReady) return;
+    setDetailFx(parseProductDetailFx(settings.product_detail_fx_json, ATMOSPHERE_LOGO_IDS));
+    setDetailFxSaved(false);
+  }, [
     settings.product_detail_fx_json,
+    settingsReady,
+  ]);
+
+  useEffect(() => {
+    if (!settingsReady) return;
+    setPresets(parseBuilderPresets(settings.builder_presets));
+  }, [
     settings.builder_presets,
+    settingsReady,
+  ]);
+
+  useEffect(() => {
+    if (!settingsReady) return;
+    setFooterNav(parseFooterNav(settings.footer_nav));
+    setFooterSaved(false);
+  }, [
     settings.footer_nav,
+    settingsReady,
+  ]);
+
+  useEffect(() => {
+    if (!settingsReady) return;
+    setHeroMedia(parseHeroMedia(settings.hero_media));
+    setHeroBlur(parseHeroMediaBlur(settings.hero_media_blur));
+    setHeroSoftness(parseHeroMediaSoftness(settings.hero_media_softness));
+    setHeroCardOpacity(parseHeroCardOpacity(settings.hero_card_opacity));
+    setHeroCardAura(parseHeroCardAura(settings.hero_card_aura) as AuraStyle);
+    setHeroBottomFade(parseHeroBottomFade(settings.hero_bottom_fade));
+    setHeroBottomFadeAnimate(parseHeroBottomFadeAnimate(settings.hero_bottom_fade_animate));
+    setHeroLogoPlacement(parseHeroLogoPlacement(settings.hero_logo_placement));
+    setHeroLogoUrl(parseHeroLogoUrl(settings.hero_logo_url));
+    setHeroEnabled(parseHeroEnabled(settings.hero_enabled));
+    setHeroBackdropEnabled(parseHeroBackdropEnabled(settings.hero_backdrop_enabled));
+    setHeroSaved(false);
+  }, [
     settings.hero_media,
     settings.hero_media_blur,
     settings.hero_media_softness,
@@ -573,8 +612,7 @@ export default function WebsiteBuilderPage() {
     settings.hero_logo_url,
     settings.hero_enabled,
     settings.hero_backdrop_enabled,
-    settingsLoading,
-    settingsPlaceholder,
+    settingsReady,
   ]);
 
   useEffect(() => {
@@ -994,6 +1032,10 @@ export default function WebsiteBuilderPage() {
   const saveHeroMedia = async () => {
     if (!user || !heroDirty || saveMutation.isPending) return;
     setError('');
+    if (heroLogoUrl && !parseHeroLogoUrl(heroLogoUrl)) {
+      setError(t('رابط شعار البطاقة غير صالح — استخدم https://', 'Invalid card logo URL — use https://'));
+      return;
+    }
     try {
       await saveMutation.mutateAsync({
         updates: {
@@ -1110,8 +1152,8 @@ export default function WebsiteBuilderPage() {
     return snap;
   };
 
-  const persistPresets = async (next: BuilderPreset[], msg: string) => {
-    if (!user) return;
+  const persistPresets = async (next: BuilderPreset[], msg: string): Promise<boolean> => {
+    if (!user) return false;
     setPresetBusy(true);
     setError('');
     try {
@@ -1121,10 +1163,13 @@ export default function WebsiteBuilderPage() {
       });
       setPresets(next);
       setOkMsg(msg);
+      setPresetBusy(false);
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : t('فشل حفظ الإعدادات المسبقة', 'Failed to save presets'));
     }
     setPresetBusy(false);
+    return false;
   };
 
   const saveCurrentAsPreset = async () => {
@@ -1132,7 +1177,7 @@ export default function WebsiteBuilderPage() {
       setError(t(`الحد الأقصى ${BUILDER_PRESETS_MAX} إعدادات مسبقة`, `Maximum ${BUILDER_PRESETS_MAX} presets`));
       return;
     }
-    const name = presetName.trim() || `Preset ${presets.length + 1}`;
+    const name = presetName.trim() || t(`إعداد ${presets.length + 1}`, `Preset ${presets.length + 1}`);
     const next: BuilderPreset[] = [
       ...presets,
       {
@@ -1143,9 +1188,10 @@ export default function WebsiteBuilderPage() {
         snapshot: captureCurrentSnapshot(),
       },
     ];
-    await persistPresets(next, t('تم حفظ الإعداد المسبق', 'Preset saved'));
-    setPresetName('');
-    setNewPresetLocked(false);
+    if (await persistPresets(next, t('تم حفظ الإعداد المسبق', 'Preset saved'))) {
+      setPresetName('');
+      setNewPresetLocked(false);
+    }
   };
 
   const updatePreset = async (id: string) => {
@@ -1286,9 +1332,6 @@ export default function WebsiteBuilderPage() {
       if (updates.privacy_consent_banner != null) {
         setPrivacyBanner(parsePrivacyConsentBanner(updates.privacy_consent_banner));
       }
-      if (updates.privacy_consent_banner != null) {
-        setPrivacyBanner(parsePrivacyConsentBanner(updates.privacy_consent_banner));
-      }
       if (updates.drawer_categories_enabled != null) {
         setDrawerCatsEnabled(parseDrawerCategoriesEnabled(updates.drawer_categories_enabled));
       }
@@ -1334,10 +1377,7 @@ export default function WebsiteBuilderPage() {
       setError(t('الحد الأقصى للملف 20 ميغابايت', 'Max file size is 20MB'));
       return;
     }
-    const okType =
-      file.type.startsWith('image/') ||
-      file.type === 'video/mp4' ||
-      file.type === 'video/webm';
+    const okType = HERO_ACCEPT.split(',').includes(file.type);
     if (!okType) {
       setError(t('صيغة غير مدعومة — صورة أو GIF أو MP4', 'Unsupported type — image, GIF, or MP4'));
       return;
@@ -1347,7 +1387,7 @@ export default function WebsiteBuilderPage() {
     setError('');
     setOkMsg('');
     try {
-      const ext = file.name.split('.').pop()?.toLowerCase() || (file.type.startsWith('video/') ? 'mp4' : 'jpg');
+      const ext = safeExt(file.name, file.type.startsWith('video/') ? 'mp4' : 'jpg');
       const path = `hero/${user.id}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from('site-media')
@@ -1391,7 +1431,7 @@ export default function WebsiteBuilderPage() {
     setError('');
     setOkMsg('');
     try {
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+      const ext = safeExt(file.name, 'png');
       const path = `atmosphere-logos/${user.id}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from('site-media')
@@ -1667,7 +1707,7 @@ export default function WebsiteBuilderPage() {
                       {p.name}
                     </p>
                     <p className="text-sm text-base-content/65 tabular-nums">
-                      {new Date(p.updated_at).toLocaleString(lang === 'ar' ? 'ar' : 'en')}
+                      {fmtDateTime(p.updated_at, lang)}
                     </p>
                   </div>
                   <button
@@ -1916,6 +1956,7 @@ export default function WebsiteBuilderPage() {
                           className={`flex items-center gap-2.5 p-3 cursor-pointer ${focusRing}`}
                           onClick={() => setHeroFocusId(m.id)}
                           onKeyDown={(e) => {
+                            if (e.target !== e.currentTarget) return;
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
                               setHeroFocusId(m.id);
@@ -2416,6 +2457,7 @@ export default function WebsiteBuilderPage() {
             type="color"
             className="w-10 h-8 rounded border border-base-300 bg-transparent cursor-pointer"
             value={plyrConfig.accent}
+            aria-label={t('لون التمييز', 'Accent')}
             onChange={(e) => {
               setPlyrConfig((p) => ({ ...p, accent: e.target.value }));
               setPlyrSaved(false);
@@ -2859,6 +2901,7 @@ export default function WebsiteBuilderPage() {
                           className="input input-bordered input-xs flex-1 font-mono"
                           placeholder="https://…/logo.png"
                           value={logoEmbedUrl}
+                          aria-label={t('رابط صورة الشعار', 'Logo image URL')}
                           dir="ltr"
                           onChange={(e) => setLogoEmbedUrl(e.target.value)}
                           onKeyDown={(e) => {
@@ -3933,6 +3976,7 @@ export default function WebsiteBuilderPage() {
                   placeholder={t('ابحث عن منتج…', 'Search products…')}
                   value={hoverSearch}
                   onChange={(e) => setHoverSearch(e.target.value)}
+                  aria-label={t('بحث منتجات البطاقات', 'Search hover card products')}
                 />
               </label>
               <div className="max-h-56 overflow-y-auto space-y-1 rounded-lg border border-base-300 p-2">

@@ -1,3 +1,4 @@
+import { fmtDate } from './dates';
 /** Shared dashboard list paging (Orders / Products / Users). */
 export const DASHBOARD_PAGE_SIZE = 25;
 
@@ -30,7 +31,7 @@ export function buildLast7Days(
     d.setDate(d.getDate() - i);
     days.push({
       key: localDayKey(d),
-      label: d.toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'short' }),
+      label: fmtDate(d, lang, { weekday: 'short' }),
       revenue: 0,
       orders: 0,
     });

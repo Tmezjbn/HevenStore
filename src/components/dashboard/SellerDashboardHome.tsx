@@ -15,6 +15,7 @@ import { useI18n } from '../../lib/i18n';
 import ProductMedia from '../ui/ProductMedia';
 import UserAvatar from '../ui/UserAvatar';
 import { formatMoney } from '../../lib/formatMoney';
+import { fmtDate } from '../../lib/dates';
 
 type Notif = {
   id: string;
@@ -40,7 +41,7 @@ const focusRing =
   'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
 function formatDate(iso: string, lang: 'ar' | 'en') {
-  return new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+  return fmtDate(iso, lang, {
     month: 'short',
     day: 'numeric',
   });

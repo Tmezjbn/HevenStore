@@ -1093,7 +1093,7 @@ export function parseHeroLogoUrl(raw: string): string {
   if (!u) return '';
   try {
     const parsed = new URL(u);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return u;
+    if (parsed.protocol === 'https:') return u; // http would be blocked as mixed content
   } catch {
     /* ignore */
   }

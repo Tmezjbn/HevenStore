@@ -28,6 +28,7 @@ import { DASHBOARD_PAGE_SIZE, pageRange } from '../../lib/dashboardPage';
 import type { Profile, Role } from '../../types';
 import { PROFILE_ADMIN_COLS } from '../../lib/dbCols';
 import { fetchStaffNotes } from '../../lib/staffNotes';
+import { fmtDate, fmtDateTime } from '../../lib/dates';
 
 type RolePending = {
   userId: string;
@@ -79,7 +80,6 @@ export default function UsersPage() {
   const profile = useAuthStore((s) => s.profile);
   const { settings } = useSiteSettings();
   const graceDays = Math.max(1, Math.min(3650, Number.parseInt(settings.account_deletion_grace_days, 10) || 30));
-  const locale = lang === 'ar' ? 'ar' : 'en';
 
   const [guideOpen, setGuideOpen] = useState(false);
   const [users, setUsers] = useState<Profile[]>([]);
@@ -354,8 +354,8 @@ export default function UsersPage() {
     if (u.deletion_scheduled_at) return t('مجدول للحذف', 'Deletion scheduled');
     if (!u.is_active && u.disabled_until) {
       return t(
-        `معطّل حتى ${new Date(u.disabled_until).toLocaleString(locale)}`,
-        `Disabled until ${new Date(u.disabled_until).toLocaleString('en')}`,
+        `معطّل حتى ${fmtDateTime(u.disabled_until, lang)}`,
+        `Disabled until ${fmtDateTime(u.disabled_until, 'en')}`,
       );
     }
     if (!u.is_active) return t('معطّل', 'Disabled');
@@ -686,7 +686,7 @@ export default function UsersPage() {
                       {statusShort}
                     </span>
                     <time className={`${prefix}__joined tabular-nums`} dateTime={user.created_at}>
-                      {new Date(user.created_at).toLocaleDateString(locale)}
+                      {fmtDate(user.created_at, lang)}
                     </time>
                   </div>
                   <div className={`${prefix}__change`}>

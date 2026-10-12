@@ -10,6 +10,7 @@ import ProductMedia from '../../components/ui/ProductMedia';
 import PageBar from '../../components/dashboard/PageBar';
 import { DASHBOARD_PAGE_SIZE, pageRange } from '../../lib/dashboardPage';
 import { formatMoney } from '../../lib/formatMoney';
+import { fmtDate } from '../../lib/dates';
 
 type SaleRow = {
   order_id: string;
@@ -41,7 +42,7 @@ const focusRing =
   'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
 function formatDate(iso: string, lang: 'ar' | 'en') {
-  return new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-u-ca-gregory' : 'en-US', {
+  return fmtDate(iso, lang, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

@@ -5,6 +5,7 @@ import { useAuthStore, PROFILE_COLS } from '../../stores/authStore';
 import { useI18n } from '../../lib/i18n';
 import BadgeIcon from '../../components/ui/BadgeIcon';
 import type { Badge, UserBadge } from '../../types';
+import { fmtDate } from '../../lib/dates';
 
 type Earned = UserBadge & { badge: Badge };
 
@@ -146,7 +147,7 @@ export default function MyBadgesPage() {
                 </p>
                 {row.awarded_at ? (
                   <p className="text-xs text-base-content/45 tabular-nums">
-                    {new Date(row.awarded_at).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+                    {fmtDate(row.awarded_at, lang, {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',

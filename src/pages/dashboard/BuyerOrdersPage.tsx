@@ -24,6 +24,7 @@ import { cancelOrder } from '../../lib/orderActions';
 import { formatMoney } from '../../lib/formatMoney';
 import { ORDER_STATUS_LABEL as STATUS_LABEL } from '../../lib/orderStatus';
 import type { Order, Role } from '../../types';
+import { fmtDate } from '../../lib/dates';
 
 type BuyerOrder = Order & {
   items?: {
@@ -50,7 +51,7 @@ const focusRing =
   'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
 function formatDate(iso: string, lang: 'ar' | 'en') {
-  return new Date(iso).toLocaleDateString(lang === 'ar' ? 'ar-u-ca-gregory' : 'en-US', {
+  return fmtDate(iso, lang, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

@@ -13,6 +13,7 @@ import { useI18n } from '../../lib/i18n';
 import { supabase } from '../../lib/supabase';
 import StatsResetControl from '../../components/dashboard/StatsResetControl';
 import { dashboardStatsSinceIso, parseDashboardStatsResetAt } from '../../lib/siteSettings';
+import { fmtDate, fmtDateTime, fmtTime } from '../../lib/dates';
 
 type IconComp = ComponentType<SVGProps<SVGSVGElement> & { size?: number | string }>;
 
@@ -217,7 +218,7 @@ function formatDay(raw: string, lang: 'ar' | 'en'): string {
   const ymd = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.trim());
   const d = ymd ? new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3])) : new Date(raw);
   if (Number.isNaN(d.getTime())) return raw.slice(5, 10) || raw;
-  return d.toLocaleDateString(lang === 'ar' ? 'ar' : 'en', { month: 'short', day: 'numeric' });
+  return fmtDate(d, lang, { month: 'short', day: 'numeric' });
 }
 
 function formatDuration(sec: number, t: (ar: string, en: string) => string): string {
@@ -229,7 +230,7 @@ function formatDuration(sec: number, t: (ar: string, en: string) => string): str
 function formatWhen(raw: string, lang: 'ar' | 'en'): string {
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return raw;
-  return d.toLocaleString(lang === 'ar' ? 'ar' : 'en', {
+  return fmtDateTime(d, lang, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -942,7 +943,7 @@ export default function AnalyticsPage() {
             {updatedAt ? (
               <span className="ms-2 text-base-content/70 tabular-nums">
                 · {t('آخر تحديث', 'Updated')}{' '}
-                {updatedAt.toLocaleTimeString(lang === 'ar' ? 'ar' : 'en', {
+                {fmtTime(updatedAt, lang, {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}

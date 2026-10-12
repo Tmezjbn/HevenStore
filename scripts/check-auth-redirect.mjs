@@ -69,7 +69,7 @@ assert.match(pdp, /isError/, 'PDP must distinguish network error from not found'
 assert.match(pdp, /Could not load product|تعذّر تحميل المنتج/, 'PDP network error copy');
 
 const bell = readFileSync(path.join(root, 'src/components/notifications/NotificationBell.tsx'), 'utf8');
-assert.match(bell, /toLocaleDateString\(lang === 'ar'/, 'NotificationBell dates must use lang locale');
+assert.match(bell, /fmtDate\([^)]*, lang\)/, 'NotificationBell dates must use lang locale');
 assert.match(bell, /Escape/, 'NotificationBell Escape closes panel');
 
 console.log('auth_redirect ok');
