@@ -10,6 +10,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { fetchStaffNotes } from '../../lib/staffNotes';
 import { useAuthStore } from '../../stores/authStore';
 import { useI18n } from '../../lib/i18n';
 import {
@@ -141,17 +142,20 @@ export default function SupportPage() {
   const loadProfiles = useCallback(async (ids: string[]) => {
     const uniq = [...new Set(ids.filter(Boolean))];
     if (!uniq.length) return;
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name, username, role, staff_notes, support_standing')
-      .in('id', uniq);
+    const [{ data }, notes] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, full_name, username, role, support_standing')
+        .in('id', uniq),
+      isStaff ? fetchStaffNotes(uniq) : Promise.resolve({} as Record<string, string>),
+    ]);
     if (!data) return;
     setProfiles((prev) => {
       const next = { ...prev };
-      for (const row of data as ProfileLite[]) next[row.id] = row;
+      for (const row of data as ProfileLite[]) next[row.id] = { ...row, staff_notes: notes[row.id] ?? null };
       return next;
     });
-  }, []);
+  }, [isStaff]);
 
   const loadTickets = useCallback(async (opts?: { quiet?: boolean }) => {
     if (!user) return;
@@ -201,12 +205,17 @@ export default function SupportPage() {
             .filter(Boolean) as string[],
         ),
       ];
-      const { data: personRows } = await supabase
-        .from('profiles')
-        .select('id, full_name, username, role, staff_notes, support_standing')
-        .in('id', personIds.length ? personIds : ['00000000-0000-0000-0000-000000000000']);
+      const [{ data: personRows }, personNotes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, full_name, username, role, support_standing')
+          .in('id', personIds.length ? personIds : ['00000000-0000-0000-0000-000000000000']),
+        isStaff ? fetchStaffNotes(personIds) : Promise.resolve({} as Record<string, string>),
+      ]);
       const map: Record<string, ProfileLite> = {};
-      for (const row of (personRows ?? []) as ProfileLite[]) map[row.id] = row;
+      for (const row of (personRows ?? []) as ProfileLite[]) {
+        map[row.id] = { ...row, staff_notes: personNotes[row.id] ?? null };
+      }
       rows = rows.filter((r) => threadSearchBlob(r, map, mode, lang).includes(needle));
       setProfiles((prev) => ({ ...prev, ...map }));
     }

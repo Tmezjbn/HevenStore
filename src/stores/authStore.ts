@@ -28,7 +28,6 @@ export const PROFILE_COLS = [
   'role',
   'is_active',
   'support_standing',
-  'staff_notes',
   'show_seller_name',
   'show_badges',
   'analytics_consent',

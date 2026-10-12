@@ -284,4 +284,15 @@ for (const [fn, limit] of [
   );
 }
 
+// Staff notes are staff-only: never on profiles (users can read their own row).
+{
+  mustInclude('supabase/migrations/20261012140000_staff_notes_private.sql', 'profiles_staff_notes_retired');
+  const auth = readFileSync(join(root, 'src/stores/authStore.ts'), 'utf8');
+  assert.ok(!auth.includes("'staff_notes'"), 'authStore PROFILE_COLS must not load staff_notes');
+  for (const f of ['src/pages/dashboard/SupportPage.tsx', 'src/pages/dashboard/UsersPage.tsx']) {
+    const src = readFileSync(join(root, f), 'utf8');
+    assert.ok(!/\.select\([^)]*staff_notes/.test(src), `${f} must read notes via fetchStaffNotes`);
+  }
+}
+
 console.log('check-support-tickets: ok');

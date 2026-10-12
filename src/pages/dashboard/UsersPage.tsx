@@ -27,6 +27,7 @@ import PageBar from '../../components/dashboard/PageBar';
 import { DASHBOARD_PAGE_SIZE, pageRange } from '../../lib/dashboardPage';
 import type { Profile, Role } from '../../types';
 import { PROFILE_ADMIN_COLS } from '../../lib/dbCols';
+import { fetchStaffNotes } from '../../lib/staffNotes';
 
 type RolePending = {
   userId: string;
@@ -235,6 +236,19 @@ export default function UsersPage() {
     setDangerCandidates((prev) => prev.map((u) => (u.id === userId ? { ...u, ...patch } : u)));
     setDangerTarget((prev) => (prev?.id === userId ? { ...prev, ...patch } : prev));
   };
+
+  // Notes are staff-only (profile_staff_notes) — load them for the open user.
+  const selectedId = selected?.id;
+  useEffect(() => {
+    if (!selectedId) return;
+    let cancelled = false;
+    void fetchStaffNotes([selectedId]).then((notes) => {
+      if (!cancelled) patchUser(selectedId, { staff_notes: notes[selectedId] ?? null });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId]);
 
   const changeRole = async (userId: string, newRole: string) => {
     setRoleError('');
