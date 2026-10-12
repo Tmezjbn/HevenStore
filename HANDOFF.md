@@ -98,7 +98,6 @@ Format: **what** · **where** · **who**.
 | What | Where | Who |
 |------|-------|-----|
 | Confirm edge fns redeployed (`polar-webhook` 500-on-finalize-failure retry; `client-error --no-verify-jwt`) | Supabase Edge Functions | Owner/deployer |
-| Rotate live `PURGE_CRON_SECRET`; keep placeholder in repo; re-run `supabase/cron/purge_due_account_deletions.sql` | Dashboard + cron SQL | Owner |
 | Polar failure mail, log drain/uptime, PITR, restore drill | `OPS.md` | Owner |
 | Host serves SPA rewrite + security headers; tighten CSP `frame-src` (currently `'self' https:`) | `public/_headers`, `vercel.json` | Owner/deployer |
 | Prod build has `VITE_SUPABASE_*` so sitemap lists products (build fails if env set and 0 products) | Build env | Owner |
@@ -111,7 +110,7 @@ Format: **what** · **where** · **who**.
 | Product decisions deferred: guest checkout; full SSG; in-app refunds/chargebacks (owner: not now — a reversed Polar payment stays `paid` + fulfillment exposed) | Product | Owner |
 | Optional image transforms | Storage Pro + `VITE_SUPABASE_IMAGE_TRANSFORM=true` | Owner |
 
-Verified 2026-10-12: all 149 migrations applied on live; edge secrets `SITE_URL` + `POLAR_SERVER` set; `claimed` always gets an assignee (`20261012120000`).
+Verified 2026-10-12: all 149 migrations applied on live; edge secrets `SITE_URL` + `POLAR_SERVER` set; `PURGE_CRON_SECRET` rotated and matched to the cron job (they had drifted apart); `claimed` always gets an assignee (`20261012120000`).
 
 Accepted (not open): auth tokens in localStorage (rely on CSP); same-URL hreflang; public-RPC and support-ticket rate limits already shipped.
 
